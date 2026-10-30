@@ -18,7 +18,8 @@ android {
         versionCode = 1
         versionName = appVersion
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+            // Chaquopy's Python 3.12 is 64-bit only, so very old 32-bit phones are not supported.
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
     }
 

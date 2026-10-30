@@ -6,7 +6,7 @@ You still need the game unpacked into a folder, the same as with Termux. The app
 
 ## What you need
 
-- An Android phone or tablet with Android 7 or newer.
+- A 64-bit Android phone or tablet with Android 7 or newer. Almost every phone from the last several years is 64-bit.
 - Your TITS-Modding folder, laid out like this:
 
 ```
