@@ -1,6 +1,6 @@
 # NestPatcher
 
-NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Tainted Space**. It runs on Windows, Linux, macOS and Android (Termux), and it has a browser-based GUI for people who'd rather not use the command line.
+NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Tainted Space**. It runs on Windows, Linux, macOS and Android (as an app or in Termux), and it has a browser-based GUI for people who'd rather not use the command line.
 
 > **NestPatcher is not KittyPatcher.** It is based on **KittyPatcher by LibraKitty**, the original Windows patcher. The `.mod` format is hers, and the way mods are found and applied comes from her patcher. Don't use both patchers on the same game, because each one undoes the other's changes. To keep them apart, NestPatcher uses different names for everything:
 >
@@ -8,7 +8,7 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 > |---|---|---|
 > | Mods folder | `kitty-mods` | `nestmods` |
 > | Files it puts in the game | `mods/kitty/`, `kitty-inline.js` | `mods/nest/`, `nest-inline.js` |
-> | Systems | Windows | Windows, Linux, macOS, Android (Termux), GUI |
+> | Systems | Windows | Windows, Linux, macOS, Android (app or Termux), GUI |
 >
 > If NestPatcher finds an old `kitty-mods` folder, it renames it to `nestmods` for you, and your clean backups move with it. It also removes anything KittyPatcher left in the game, and warns you if KittyPatcher is sitting in the same folder.
 
@@ -21,6 +21,7 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 | Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.3.py`](patchers/) + `NestPatcher_Windows_v1.3.bat` | [Guide_Windows_v1.3.md](docs/Guide_Windows_v1.3.md) |
 | Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.3.py`](patchers/) + `nestpatcher_linux_v1.3.sh` | [Guide_Linux_v1.3.md](docs/Guide_Linux_v1.3.md) |
 | macOS | [`patchers/NestPatcher_TiTS_Mac_v1.2.py`](patchers/) | [NestPatcher_Mac_Guide_v1.2.md](docs/NestPatcher_Mac_Guide_v1.2.md) |
+| Android, no Termux (app) | `NestPatcher_Android_App_v0.1.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.1.md](docs/Guide_Android_App_v0.1.md) |
 | Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.2.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.4.md](docs/Guide_GUI_v0.4.md) |
 
 The GUI bundles include Python and Node.js. The command-line versions need Python 3 and Node.js installed (Node.js checks every mod for mistakes before the game is touched).
@@ -47,7 +48,8 @@ The GUI bundles include Python and Node.js. The command-line versions need Pytho
 - `patchers/NestPatcher_TiTS_Mac_v1.2.py` and `patchers/NestPatcher_TiTS_Android_v1.2.py` are standalone and edited directly.
 - `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.3.py`.
 - `packaging/build_bundles.sh` builds the AppImage and the Windows zip on Linux. It downloads pinned, checksum-verified Python ([python-build-standalone](https://github.com/astral-sh/python-build-standalone)) and Node.js. The Windows `.exe` is a small launcher from `src/launcher/`, compiled with MinGW.
-- GitHub Actions runs the smoke test on Windows, Linux and macOS for every push. It builds the bundles, checks the Windows bundle on a real Windows machine, and attaches the bundles to a release when you push a `v*` tag.
+- GitHub Actions runs the smoke test on Windows, Linux and macOS for every push. It builds the bundles, checks the Windows bundle on a real Windows machine, builds the Android APK, and attaches all of them to a release when you push a `v*` tag.
+- `android/` is the Android app (Kotlin + [Chaquopy](https://chaquo.com/chaquopy/) Python). It carries every script in `patchers/`, runs the Android one by default, and checks JavaScript with the phone's WebView instead of Node.js. `android/app/src/main/python/nest_android.py` is the glue, tested on a PC by `tests/test_android_harness.py`. CI builds the APK with `gradle assembleRelease`.
 - Version numbers go in file names (for example `_v1.3`), so it's always clear which copy is newer.
 
 ## Credits
