@@ -1,0 +1,13 @@
+NestPatcher GUI v@VER@ for Windows 10/11 (not KittyPatcher)
+Based on KittyPatcher by LibraKitty.
+
+1. Unzip this whole folder somewhere you own, e.g. C:\Games\NestPatcher.
+   (Don't run it from inside the zip.)
+2. Put your mods (enabled.txt and the .mod / .js files) into the nestmods folder.
+3. Double-click @NAME@.exe.
+   A black window opens (keep it open) and the control panel opens in your browser.
+4. Setup tab: pick your TiTS folder. Patch tab: Test my mods, then Patch the game.
+
+Nothing to install: Python and Node.js are included in the runtime folder.
+If Windows SmartScreen warns about an unknown app: More info > Run anyway.
+Text size (A- / A+) and Dark / Light theme are at the top of the panel.
