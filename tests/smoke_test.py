@@ -1,7 +1,7 @@
 """End-to-end check of a NestPatcher command-line script on a tiny fake game.
 
-    python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.4.py
-    python tests/smoke_test.py patchers/NestPatcher_TiTS_Windows_v1.4.py --python path/to/python
+    python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.5.py
+    python tests/smoke_test.py patchers/NestPatcher_TiTS_Windows_v1.5.py --python path/to/python
 
 No TiTS files are needed: the fake game has an index.html, a hashed main.<hash>.js
 with a version string, and one content bundle. Node.js must be on PATH (or set
@@ -94,7 +94,7 @@ def main():
 
         result = run("--dry-run")
         check("dry run exits 0", result.returncode == 0)
-        check("dry run counts 2 replacements", "DRY RUN: 3 replacements" in result.stdout)
+        check("dry run counts 3 replacements", "DRY RUN: 3 replacements" in result.stdout)
         check("kitty-mods renamed to nestmods", os.path.isdir(os.path.join(tool, "nestmods"))
               and not os.path.isdir(os.path.join(tool, "kitty-mods")))
         check("dry run leaves game alone", read("main.1a2b3c4d.js") == MAIN)
@@ -118,6 +118,16 @@ def main():
             handle.write("Missing.mod\n")
         result = run()
         check("missing mod stops the build", result.returncode != 0 and "Missing enabled files" in result.stdout)
+
+        enabled = os.path.join(tool, "nestmods", "enabled.txt")
+        shutil.copy2(os.path.join(tool, "nestmods", "Smoke.mod"), os.path.join(tool, "nestmods", "Smoke_v2.mod"))
+        with open(enabled, "w", encoding="utf-8") as handle:
+            handle.write("Smoke.mod\nSmoke_v2.mod\nExtra.js\n")
+        result = run()
+        check("two versions of one mod stop the build", result.returncode != 0
+              and "two versions of the same mod" in result.stdout)
+        with open(enabled, "w", encoding="utf-8") as handle:
+            handle.write("Smoke.mod\nExtra.js\n")
 
         result = run("--restore")
         check("restore exits 0", result.returncode == 0)

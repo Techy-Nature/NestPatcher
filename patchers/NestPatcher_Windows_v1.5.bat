@@ -1,12 +1,12 @@
 @echo off
 rem Double-click me. Shows the NestPatcher menu in this window.
-rem Keep me in the same folder as NestPatcher_TiTS_Windows_v1.4.py and nestmods.
+rem Keep me in the same folder as NestPatcher_TiTS_Windows_v1.5.py and nestmods.
 setlocal
 cd /d "%~dp0"
 set "PY=py -3"
 %PY% --version >nul 2>nul || set "PY=python"
 %PY% --version >nul 2>nul || goto nopython
-%PY% "%~dp0NestPatcher_TiTS_Windows_v1.4.py" --menu %*
+%PY% "%~dp0NestPatcher_TiTS_Windows_v1.5.py" --menu %*
 echo.
 pause
 exit /b

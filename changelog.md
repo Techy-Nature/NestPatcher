@@ -17,6 +17,7 @@ Latest: 2.6
 
 - **Treetop Tattoo Clarity:** Now patches the Windows, Linux and Mac game too. Before, two of its patches only matched the Android game, so patching on PC stopped with MISS.
 - **Holo-Lock Chastity:** Same fix: it now patches the PC game as well as Android.
+- **NestPatcher (1.5 PC, 1.4 Android/Mac, GUI 0.6, app 0.4):** If two versions of one mod are both in `enabled.txt` (for example `TN_TattooParlor.mod` and `TN_TattooParlor_v2.6.mod`), patching now stops right away and names them, instead of applying the mod twice and ending in MISS. Keep only the newest one.
 - **NestPatcher:** These two mods need NestPatcher 1.4 (PC), Android patcher 1.3, GUI 0.5 or the Android app 0.3 or newer. Older patchers report MISS for them.
 
 ## Modv2.5 — Desktop settings menu (2026-10-31)

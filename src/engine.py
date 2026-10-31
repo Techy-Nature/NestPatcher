@@ -318,6 +318,19 @@ def load_game_files():
     return found
 
 
+VERSION_TAG = re.compile(r"_v\d+(?:\.\d+)*(?=\.[^.]+$)", re.IGNORECASE)
+
+
+def same_mod_twice(names):
+    """Groups of enabled files that are versions of one mod, e.g. TN_X.mod and TN_X_v2.6.mod.
+    Running both applies the mod twice, so the second copy can't find its text."""
+    groups = {}
+    for name in names:
+        key = VERSION_TAG.sub("", os.path.basename(name)).lower()
+        groups.setdefault(key, []).append(name)
+    return [group for group in groups.values() if len(group) > 1]
+
+
 # A needle may name minified functions through @@name@@ wildcards, because the
 # PC and Android builds of TiTS give the same function different short names.
 # Each @@name@@ matches one JavaScript identifier; repeating a name means the
@@ -654,6 +667,12 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
     if missing:
         log("STOP: Missing enabled files: " + ", ".join(missing))
         log("Remove missing entries from enabled.txt or restore the missing files. No changes made.")
+        return 1
+    twice = same_mod_twice([os.path.basename(path) for path in enabled_mods()])
+    if twice:
+        for group in twice:
+            log("STOP: two versions of the same mod are turned on: " + ", ".join(group))
+        log("Keep only the newest version of each in enabled.txt (put # in front of the others). No changes made.")
         return 1
 
     pending = list(replacements)
