@@ -18,13 +18,13 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 
 | You are on | Use | Guide |
 |---|---|---|
-| Windows 10/11, no installing | `NestPatcher_GUI_v0.4_Windows.zip` from [Releases](../../releases) | [Guide_GUI_v0.4.md](docs/Guide_GUI_v0.4.md) |
-| Linux, no installing | `NestPatcher_GUI_v0.4-x86_64.AppImage` from [Releases](../../releases) | [Guide_GUI_v0.4.md](docs/Guide_GUI_v0.4.md) |
-| Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.3.py`](patchers/) + `NestPatcher_Windows_v1.3.bat` | [Guide_Windows_v1.3.md](docs/Guide_Windows_v1.3.md) |
-| Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.3.py`](patchers/) + `nestpatcher_linux_v1.3.sh` | [Guide_Linux_v1.3.md](docs/Guide_Linux_v1.3.md) |
-| macOS | [`patchers/NestPatcher_TiTS_Mac_v1.2.py`](patchers/) | [NestPatcher_Mac_Guide_v1.2.md](docs/NestPatcher_Mac_Guide_v1.2.md) |
-| Android, no Termux (app) | `NestPatcher_Android_App_v0.2.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.2.md](docs/Guide_Android_App_v0.2.md) |
-| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.2.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.4.md](docs/Guide_GUI_v0.4.md) |
+| Windows 10/11, no installing | `NestPatcher_GUI_v0.4_Windows.zip` from [Releases](../../releases) | [Guide_GUI_v0.5.md](docs/Guide_GUI_v0.5.md) |
+| Linux, no installing | `NestPatcher_GUI_v0.5-x86_64.AppImage` from [Releases](../../releases) | [Guide_GUI_v0.5.md](docs/Guide_GUI_v0.5.md) |
+| Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.4.py`](patchers/) + `NestPatcher_Windows_v1.4.bat` | [Guide_Windows_v1.4.md](docs/Guide_Windows_v1.4.md) |
+| Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.4.py`](patchers/) + `nestpatcher_linux_v1.4.sh` | [Guide_Linux_v1.4.md](docs/Guide_Linux_v1.4.md) |
+| macOS | [`patchers/NestPatcher_TiTS_Mac_v1.3.py`](patchers/) | [NestPatcher_Mac_Guide_v1.3.md](docs/NestPatcher_Mac_Guide_v1.3.md) |
+| Android, no Termux (app) | `NestPatcher_Android_App_v0.3.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.3.md](docs/Guide_Android_App_v0.3.md) |
+| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.3.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.5.md](docs/Guide_GUI_v0.5.md) |
 
 The GUI bundles include Python and Node.js. The command-line versions need Python 3 and Node.js installed (Node.js checks every mod for mistakes before the game is touched).
 
@@ -36,6 +36,21 @@ The GUI bundles include Python and Node.js. The command-line versions need Pytho
 - **Search game code:** for people writing mods.
 - **Report a bug:** makes a zip with the patch log and system info. Your user name and home folder are blanked out.
 - **Comfort settings:** A−/A+ text size (80–250%), Auto/Dark/Light theme, and large scrollbars.
+
+## Writing mods
+
+A `.mod` file is a list of blocks. `Replace [file.js]:` (or `Rep`) is followed by the exact game text to find, then `With:` (or `W:`) and the new text. `Add Javascript:` adds code that runs in the game. Lines starting with `#` are notes. The file name in brackets can leave out the hash: `[main.js]` finds `main.0077a16c.js`.
+
+The PC and Android builds of TiTS give the same minified function different short names (for example `mN` on Android and something else on PC). To match both, write `@@name@@` in place of the function name. It matches any one JavaScript name, and the same `@@name@@` in the `With:` text puts the game's own name back:
+
+```
+Rep [main.js]:
+function @@fapList@@(){var e,t=arguments.length>0
+W:
+function @@fapList@@(){var tnR=tnFapsOrig.apply(this,arguments);return tnR}function tnFapsOrig(){var e,t=arguments.length>0
+```
+
+Using the same `@@name@@` twice in one needle means the same function both times. Wildcards need NestPatcher 1.4, the Android patcher 1.3, GUI 0.5 or the Android app 0.3, or newer.
 
 ## Safety rules (every version)
 
@@ -51,12 +66,12 @@ The newest TN mod pack (Modv2.5, for TiTS 0.9.167) is in [`mods/`](mods/): the m
 ## For developers
 
 - `src/engine.py` is the shared patch engine. `src/cli.py` and `src/gui.py` are the front ends. `python src/build.py` glues them into the single-file scripts in `patchers/`. **Edit `src/`, not `patchers/`.** CI fails if `patchers/` is out of date.
-- `patchers/NestPatcher_TiTS_Mac_v1.2.py` and `patchers/NestPatcher_TiTS_Android_v1.2.py` are standalone and edited directly.
-- `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.3.py`.
+- `patchers/NestPatcher_TiTS_Mac_v1.3.py` and `patchers/NestPatcher_TiTS_Android_v1.3.py` are standalone and edited directly.
+- `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.4.py`.
 - `packaging/build_bundles.sh` builds the AppImage and the Windows zip on Linux. It downloads pinned, checksum-verified Python ([python-build-standalone](https://github.com/astral-sh/python-build-standalone)) and Node.js. The Windows `.exe` is a small launcher from `src/launcher/`, compiled with MinGW.
 - GitHub Actions runs the smoke test on Windows, Linux and macOS for every push. It builds the bundles, checks the Windows bundle on a real Windows machine, builds the Android APK, and attaches all of them to a release when you push a `v*` tag.
 - `android/` is the Android app (Kotlin + [Chaquopy](https://chaquo.com/chaquopy/) Python). It carries every script in `patchers/`, runs the Android one by default, asks for the folders each patcher needs (a custom .py can list its own with `NEST_NEEDS`), and checks JavaScript with the phone's WebView instead of Node.js. `android/app/src/main/python/nest_android.py` is the glue, tested on a PC by `tests/test_android_harness.py`. CI builds the APK with `gradle assembleRelease`.
-- Version numbers go in file names (for example `_v1.3`), so it's always clear which copy is newer.
+- Version numbers go in file names (for example `_v1.4`), so it's always clear which copy is newer.
 
 ## Credits
 

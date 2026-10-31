@@ -11,7 +11,7 @@
 #     C:\Games and Program Files, or you point at it once with --game.
 #   * Program Files is write-protected, so the patcher explains how to move the
 #     game to C:\Games if Windows blocks it.
-#   * Double-click NestPatcher_Windows_v1.3.bat for a numbered menu.
+#   * Double-click NestPatcher_Windows_v1.4.bat for a numbered menu.
 #   * Mods live in nestmods\ next to this script, outside the game, so a game
 #     update cannot wipe them.
 
@@ -29,8 +29,8 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.3.py'
-TOOL_VERSION = '1.3'
+TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.4.py'
+TOOL_VERSION = '1.4'
 PLATFORM_DEFAULT = 'windows'
 PLATFORM_LABEL = 'Windows 10/11'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
@@ -344,8 +344,51 @@ def load_game_files():
     return found
 
 
+# A needle may name minified functions through @@name@@ wildcards, because the
+# PC and Android builds of TiTS give the same function different short names.
+# Each @@name@@ matches one JavaScript identifier; repeating a name means the
+# same identifier, and @@name@@ in the With text puts the matched name back.
+WILDCARD = re.compile(r"@@([A-Za-z_][A-Za-z0-9_]*)@@")
+
+
+def needle_pattern(old):
+    """A compiled regex for a needle with @@name@@ wildcards, or None for a plain needle."""
+    if not WILDCARD.search(old):
+        return None
+    parts, seen, pos = [], set(), 0
+    for match in WILDCARD.finditer(old):
+        parts.append(re.escape(old[pos:match.start()]))
+        name = match.group(1)
+        parts.append("(?P=" + name + ")" if name in seen else "(?P<" + name + ">[A-Za-z_$][A-Za-z0-9_$]*)")
+        seen.add(name)
+        pos = match.end()
+    parts.append(re.escape(old[pos:]))
+    return re.compile("".join(parts))
+
+
+def needle_in(text, block):
+    pattern = block.get("pattern")
+    return bool(pattern.search(text)) if pattern else block["old"] in text
+
+
+def needle_count(text, block):
+    pattern = block.get("pattern")
+    return sum(1 for _ in pattern.finditer(text)) if pattern else text.count(block["old"])
+
+
+def replace_first(text, block):
+    pattern = block.get("pattern")
+    if not pattern:
+        return text.replace(block["old"], block["new"], 1)
+    match = pattern.search(text)
+    found = match.groupdict()
+    new = WILDCARD.sub(lambda w: found.get(w.group(1), w.group(0)), block["new"])
+    return text[:match.start()] + new + text[match.end():]
+
+
 def parse_mod(path):
-    text = open(path, "r", encoding="utf-8", errors="replace").read().replace("\r\n", "\n").replace("\r", "\n")
+    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        text = handle.read().replace("\r\n", "\n").replace("\r", "\n")
     # Standalone # lines are .mod annotations, not replacement JavaScript.
     # Remove them before parsing to prevent accidentally splicing metadata into
     # minified webpack bundles when adjacent Replace blocks are separated by notes.
@@ -379,6 +422,7 @@ def parse_mod(path):
                 "new": "\n".join(new_lines).strip(),
                 "mod": os.path.basename(path),
             })
+            blocks[-1]["pattern"] = needle_pattern(blocks[-1]["old"])
         else:
             body = []
             while index < len(lines) and not HEADER.match(lines[index]):
@@ -397,10 +441,11 @@ def parse_mod(path):
 def enabled_names():
     names = []
     if os.path.isfile(ENABLED):
-        for line in open(ENABLED, "r", encoding="utf-8", errors="replace"):
-            line = line.split("#", 1)[0].strip()
-            if line:
-                names.append(line)
+        with open(ENABLED, "r", encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                line = line.split("#", 1)[0].strip()
+                if line:
+                    names.append(line)
     else:
         names = sorted(
             name for name in os.listdir(MODS)
@@ -421,14 +466,14 @@ def enabled_mods():
     return resolved
 
 
-def locate(files, target, needle):
+def locate(files, target, block):
     key = basename_key(target) if target else ""
     by_key = {}
     for name in files:
         by_key.setdefault(basename_key(name), name)
-    if key and key in by_key and needle in files[by_key[key]]:
+    if key and key in by_key and needle_in(files[by_key[key]], block):
         return by_key[key], "named"
-    hits = [name for name, text in files.items() if needle and needle in text]
+    hits = [name for name, text in files.items() if block["old"] and needle_in(text, block)]
     if len(hits) == 1:
         return hits[0], "searched"
     if key:
@@ -644,16 +689,16 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
             break
         next_pending = []
         for block in pending:
-            real, how = locate(files, block["target"], block["old"])
+            real, how = locate(files, block["target"], block)
             label = block["mod"] + " -> " + (block["target"] or "(any)")
             if not real:
                 next_pending.append(block)
                 continue
-            occurrences = files[real].count(block["old"])
+            occurrences = needle_count(files[real], block)
             if occurrences > 8:
                 log("STOP: unsafe needle (" + str(occurrences) + ") " + label)
                 return 1
-            files[real] = files[real].replace(block["old"], block["new"], 1)
+            files[real] = replace_first(files[real], block)
             block["real"] = real
             applied += 1
             log("OK " + block["mod"] + " in " + real)

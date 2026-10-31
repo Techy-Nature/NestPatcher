@@ -1,6 +1,6 @@
-# TN mod pack (Modv2.5)
+# TN mod pack (Modv2.6)
 
-Neston's mods for **Trials in Tainted Space 0.9.167**, ready to use with NestPatcher.
+Neston's mods for **Trials in Tainted Space 0.9.167**, ready to use with NestPatcher 1.4 (PC), the Android patcher 1.3, GUI 0.5 or the Android app 0.3, or newer. Older patchers can't read the `@@name@@` wildcards in `TN_TattooParlor_v2.6.mod` and `TN_HoloChastity_v2.6.mod`.
 
 | Folder | What's in it |
 |---|---|

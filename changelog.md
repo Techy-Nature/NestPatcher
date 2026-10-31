@@ -1,6 +1,6 @@
 # TN Mod Pack Changelog
 
-Latest: 2.5
+Latest: 2.6
 
 <!--
   How this file works (this comment is not shown in the game):
@@ -12,6 +12,12 @@ Latest: 2.5
   - You can use **bold**, *italics*, ~~strike~~, `code` and [links](https://example.com).
   - Bump "Latest:" when you release; players on an older build see "Modv#.# is available".
 -->
+
+## Modv2.6 — Tattoos and chastity on PC (2026-10-31)
+
+- **Treetop Tattoo Clarity:** Now patches the Windows, Linux and Mac game too. Before, two of its patches only matched the Android game, so patching on PC stopped with MISS.
+- **Holo-Lock Chastity:** Same fix: it now patches the PC game as well as Android.
+- **NestPatcher:** These two mods need NestPatcher 1.4 (PC), Android patcher 1.3, GUI 0.5 or the Android app 0.3 or newer. Older patchers report MISS for them.
 
 ## Modv2.5 — Desktop settings menu (2026-10-31)
 
