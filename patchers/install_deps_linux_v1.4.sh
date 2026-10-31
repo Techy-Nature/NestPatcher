@@ -22,4 +22,4 @@ fi
 echo
 python3 --version
 node --version
-echo "All set. Now run ./nestpatcher_linux_v1.3.sh"
+echo "All set. Now run ./nestpatcher_linux_v1.4.sh"

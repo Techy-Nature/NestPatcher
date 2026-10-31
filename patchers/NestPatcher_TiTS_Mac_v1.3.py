@@ -208,8 +208,60 @@ def load_game_files():
     return found
 
 
+def read_file(path, binary=False):
+    """Read a whole file and close it straight away."""
+    if binary:
+        with open(path, "rb") as handle:
+            return handle.read()
+    with open(path, encoding="utf-8") as handle:
+        return handle.read()
+
+
+# A needle may name minified functions through @@name@@ wildcards, because the
+# PC and Android builds of TiTS give the same function different short names.
+# Each @@name@@ matches one JavaScript identifier; repeating a name means the
+# same identifier, and @@name@@ in the With text puts the matched name back.
+WILDCARD = re.compile(r"@@([A-Za-z_][A-Za-z0-9_]*)@@")
+
+
+def needle_pattern(old):
+    """A compiled regex for a needle with @@name@@ wildcards, or None for a plain needle."""
+    if not WILDCARD.search(old):
+        return None
+    parts, seen, pos = [], set(), 0
+    for match in WILDCARD.finditer(old):
+        parts.append(re.escape(old[pos:match.start()]))
+        name = match.group(1)
+        parts.append("(?P=" + name + ")" if name in seen else "(?P<" + name + ">[A-Za-z_$][A-Za-z0-9_$]*)")
+        seen.add(name)
+        pos = match.end()
+    parts.append(re.escape(old[pos:]))
+    return re.compile("".join(parts))
+
+
+def needle_in(text, block):
+    pattern = block.get("pattern")
+    return bool(pattern.search(text)) if pattern else block["old"] in text
+
+
+def needle_count(text, block):
+    pattern = block.get("pattern")
+    return sum(1 for _ in pattern.finditer(text)) if pattern else text.count(block["old"])
+
+
+def replace_first(text, block):
+    pattern = block.get("pattern")
+    if not pattern:
+        return text.replace(block["old"], block["new"], 1)
+    match = pattern.search(text)
+    found = match.groupdict()
+    new = WILDCARD.sub(lambda w: found.get(w.group(1), w.group(0)), block["new"])
+    return text[:match.start()] + new + text[match.end():]
+
+
 def parse_mod(path):
-    text = open(path, "r", encoding="utf-8", errors="replace").read().replace("\r\n", "\n").replace("\r", "\n")
+    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        text = handle.read().replace("\r\n", "\n").replace("\r", "\n")
     # Standalone # lines are .mod annotations, not replacement JavaScript.
     # Remove them before parsing to prevent accidentally splicing metadata into
     # minified webpack bundles when adjacent Replace blocks are separated by notes.
@@ -243,6 +295,7 @@ def parse_mod(path):
                 "new": "\n".join(new_lines).strip(),
                 "mod": os.path.basename(path),
             })
+            blocks[-1]["pattern"] = needle_pattern(blocks[-1]["old"])
         else:
             body = []
             while index < len(lines) and not HEADER.match(lines[index]):
@@ -261,7 +314,7 @@ def parse_mod(path):
 def enabled_mods():
     names = []
     if os.path.isfile(ENABLED):
-        for line in open(ENABLED, "r", encoding="utf-8"):
+        for line in read_file(ENABLED).splitlines():
             line = line.split("#", 1)[0].strip()
             if line:
                 names.append(line)
@@ -281,14 +334,14 @@ def enabled_mods():
     return resolved
 
 
-def locate(files, target, needle):
+def locate(files, target, block):
     key = basename_key(target) if target else ""
     by_key = {}
     for name in files:
         by_key.setdefault(basename_key(name), name)
-    if key and key in by_key and needle in files[by_key[key]]:
+    if key and key in by_key and needle_in(files[by_key[key]], block):
         return by_key[key], "named"
-    hits = [name for name, text in files.items() if needle and needle in text]
+    hits = [name for name, text in files.items() if block["old"] and needle_in(text, block)]
     if len(hits) == 1:
         return hits[0], "searched"
     if key:
@@ -404,7 +457,7 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
                 log("Skip empty Replace in " + block["mod"])
     # enabled_mods logs missing names; stop on any missing dependency to avoid half-working builds.
     if os.path.isfile(ENABLED):
-        for raw in open(ENABLED, encoding="utf-8"):
+        for raw in read_file(ENABLED).splitlines():
             name = raw.split("#", 1)[0].strip()
             if name and not os.path.isfile(os.path.join(MODS, name)):
                 missing.append(name)
@@ -420,16 +473,16 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
             break
         next_pending = []
         for block in pending:
-            real, how = locate(files, block["target"], block["old"])
+            real, how = locate(files, block["target"], block)
             label = block["mod"] + " -> " + (block["target"] or "(any)")
             if not real:
                 next_pending.append(block)
                 continue
-            occurrences = files[real].count(block["old"])
+            occurrences = needle_count(files[real], block)
             if occurrences > 8:
                 log("STOP: unsafe needle (" + str(occurrences) + ") " + label)
                 return 1
-            files[real] = files[real].replace(block["old"], block["new"], 1)
+            files[real] = replace_first(files[real], block)
             block["real"] = real
             applied += 1
             log("OK " + block["mod"] + " in " + real)
@@ -452,7 +505,7 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
                 restore_only.append(name)
     write_bundles = sorted(set(touched) | set(restore_only))
     runtime = make_runtime(scripts)
-    runtime_js = {os.path.basename(path): open(path, encoding="utf-8").read() for path in copy_js}
+    runtime_js = {os.path.basename(path): read_file(path) for path in copy_js}
     if "nest-inline.js" in runtime_js:
         log("STOP: nest-inline.js is reserved for generated content")
         return 1
@@ -464,7 +517,7 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
         return 1
     # Prefer pre-patcher snapshot; when absent, remove only known NestPatcher tags.
     index_base_path = index_backup_path if os.path.isfile(index_backup_path) else index_path
-    index_base = open(index_base_path, encoding="utf-8").read()
+    index_base = read_file(index_base_path)
     index_clean = clean_index(index_base)
     if "</head>" not in index_clean:
         log("STOP: index.html lacks </head>. No changes made.")
@@ -498,7 +551,7 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
     # Capture original bytes so even an I/O exception can roll the installation back.
     targets = [os.path.join(APP, name) for name in write_bundles] + [index_path]
     targets += [os.path.join(RUNTIME_DIR, name) for name in (set(runtime_js) | stale)]
-    original = {path: open(path, "rb").read() if os.path.isfile(path) else None for path in targets}
+    original = {path: read_file(path, binary=True) if os.path.isfile(path) else None for path in targets}
     try:
         os.makedirs(BACKUP, exist_ok=True)
         # Snapshot source files only the first time. NEVER overwrite existing baselines.

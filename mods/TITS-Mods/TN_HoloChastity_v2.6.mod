@@ -1,6 +1,8 @@
 Name: Holo-Lock Chastity
 Author: Kitty
-# TN_HoloChastity - KittyPatcher mod (TiTS 0.9.167)
+# TN_HoloChastity - NestPatcher mod (TiTS 0.9.167), v2.6
+# Needs NestPatcher 1.4 / Android 1.3 or newer: @@name@@ stands for a minified function name,
+# which is different in the PC and Android builds.
 # Two locking lower undergarments sold by Aliss at Mi Amour on Tavros:
 #   - Holo-Lock Chastity Belt (female). Locked, it gives the game's own Vaginal Chastity
 #     effect, the same flag the engine checks for chastity underwear (pc.isChastityBlocked).
@@ -33,9 +35,9 @@ Author: Kitty
 # In-game author: Techy-Nest.
 
 Rep [main.js]:
-function mN(){var e,t=arguments.length>0&&void 0!==arguments[0]&&arguments[0],o=arguments.length>1&&void 0!==arguments[1]&&arguments[1],a={simple:[],crew:[],toys:[],installed:[]};
+function @@fapList@@(){var e,t=arguments.length>0&&void 0!==arguments[0]&&arguments[0],o=arguments.length>1&&void 0!==arguments[1]&&arguments[1],a={simple:[],crew:[],toys:[],installed:[]};
 W:
-function mN(){var tnR=tnFapsOrig.apply(this,arguments);try{"function"==typeof window.tnChastityFilterFaps&&(tnR=window.tnChastityFilterFaps(tnR))}catch(tnE){console.warn("[TN] chastity fap filter",tnE)}return tnR}function tnFapsOrig(){var e,t=arguments.length>0&&void 0!==arguments[0]&&arguments[0],o=arguments.length>1&&void 0!==arguments[1]&&arguments[1],a={simple:[],crew:[],toys:[],installed:[]};
+function @@fapList@@(){var tnR=tnFapsOrig.apply(this,arguments);try{"function"==typeof window.tnChastityFilterFaps&&(tnR=window.tnChastityFilterFaps(tnR))}catch(tnE){console.warn("[TN] chastity fap filter",tnE)}return tnR}function tnFapsOrig(){var e,t=arguments.length>0&&void 0!==arguments[0]&&arguments[0],o=arguments.length>1&&void 0!==arguments[1]&&arguments[1],a={simple:[],crew:[],toys:[],installed:[]};
 
 Rep [main.js]:
 O.length>0?(B.push(O),N.push(R)):I.push(R)}return{choices:I,ineligibles:N,reasons:B}
@@ -43,9 +45,9 @@ W:
 x===pc&&"function"==typeof window.tnChastityCockLocked&&window.tnChastityCockLocked()&&O.push("LOCKED IN CHASTITY"),O.length>0?(B.push(O),N.push(R)):I.push(R)}return{choices:I,ineligibles:N,reasons:B}
 
 Rep [main.js]:
-var u=NS(arguments[0]),l=u.choices,h=u.ineligibles,c=u.reasons,d=[0];
+var u=@@penisSort@@(arguments[0]),l=u.choices,h=u.ineligibles,c=u.reasons,d=[0];
 W:
-var u=NS(arguments[0]),l=u.choices,h=u.ineligibles,c=u.reasons,d=[0];if(0===l.length&&r===pc&&"function"==typeof window.tnChastityRouterBlock&&window.tnChastityRouterBlock())return;
+var u=@@penisSort@@(arguments[0]),l=u.choices,h=u.ineligibles,c=u.reasons,d=[0];if(0===l.length&&r===pc&&"function"==typeof window.tnChastityRouterBlock&&window.tnChastityRouterBlock())return;
 
 Rep [main.js]:
 key:"cocksThatFit",value:function(){for(var e=this,

@@ -4,8 +4,8 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "patchers")
-CLI_VERSION = "1.3"
-GUI_VERSION = "0.4"
+CLI_VERSION = "1.4"
+GUI_VERSION = "0.5"
 
 HEADERS = {
     "linux": """#!/usr/bin/env python3
@@ -43,7 +43,7 @@ HEADERS = {
 #     C:\\Games and Program Files, or you point at it once with --game.
 #   * Program Files is write-protected, so the patcher explains how to move the
 #     game to C:\\Games if Windows blocks it.
-#   * Double-click NestPatcher_Windows_v1.3.bat for a numbered menu.
+#   * Double-click NestPatcher_Windows_v1.4.bat for a numbered menu.
 #   * Mods live in nestmods\\ next to this script, outside the game, so a game
 #     update cannot wipe them.
 """,

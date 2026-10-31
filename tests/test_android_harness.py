@@ -90,7 +90,7 @@ def main():
             label = os.path.basename(script)
             sink = Sink()
             code = nest_android.run(script, root, kind, "--dry-run", NodeChecker(), sink)
-            check(label + " dry run", code == 0 and "DRY RUN: 2 replacements" in sink.text(), sink)
+            check(label + " dry run", code == 0 and "DRY RUN: 3 replacements" in sink.text(), sink)
             expected = "android" if "_Android_" in label else "cli"
             check(label + " detected as " + expected, "as " + expected + "]" in sink.text(), sink)
             sink = Sink()
@@ -98,6 +98,7 @@ def main():
             with open(os.path.join(www, "main.1a2b3c4d.js"), encoding="utf-8") as handle:
                 patched = handle.read()
             check(label + " patch", code == 0 and 'return "nest"' in patched and "VALID " in sink.text(), sink)
+            check(label + " fills in @@name@@ wildcards", "function count(){return Xq(3)}" in patched, sink)
             with open(os.path.join(www, "index.html"), encoding="utf-8") as handle:
                 check(label + " uses mods/nest", "mods/nest/nest-inline.js" in handle.read(), sink)
             check(label + " leaves no NestPatcher-app folder", not os.path.exists(os.path.join(root, "NestPatcher-app")))

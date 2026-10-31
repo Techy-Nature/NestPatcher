@@ -1,7 +1,7 @@
 """End-to-end check of a NestPatcher command-line script on a tiny fake game.
 
-    python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.3.py
-    python tests/smoke_test.py patchers/NestPatcher_TiTS_Windows_v1.3.py --python path/to/python
+    python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.4.py
+    python tests/smoke_test.py patchers/NestPatcher_TiTS_Windows_v1.4.py --python path/to/python
 
 No TiTS files are needed: the fake game has an index.html, a hashed main.<hash>.js
 with a version string, and one content bundle. Node.js must be on PATH (or set
@@ -14,7 +14,7 @@ import subprocess
 import sys
 import tempfile
 
-MAIN = 'e.exports={i8:"0.9.999"};function greet(){return "world"}\n'
+MAIN = 'e.exports={i8:"0.9.999"};function greet(){return "world"}function Xq(e){return e+1}function count(){return Xq(2)}\n'
 CONTENT = 'function shop(){return ["apple"]}\n'
 INDEX = ('<!doctype html><html><head><script defer src="main.1a2b3c4d.js"></script>'
          '<script src="mods/kitty/kitty-inline.js"></script></head><body></body></html>\n')
@@ -28,6 +28,12 @@ Rep [content_test.js]:
 ["apple"]
 W:
 ["apple","pear"]
+
+# @@name@@ stands for a minified function name (it differs between game builds).
+Rep [main.js]:
+function count(){return @@add@@(2)}
+W:
+function count(){return @@add@@(3)}
 
 Add Javascript:
 window.smokeTest = true;
@@ -88,7 +94,7 @@ def main():
 
         result = run("--dry-run")
         check("dry run exits 0", result.returncode == 0)
-        check("dry run counts 2 replacements", "DRY RUN: 2 replacements" in result.stdout)
+        check("dry run counts 2 replacements", "DRY RUN: 3 replacements" in result.stdout)
         check("kitty-mods renamed to nestmods", os.path.isdir(os.path.join(tool, "nestmods"))
               and not os.path.isdir(os.path.join(tool, "kitty-mods")))
         check("dry run leaves game alone", read("main.1a2b3c4d.js") == MAIN)
@@ -96,6 +102,7 @@ def main():
         result = run()
         check("patch exits 0", result.returncode == 0)
         check("main bundle patched", 'return "nest"' in read("main.1a2b3c4d.js"))
+        check("wildcard keeps the game's own function name", "function count(){return Xq(3)}" in read("main.1a2b3c4d.js"))
         check("content bundle patched", '["apple","pear"]' in read("content_test.5e6f7a8b.js"))
         index = read("index.html")
         check("index loads mods/nest", 'src="mods/nest/nest-inline.js"' in index and 'src="mods/nest/Extra.js"' in index)
