@@ -1,6 +1,6 @@
 # TN Mod Pack Changelog
 
-Latest: 2.4
+Latest: 2.5
 
 <!--
   How this file works (this comment is not shown in the game):
@@ -12,6 +12,11 @@ Latest: 2.4
   - You can use **bold**, *italics*, ~~strike~~, `code` and [links](https://example.com).
   - Bump "Latest:" when you release; players on an older build see "Modv#.# is available".
 -->
+
+## Modv2.5 — Desktop settings menu (2026-10-31)
+
+- **TN Desktop Menu:** New, for Windows, Linux and Mac: **Options > TN Mod Settings** opens every TN mod's settings page (Crew Size, Clock Format, Bust Gender Filter, Shelly's cure quest and more). It has no on/off switches: on desktop every mod in `enabled.txt` is on. It does nothing on Android, where Android Mods is still the menu.
+- **All mods:** Settings changed in either menu are the same settings, so they carry over between the two.
 
 ## Modv2.4 — Android menu stays on Android (2026-10-31)
 
