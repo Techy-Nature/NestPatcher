@@ -1,4 +1,4 @@
-# NestPatcher Android app v0.6 — step by step
+# NestPatcher Android app v0.7 — step by step
 
 The NestPatcher app runs the NestPatcher patcher on your phone without Termux. It is **not KittyPatcher**. It is based on KittyPatcher by LibraKitty.
 
@@ -20,7 +20,7 @@ TITS-Modding/
 ## 1. Get the APK
 
 1. Open the repo's **Actions** tab on GitHub, open the newest green **Test and build** run, and download **nestpatcher-android-apk**. If you'd rather use a tagged version, use **Releases** instead.
-2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.6.apk`.
+2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.7.apk`.
 
 ## 2. Install it
 
@@ -55,7 +55,7 @@ Step 3 changes to match the patcher you picked. It says which kind of patcher it
 |---|---|
 | Android (default) | Your **TITS-Modding folder**. Inside it: `extracted/apk/assets/www` (the unpacked game) and `mods` (`enabled.txt` plus your mods). |
 | Linux / Windows command-line, GUI | A **Game folder**: the folder with `index.html` in it, or a folder above it, such as an extracted APK. A **Mods folder**: it holds `enabled.txt` and your mods. On a PC this is `nestmods`. |
-| Mac | **TiTS.app or the Windows game folder** (the one with `TiTS.exe`) and a **Mods folder**. With the Windows game it patches it, then makes a Mac `TiTS.app` zip in `NestExports` next to your mods. Copy that zip to the Mac and follow `HOW-TO-OPEN.txt` inside. |
+| Mac | **TiTS.app or the Windows game folder** (the one with `TiTS.exe`) and a **Mods folder**. With the Windows game it patches it, then makes a Mac `TiTS.app` zip in `NestExports` inside your mods folder. It is already signed: copy that zip to the Mac, unzip it, and double-click `Open TiTS.command`. |
 | Your own .py | Whatever the script lists in `NEST_NEEDS` (see below). If it lists nothing, one **Working folder**. |
 
 1. The boxes start from `/storage/emulated/0/git.gay-repos/TITS-Modding`, the same folder Termux calls `~/storage/shared/git.gay-repos/TITS-Modding`.

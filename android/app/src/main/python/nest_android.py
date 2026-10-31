@@ -249,7 +249,7 @@ def check_need(need, path):
         web = _game_web_folder(path)
         if web:
             return ["OK  " + label + ": Windows/web game in " + web,
-                    "    After patching it is turned into a Mac TiTS.app (in NestExports next to your mods)."]
+                    "    After patching it is turned into a Mac TiTS.app (in NestExports inside your mods folder)."]
         if os.path.isfile(os.path.join(path, "resources", "app.asar")):
             return ["OK  " + label + ": packed Windows game (app.asar). Add --unpack-asar to Extra options the first time."]
         return ["MISSING " + label + ": no TiTS.app game files and no Windows game (resources/app) in " + path]
@@ -367,7 +367,8 @@ def run(script, paths, kind, extra, checker, sink):
     try:
         paths = _parse_paths(paths)
         found_kind, needs = needs_for(script, paths.get("project") or next(iter(paths.values()), ""))
-        if kind in (None, "", "auto"):
+        if kind in (None, "", "auto") or found_kind != "custom":
+            # The file's own text wins: a NestPatcher CLI loaded as "your file" still runs as the CLI.
             kind = found_kind
         paths = _fill_paths(kind, needs, paths)
         home = _home_for(kind, paths)

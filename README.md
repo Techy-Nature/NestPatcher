@@ -18,15 +18,15 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 
 | You are on | Use | Guide |
 |---|---|---|
-| Windows 10/11, no installing | `NestPatcher_GUI_v0.9_Windows.zip` from [Releases](../../releases) | [Guide_GUI_v0.9.md](docs/Guide_GUI_v0.9.md) |
-| Linux, no installing | `NestPatcher_GUI_v0.9-x86_64.AppImage` from [Releases](../../releases) | [Guide_GUI_v0.9.md](docs/Guide_GUI_v0.9.md) |
-| Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.8.py`](patchers/) + `NestPatcher_Windows_v1.8.bat` | [Guide_Windows_v1.8.md](docs/Guide_Windows_v1.8.md) |
-| Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.8.py`](patchers/) + `nestpatcher_linux_v1.8.sh` | [Guide_Linux_v1.8.md](docs/Guide_Linux_v1.8.md) |
-| macOS, with only the Windows game (TiTS.exe) | [`patchers/NestPatcher_TiTS_Mac_v1.6.py`](patchers/) `--app` the Windows game folder: it patches it and makes TiTS.app | [NestPatcher_Mac_Guide_v1.6.md](docs/NestPatcher_Mac_Guide_v1.6.md) |
-| macOS | [`patchers/NestPatcher_TiTS_Mac_v1.6.py`](patchers/) | [NestPatcher_Mac_Guide_v1.6.md](docs/NestPatcher_Mac_Guide_v1.6.md) |
-| Make a **Mac app** or **Linux AppImage** of the patched game | GUI 0.9 (**Make Mac app** / **Make AppImage**) or `--export-mac` / `--export-appimage` | [Guide_Export_Mac_AppImage_v1.8.md](docs/Guide_Export_Mac_AppImage_v1.8.md) |
-| Android, no Termux (app) | `NestPatcher_Android_App_v0.6.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.6.md](docs/Guide_Android_App_v0.6.md) |
-| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.5.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.9.md](docs/Guide_GUI_v0.9.md) |
+| Windows 10/11, no installing | `NestPatcher_GUI_v0.10_Windows.zip` from [Releases](../../releases) | [Guide_GUI_v0.10.md](docs/Guide_GUI_v0.10.md) |
+| Linux, no installing | `NestPatcher_GUI_v0.10-x86_64.AppImage` from [Releases](../../releases) | [Guide_GUI_v0.10.md](docs/Guide_GUI_v0.10.md) |
+| Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.9.py`](patchers/) + `NestPatcher_Windows_v1.9.bat` | [Guide_Windows_v1.9.md](docs/Guide_Windows_v1.9.md) |
+| Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.9.py`](patchers/) + `nestpatcher_linux_v1.9.sh` | [Guide_Linux_v1.9.md](docs/Guide_Linux_v1.9.md) |
+| macOS, with only the Windows game (TiTS.exe) | [`patchers/NestPatcher_TiTS_Mac_v1.7.py`](patchers/) `--app` the Windows game folder: it patches it and makes TiTS.app | [NestPatcher_Mac_Guide_v1.7.md](docs/NestPatcher_Mac_Guide_v1.7.md) |
+| macOS | [`patchers/NestPatcher_TiTS_Mac_v1.7.py`](patchers/) | [NestPatcher_Mac_Guide_v1.7.md](docs/NestPatcher_Mac_Guide_v1.7.md) |
+| Make a **Mac app** or **Linux AppImage** of the patched game | GUI 0.10 (**Make Mac app** / **Make AppImage**) or `--export-mac` / `--export-appimage` | [Guide_Export_Mac_AppImage_v1.9.md](docs/Guide_Export_Mac_AppImage_v1.9.md) |
+| Android, no Termux (app) | `NestPatcher_Android_App_v0.7.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.7.md](docs/Guide_Android_App_v0.7.md) |
+| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.5.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.10.md](docs/Guide_GUI_v0.10.md) |
 
 The GUI bundles include Python and Node.js. The command-line versions need Python 3 and Node.js installed (Node.js checks every mod for mistakes before the game is touched).
 
@@ -70,12 +70,12 @@ The newest TN mod pack (Modv2.5, for TiTS 0.9.167) is in [`mods/`](mods/): the m
 
 - `src/engine.py` is the shared patch engine. `src/cli.py` and `src/gui.py` are the front ends. `python src/build.py` glues them into the single-file scripts in `patchers/`. **Edit `src/`, not `patchers/`.** CI fails if `patchers/` is out of date.
 - The Mac patcher is built from `src/mac.py` plus `src/export.py`. `patchers/NestPatcher_TiTS_Android_v1.5.py` is standalone and edited directly.
-- `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.8.py`.
-- `src/export.py` packs the patched game as a Mac app or AppImage (built into the same single-file scripts). `tests/test_export.py` checks it with fake Electron zips, so no download is needed.
+- `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.9.py`.
+- `src/export.py` packs the patched game as a Mac app or AppImage (built into the same single-file scripts). `tests/test_export.py` checks it with fake Electron zips, so no download is needed. The Mac app is signed by a built-in ad-hoc signer; `tests/macsign_check.py` re-checks those signatures anywhere, and `tests/mac_real_check.sh` (CI, macOS) checks them with `codesign` and launches the app.
 - `packaging/build_bundles.sh` builds the AppImage and the Windows zip on Linux. It downloads pinned, checksum-verified Python ([python-build-standalone](https://github.com/astral-sh/python-build-standalone)) and Node.js. The Windows `.exe` is a small launcher from `src/launcher/`, compiled with MinGW.
 - GitHub Actions runs the smoke test on Windows, Linux and macOS for every push. It builds the bundles, checks the Windows bundle on a real Windows machine, builds the Android APK, and publishes a release by itself (tag `v<version>`, named `Patchers_v<version>`, with the bundles, APK and patchers attached) the first time a new version from `src/build.py` reaches main.
 - `android/` is the Android app (Kotlin + [Chaquopy](https://chaquo.com/chaquopy/) Python). It carries every script in `patchers/`, runs the Android one by default, asks for the folders each patcher needs (a custom .py can list its own with `NEST_NEEDS`), and checks JavaScript with the phone's WebView instead of Node.js. `android/app/src/main/python/nest_android.py` is the glue, tested on a PC by `tests/test_android_harness.py`. CI builds the APK with `gradle assembleRelease`.
-- Version numbers go in file names (for example `_v1.8`), so it's always clear which copy is newer.
+- Version numbers go in file names (for example `_v1.9`), so it's always clear which copy is newer.
 
 ## Credits
 

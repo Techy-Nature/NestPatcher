@@ -940,7 +940,7 @@ def main():
     parser.add_argument("--arch", choices=["x64", "arm64"], help="Mac app for Intel (x64) or Apple Silicon (arm64); default: this Mac, else x64")
     parser.add_argument("--electron", metavar="VERSION", help="use this Electron version instead of the game's own")
     parser.add_argument("--electron-zip", metavar="FILE", help="an Electron zip you downloaded yourself (no internet needed)")
-    parser.add_argument("--out", metavar="FOLDER", help="where the Mac app goes (default: NestExports next to this script)")
+    parser.add_argument("--out", metavar="FOLDER", help="where the Mac app goes (default: NestExports inside the mods folder)")
     parser.add_argument("--show", action="store_true", help="print the paths in use and exit")
     parser.add_argument("--forget", action="store_true", help="delete saved --app/--mods settings and exit")
     args = parser.parse_args()
