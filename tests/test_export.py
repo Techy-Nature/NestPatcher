@@ -171,7 +171,8 @@ def main():
         # A bare www folder (from the APK) gets NestPatcher's small start script.
         www = os.path.join(root, "www")
         shutil.copytree(app, www, ignore=shutil.ignore_patterns("package.json", "electron-main.js"))
-        result = run("--export-mac", "--electron-zip", mac_zip, "--out", os.path.join(root, "webout"), where=www)
+        result = run("--export-mac", "--electron-zip", mac_zip, "--arch", "x64", "--out", os.path.join(root, "webout"),
+                     where=www)
         out = os.path.join(root, "webout", "TiTS_v0.9.999_NestPatched_macOS-x64.zip")
         check("www folder exports", result.returncode == 0 and os.path.isfile(out))
         if os.path.isfile(out):
