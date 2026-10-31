@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
-# NestPatcher GUI for Trials in Tainted Space (Windows, Linux, macOS, Android/Termux).
+# NestPatcher for Trials in Tainted Space, Linux edition (Debian, Ubuntu, Mint,
+# Fedora, Nobara and friends).
 # Based on KittyPatcher by LibraKitty (the original Windows patcher).
-# DRAFT. Runs the same patch engine as the command-line NestPatcher, but shows a
-# dark control panel in your web browser instead of asking you to type flags.
+# Same .mod format, flags and safety rules as the Desktop, Android and Mac patchers:
+# Replace / With still swaps exact text. Hashed bundles such as
+# content_first14.<hash>.js are found from the plain name content_first14.js.
+# Add Javascript blocks load from mods/nest/nest-inline.js.
 #
-#   * Nothing leaves your computer: the panel is served only to this machine
-#     (127.0.0.1) and every request needs a secret key made fresh each run.
-#   * Tabs: Patch (test / patch / restore), Mods (tick mods on or off; this
-#     rewrites enabled.txt and keeps a .bak), Search, and Report a bug (writes a
-#     zip with your log and system info, user name blanked out).
-#   * Only Python's standard library is used, so it packs cleanly into a
-#     Windows .exe or a Linux AppImage with PyInstaller (see the build scripts).
+# Linux differences:
+#   * The game folder can live anywhere (~/Games/TiTS is a good spot). The patcher
+#     looks next to itself, in ~/Games, ~/Downloads, ~/Desktop and /opt, or you
+#     point at it once with --game and it is remembered.
+#   * A TiTS .AppImage is unpacked once with --extract-appimage into a normal
+#     folder; you then start the game from that folder's AppRun.
+#   * If the game ships packed as resources/app.asar, --unpack-asar extracts it
+#     (pure Python, no npm needed) and keeps the original as app.asar.nest-original.
+#   * Node.js install hints match your distro (apt on Debian/Ubuntu, dnf on
+#     Fedora/Nobara).
+#   * --export-appimage packs the patched game into one .AppImage file, and
+#     --export-mac makes a macOS TiTS.app (as a zip) from the same game.
+#   * Mods live in nestmods/ next to this script, outside the game, so a game
+#     update cannot wipe them.
 
 import os
 import re
@@ -26,13 +36,13 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_GUI_v0.6.py'
-TOOL_VERSION = '0.6'
-PLATFORM_DEFAULT = None
-PLATFORM_LABEL = 'GUI'
+TOOL_NAME = 'NestPatcher_TiTS_Linux_v1.6.py'
+TOOL_VERSION = '1.6'
+PLATFORM_DEFAULT = 'linux'
+PLATFORM_LABEL = 'Linux'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
 # No version in the settings name, so a newer patcher keeps your saved folders.
-SETTINGS_NAME = 'NestPatcher_TiTS_GUI.settings.json'
+SETTINGS_NAME = 'NestPatcher_TiTS_Linux.settings.json'
 
 # --------------------------------------------------------------------------
 # Where things live
@@ -987,8 +997,10 @@ def extract_appimage(path):
         return None
     finally:
         shutil.rmtree(work, ignore_errors=True)
+    save_game_runtime(path)
     say("Unpacked to " + target)
     say("From now on start the game with: \"" + os.path.join(target, "AppRun") + "\"")
+    say("After patching you can pack it back into one file with --export-appimage.")
     return target
 
 
@@ -1306,613 +1318,1147 @@ def resign_bundle():
     else:
         log("Ad-hoc re-signed " + os.path.basename(GAME))
 
-
 # --------------------------------------------------------------------------
-# GUI: a small local web server and a dark control panel
+# Export: pack the patched game as a macOS app or a Linux AppImage
 # --------------------------------------------------------------------------
+#
+# TiTS is a web game inside Electron. resources/app (the part NestPatcher
+# patches) is the same on every system; only the Electron program around it
+# differs. So an export takes the patched app/ folder and wraps it in an
+# Electron for the target system:
+#   * same system as the source game (TiTS.app -> Mac zip, Linux folder or
+#     unpacked AppImage -> AppImage): the game's own Electron is reused.
+#   * anything else (the Windows game, an Android www folder): the matching
+#     Electron is downloaded from github.com/electron/electron, checked
+#     against Electron's SHASUMS256.txt, and kept in nestmods/downloads.
+# The Mac export is written as a zip with Python's zipfile (symlinks kept),
+# so it can be made on Windows and Linux too. On a Mac it is also unpacked
+# and ad-hoc signed. The AppImage needs mksquashfs (squashfs-tools).
 
-import secrets
-import threading
-import webbrowser
-import urllib.parse
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import mmap
+import stat
+import zlib
+import plistlib
+import urllib.request
 
-# Where bug reports go. Fill these in before you share a build, or leave them
-# empty and players are told to send the zip to whoever gave them the mods.
-#   REPORT_URL: a page that takes reports, e.g. a GitHub "new issue" link such as
-#     https://github.com/OWNER/REPO/issues/new  (title and text are filled in).
-#   REPORT_EMAIL: an address; the player's mail app opens with the text filled in
-#     and they attach the zip themselves.
-REPORT_URL = ""
-REPORT_EMAIL = ""
+DEFAULT_ELECTRON = "28.3.3"
+EXPORT_NAME = "TiTS"
+EXPORT_TITLE = "Trials in Tainted Space"
+BUNDLE_ID = "com.techynest.nestpatched.tits"
+ELECTRON_URL = "https://github.com/electron/electron/releases/download/v{ver}/{file}"
+RUNTIME_URL = "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-{arch}"
+ELECTRON_IN_BINARY = re.compile(rb"Electron/(\d{1,3}\.\d{1,3}\.\d{1,3})")
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+APPIMAGE_ARCH = {"x64": "x86_64", "arm64": "aarch64"}
+# Originals that NestPatcher (or KittyPatcher) moved aside; never exported.
+BACKUP_NAMES = {"app.asar.nest-original", "app.asar.unpacked.nest-original", "app.asar.kitty-original"}
+# Files in resources/ that belong to the old Electron, or are backups.
+SKIP_RESOURCES = BACKUP_NAMES | {"default_app.asar", "elevate.exe", "electron.icns"}
 
-KEY = secrets.token_urlsafe(18)
-JOB = {"running": False, "action": "", "result": None}
-LINES = []
-LINES_LOCK = threading.Lock()
-LAST_PING = [None]   # set when the browser first opens the panel
-SERVER = [None]
-CONFIG_LOCK = threading.Lock()
+SHELL_MAIN = r"""// Small Electron starter written by NestPatcher for exported games.
+const { app, BrowserWindow, shell } = require("electron");
+const path = require("path");
+app.whenReady().then(() => {
+  const win = new BrowserWindow({
+    width: 1280, height: 820, backgroundColor: "#000000", autoHideMenuBar: true,
+    webPreferences: { contextIsolation: true, nodeIntegration: false }
+  });
+  if (win.webContents.setWindowOpenHandler) {
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      if (/^https?:/i.test(url)) shell.openExternal(url);
+      return { action: "deny" };
+    });
+  }
+  win.loadFile(path.join(__dirname, "index.html"));
+});
+app.on("window-all-closed", () => app.quit());
+"""
 
-
-def remember_line(message):
-    with LINES_LOCK:
-        LINES.extend(str(message).split("\n"))
-        if len(LINES) > 20000:
-            del LINES[:5000]
-
-
-LOG_HOOKS.append(remember_line)
-
-
-COMMENTED = re.compile(r"^#\s*([^\s#]+\.(?:mod|js))\s*$", re.IGNORECASE)
-
-
-def mod_rows():
-    """Every mod file in the mods folder plus every name enabled.txt asks for."""
-    if not os.path.isdir(MODS):
-        return []
-    on = enabled_names() if os.path.isfile(ENABLED) else []
-    files = sorted(name for name in os.listdir(MODS)
-                   if name.lower().endswith((".mod", ".js")) and not name.startswith("._")
-                   and os.path.isfile(os.path.join(MODS, name)))
-    # Keep enabled.txt's order, including mods that are switched off with #.
-    listed = []
-    if os.path.isfile(ENABLED):
-        with open(ENABLED, encoding="utf-8", errors="replace") as handle:
-            for raw in handle:
-                stripped = raw.strip()
-                active = stripped.split("#", 1)[0].strip()
-                commented = COMMENTED.match(stripped)
-                name = active or (commented.group(1) if commented else "")
-                if name and name not in listed and (active or name in files):
-                    listed.append(name)
-    order = listed + [name for name in files if name not in listed]
-    rows = []
-    for name in order:
-        path = os.path.join(MODS, name)
-        rows.append({"name": name, "on": name in on, "missing": not os.path.isfile(path),
-                     "kind": "script" if name.lower().endswith(".js") else "patch",
-                     "size": os.path.getsize(path) if os.path.isfile(path) else 0})
-    return rows
+FALLBACK_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<rect width="256" height="256" rx="48" fill="#17121f"/>
+<circle cx="128" cy="128" r="92" fill="none" stroke="#c48cff" stroke-width="10"/>
+<text x="128" y="150" font-family="DejaVu Sans, Arial, sans-serif" font-size="64" font-weight="700"
+ text-anchor="middle" fill="#efe6ff">TiTS</text></svg>
+"""
 
 
-
-def write_enabled(turn_on):
-    """Rewrite enabled.txt: keep its order and notes, comment out mods turned off,
-    add newly ticked mods at the end. The old file is kept as enabled.txt.bak."""
-    turn_on = [name for name in turn_on if name]
-    wanted = set(turn_on)
-    lines = []
-    if os.path.isfile(ENABLED):
-        with open(ENABLED, encoding="utf-8", errors="replace") as handle:
-            lines = handle.read().splitlines()
-        shutil.copy2(ENABLED, ENABLED + ".bak")
-    out, seen = [], set()
-    for raw in lines:
-        stripped = raw.strip()
-        active = stripped.split("#", 1)[0].strip()
-        commented = COMMENTED.match(stripped)
-        if active:
-            seen.add(active)
-            out.append(raw if active in wanted else "# " + active)
-        elif commented and commented.group(1) not in seen:
-            name = commented.group(1)
-            seen.add(name)
-            out.append(name if name in wanted else raw)
-        else:
-            out.append(raw)
-    for name in turn_on:
-        if name not in seen:
-            out.append(name)
-    with open(ENABLED, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write("\n".join(out) + "\n")
-    say("Saved enabled.txt (" + str(len(wanted)) + " mods on). Old copy: enabled.txt.bak")
+def host_arch():
+    machine = platform.machine().lower()
+    return "arm64" if machine in ("arm64", "aarch64", "armv8l") else "x64"
 
 
-def open_folder(path):
-    if not path or not os.path.exists(path):
-        return False
+def export_folder(out=None):
+    folder = os.path.abspath(os.path.expanduser(out)) if out else os.path.join(ROOT, "NestExports")
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+def plain_version(text):
+    match = re.search(r"\d+\.\d+\.\d+", text or "")
+    return match.group(0) if match else ""
+
+
+# ---------- what kind of game we were given ----------
+
+def is_elf(path):
     try:
-        if PLATFORM == "windows":
-            os.startfile(path)
-        elif PLATFORM == "mac":
-            subprocess.Popen(["open", path])
-        elif PLATFORM == "android":
-            subprocess.Popen(["termux-open", path])
-        else:
-            subprocess.Popen(["xdg-open", path])
-        return True
-    except (OSError, AttributeError):
+        with open(path, "rb") as handle:
+            return handle.read(4) == b"\x7fELF"
+    except OSError:
         return False
 
 
-def open_url(url):
-    if PLATFORM == "android" and which_tool("termux-open-url"):
-        subprocess.Popen([which_tool("termux-open-url"), url])
-        return True
+def linux_game_binary(folder):
+    """The main program in a Linux Electron folder (the biggest ELF file at the top)."""
+    best = None
     try:
-        return webbrowser.open(url)
-    except webbrowser.Error:
-        return False
-
-
-def pick_folder(title):
-    """Native folder picker if Tk is available; otherwise the page asks the user to paste a path."""
-    try:
-        import tkinter
-        from tkinter import filedialog
-    except ImportError:
+        names = os.listdir(folder)
+    except OSError:
         return None
+    for name in names:
+        path = os.path.join(folder, name)
+        if (name in ("chrome-sandbox", "chrome_crashpad_handler") or ".so" in name
+                or not os.path.isfile(path) or not is_elf(path)):
+            continue
+        size = os.path.getsize(path)
+        if best is None or size > best[0]:
+            best = (size, name)
+    return best[1] if best else None
+
+
+def source_kind():
+    """mac (TiTS.app), appdir (unpacked AppImage), linux (Electron folder),
+    windows (TiTS.exe folder) or web (a bare www folder, e.g. from the APK)."""
+    if GAME.endswith(".app"):
+        return "mac"
+    if not RESOURCES:
+        return "web"
+    if os.path.isfile(os.path.join(GAME, "AppRun")):
+        return "appdir"
     try:
-        root = tkinter.Tk()
-        root.withdraw()
-        root.attributes("-topmost", True)
-        chosen = filedialog.askdirectory(title=title, mustexist=True)
-        root.destroy()
-        return chosen or ""
-    except Exception:
-        return None
+        names = os.listdir(GAME)
+    except OSError:
+        names = []
+    if any(name.lower().endswith(".exe") for name in names):
+        return "windows"
+    if linux_game_binary(GAME):
+        return "linux"
+    return "windows"
 
 
-def state():
-    node = which_tool("node", "nodejs")
-    return {
-        "version": TOOL_VERSION, "platform": PLATFORM, "game": GAME, "app": APP, "mods": MODS,
-        "gameOk": bool(APP) and os.path.isfile(os.path.join(APP, "index.html")),
-        "asar": bool(RESOURCES) and os.path.isfile(os.path.join(RESOURCES, "app.asar")),
-        "modsOk": os.path.isdir(MODS), "node": node or "", "nodeHint": "" if node else node_install_hint(),
-        "titsVersion": game_version() if APP and os.path.isdir(APP) else "",
-        "found": find_games(), "patched": os.path.isdir(BACKUP) and bool(os.listdir(BACKUP)),
-        "running": JOB["running"], "reportUrl": REPORT_URL, "reportEmail": REPORT_EMAIL,
-        "problem": preflight() if GAME else "Pick your game folder first.",
-        "kitty": KITTY_FOUND[0],
-        "ui": load_settings().get("ui", {}),
-    }
+# ---------- which Electron the game uses ----------
 
-
-def run_job(action, payload):
+def scan_for_electron(path):
     try:
-        if action == "dry":
-            result = apply(dry_run=True)
-        elif action == "patch":
-            result = apply(after_build=resign_bundle if PLATFORM == "mac" else None)
-        elif action == "restore":
-            result = restore_originals()
-        elif action == "unpack":
-            result = unpack_asar()
-        elif action == "find":
-            terms = [term for term in payload.get("terms", []) if term]
-            result = find_sources(terms) if terms else 1
-            path = os.path.join(LOGS, "SourceSearch.txt")
-            if terms and os.path.isfile(path):
-                with open(path, encoding="utf-8", errors="replace") as handle:
-                    text = handle.read()
-                say(text[:200000] + ("\n... (cut; open the full file from the logs folder)" if len(text) > 200000 else ""))
-        elif action == "appimage":
-            target = extract_appimage(payload.get("path", ""))
-            result = 0 if target else 1
-            if target:
-                configure(target, MODS, interactive=False)
-        else:
-            say("Unknown action: " + action)
-            result = 1
+        with open(path, "rb") as handle:
+            tail = b""
+            while True:
+                chunk = handle.read(8 << 20)
+                if not chunk:
+                    return ""
+                match = ELECTRON_IN_BINARY.search(tail + chunk)
+                if match:
+                    return match.group(1).decode()
+                tail = chunk[-64:]
+    except OSError:
+        return ""
+
+
+def electron_version():
+    """(version, where it came from), or ("", "") when the game does not say."""
+    if GAME.endswith(".app"):
+        framework = os.path.join(GAME, "Contents", "Frameworks", "Electron Framework.framework")
+        for rel in (("Versions", "A", "Resources", "Info.plist"), ("Resources", "Info.plist")):
+            try:
+                with open(os.path.join(framework, *rel), "rb") as handle:
+                    found = plain_version(str(plistlib.load(handle).get("CFBundleVersion", "")))
+                if found:
+                    return found, "Electron Framework Info.plist"
+            except (OSError, ValueError, plistlib.InvalidFileException):
+                continue
+    if GAME and os.path.isfile(os.path.join(GAME, "version")):
+        try:
+            with open(os.path.join(GAME, "version"), encoding="utf-8", errors="replace") as handle:
+                found = plain_version(handle.read(64))
+            if found:
+                return found, "the game's version file"
+        except OSError:
+            pass
+    programs = []
+    if GAME and os.path.isdir(GAME) and not GAME.endswith(".app"):
+        for name in os.listdir(GAME):
+            path = os.path.join(GAME, name)
+            if os.path.isfile(path) and (name.lower().endswith(".exe") or is_elf(path)) \
+                    and os.path.getsize(path) > 20 * 1024 * 1024:
+                programs.append((os.path.getsize(path), path))
+    for _, path in sorted(programs, reverse=True)[:3]:
+        found = scan_for_electron(path)
+        if found:
+            return found, os.path.basename(path)
+    try:
+        with open(os.path.join(APP, "package.json"), encoding="utf-8") as handle:
+            package = json.load(handle)
+        for section in ("devDependencies", "dependencies"):
+            found = plain_version(str(package.get(section, {}).get("electron", "")))
+            if found:
+                return found, "app/package.json"
+    except (OSError, ValueError, AttributeError):
+        pass
+    return "", ""
+
+
+def pick_electron(version, electron_zip_path):
+    """The Electron version to download: --electron, else the game's own, else the default."""
+    if version or electron_zip_path:
+        return version or "(from your zip)"
+    found, where = electron_version()
+    if found:
+        say("The game uses Electron " + found + " (read from " + where + "), so the export uses it too.")
+        return found
+    say("Could not tell which Electron the game uses, so using Electron " + DEFAULT_ELECTRON + ".")
+    return DEFAULT_ELECTRON
+
+
+def elf_arch(path):
+    """x64 or arm64 for a Linux program, or ''."""
+    try:
+        with open(path, "rb") as handle:
+            head = handle.read(20)
+        machine = struct.unpack_from("<H" if head[5] == 1 else ">H", head, 18)[0]
+        return {62: "x64", 183: "arm64"}.get(machine, "")
+    except (OSError, struct.error, IndexError):
+        return ""
+
+
+# ---------- downloads ----------
+
+def download(url, dest):
+    """Download url to dest (atomically). Falls back to curl when Python has no
+    certificates (common with the python.org installer on macOS)."""
+    part = dest + ".part"
+    say("Downloading " + url)
+    try:
+        request = urllib.request.Request(url, headers={"User-Agent": "NestPatcher/" + TOOL_VERSION})
+        with urllib.request.urlopen(request, timeout=60) as response, open(part, "wb") as handle:
+            total = int(response.headers.get("Content-Length") or 0)
+            done, shown = 0, -1
+            while True:
+                chunk = response.read(1 << 20)
+                if not chunk:
+                    break
+                handle.write(chunk)
+                done += len(chunk)
+                if total > 4 << 20 and done * 10 // total != shown:
+                    shown = done * 10 // total
+                    say("  " + str(shown * 10) + "% of " + str(total // (1 << 20)) + " MB")
+        os.replace(part, dest)
+        return True
     except Exception as exc:
-        say("CRASH: " + type(exc).__name__ + ": " + str(exc))
-        say("Please make a bug report from the Report a bug tab.")
-        result = 1
-    JOB["result"] = result
-    JOB["running"] = False
-    say("[finished: " + ("OK" if result == 0 else "stopped, see the lines above") + "]")
+        if os.path.exists(part):
+            os.remove(part)
+        curl = which_tool("curl")
+        if not curl:
+            say("Download failed: " + str(exc))
+            return False
+        say("Python could not download it (" + type(exc).__name__ + "), trying curl...")
+        result = subprocess.run([curl, "-fL", "--retry", "3", "-o", part, url], **hidden_window())
+        if result.returncode or not os.path.isfile(part):
+            if os.path.exists(part):
+                os.remove(part)
+            say("Download failed (curl exit code " + str(result.returncode) + ").")
+            return False
+        os.replace(part, dest)
+        return True
 
 
-class Handler(BaseHTTPRequestHandler):
-    server_version = "NestPatcher"
+def sha256_of(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
-    def log_message(self, *args):
+
+def downloads_folder():
+    folder = os.path.join(MODS, "downloads")
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+def electron_zip(version, system, arch, given=None):
+    """Path to electron-v<version>-<system>-<arch>.zip, downloaded and checked
+    against Electron's SHASUMS256.txt, or None."""
+    if given:
+        given = os.path.abspath(os.path.expanduser(given))
+        if not zipfile.is_zipfile(given):
+            say("STOP: --electron-zip is not a zip file: " + given)
+            return None
+        say("Using the Electron zip you gave: " + given)
+        return given
+    name = "electron-v" + version + "-" + system + "-" + arch + ".zip"
+    folder = downloads_folder()
+    sums_path = os.path.join(folder, "SHASUMS256-v" + version + ".txt")
+    if not os.path.isfile(sums_path) and not download(
+            ELECTRON_URL.format(ver=version, file="SHASUMS256.txt"), sums_path):
+        say("STOP: could not get the checksum list for Electron " + version + ".")
+        say("Check your internet connection, or download " + name + " yourself and use --electron-zip FILE.")
+        return None
+    with open(sums_path, encoding="utf-8", errors="replace") as handle:
+        sums = {}
+        for line in handle:
+            parts = line.split()
+            if len(parts) == 2:
+                sums[parts[1].lstrip("*")] = parts[0].lower()
+    if name not in sums:
+        say("STOP: Electron " + version + " has no " + system + "-" + arch + " download.")
+        if arch == "arm64":
+            say("Electron only has arm64 Mac builds from version 11. Use --arch x64 (Apple Silicon runs it through Rosetta),")
+            say("or pick a newer Electron with --electron " + DEFAULT_ELECTRON + ".")
+        return None
+    path = os.path.join(folder, name)
+    if os.path.isfile(path) and sha256_of(path) == sums[name]:
+        say("Using saved " + name)
+        return path
+    if not download(ELECTRON_URL.format(ver=version, file=name), path):
+        say("STOP: could not download " + name + ". You can download it yourself and use --electron-zip FILE.")
+        return None
+    if sha256_of(path) != sums[name]:
+        os.remove(path)
+        say("STOP: " + name + " did not match Electron's checksum, so it was deleted. Try again.")
+        return None
+    say("Checked " + name + " against Electron's SHASUMS256.txt.")
+    return path
+
+
+def appimage_runtime_size(path):
+    """Length of the ELF runtime at the start of an AppImage (where its squashfs begins)."""
+    with open(path, "rb") as handle:
+        head = handle.read(64)
+    if head[:4] != b"\x7fELF" or head[4] != 2:
+        return 0
+    endian = "<" if head[5] == 1 else ">"
+    shoff = struct.unpack_from(endian + "Q", head, 0x28)[0]
+    shentsize, shnum = struct.unpack_from(endian + "HH", head, 0x3A)
+    return shoff + shentsize * shnum
+
+
+def save_game_runtime(appimage):
+    """Keep the runtime of the player's own TiTS AppImage as a spare for exports."""
+    try:
+        size = appimage_runtime_size(appimage)
+        if not 4096 < size < 16 << 20:
+            return
+        with open(appimage, "rb") as handle:
+            data = handle.read(size)
+        arch = "aarch64" if struct.unpack_from("<H", data, 18)[0] == 183 else "x86_64"
+        with open(os.path.join(downloads_folder(), "runtime-from-game-" + arch), "wb") as handle:
+            handle.write(data)
+    except (OSError, struct.error):
         pass
 
-    def allowed(self):
-        host = (self.headers.get("Host") or "").split(":")[0]
-        if host not in ("127.0.0.1", "localhost"):
-            return False
-        if self.path.split("?")[0] in ("/", "/index.html", "/favicon.ico"):
-            return True
-        return secrets.compare_digest(self.headers.get("X-Nest-Key", ""), KEY)
 
-    def send(self, code, body, kind="application/json"):
-        data = body if isinstance(body, bytes) else body.encode("utf-8")
-        self.send_response(code)
-        self.send_header("Content-Type", kind + "; charset=utf-8")
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.end_headers()
-        self.wfile.write(data)
+def appimage_runtime(arch, given=None):
+    if given:
+        given = os.path.abspath(os.path.expanduser(given))
+        return given if os.path.isfile(given) else None
+    folder = downloads_folder()
+    path = os.path.join(folder, "runtime-" + arch)
+    if os.path.isfile(path) and os.path.getsize(path) > 4096:
+        return path
+    if download(RUNTIME_URL.format(arch=arch), path):
+        with open(path, "rb") as handle:
+            head = handle.read(11)
+        if head[:4] == b"\x7fELF" and head[8:11] == b"AI\x02":
+            return path
+        os.remove(path)
+        say("The downloaded AppImage runtime did not look right, so it was deleted.")
+    spare = os.path.join(folder, "runtime-from-game-" + arch)
+    if os.path.isfile(spare):
+        say("Using the runtime saved from your own TiTS AppImage instead.")
+        return spare
+    return None
 
-    def reply(self, obj, code=200):
-        self.send(code, json.dumps(obj))
 
-    def do_GET(self):
-        if not self.allowed():
-            return self.send(403, "forbidden", "text/plain")
-        url = urllib.parse.urlparse(self.path)
-        query = urllib.parse.parse_qs(url.query)
-        LAST_PING[0] = time.time()
-        if url.path in ("/", "/index.html"):
-            return self.send(200, PAGE, "text/html")
-        if url.path == "/favicon.ico":
-            return self.send(204, b"", "image/x-icon")
-        if url.path == "/api/state":
-            return self.reply(state())
-        if url.path == "/api/log":
-            since = int((query.get("since") or ["0"])[0] or 0)
-            with LINES_LOCK:
-                since = min(since, len(LINES))
-                lines = LINES[since:since + 4000]
-                total = since + len(lines)
-            return self.reply({"lines": lines, "next": total, "running": JOB["running"], "result": JOB["result"]})
-        if url.path == "/api/mods":
-            return self.reply({"mods": mod_rows(), "hasList": os.path.isfile(ENABLED)})
-        return self.send(404, "not found", "text/plain")
+# ---------- icons ----------
 
-    def do_POST(self):
-        if not self.allowed():
-            return self.send(403, "forbidden", "text/plain")
-        LAST_PING[0] = time.time()
-        length = min(int(self.headers.get("Content-Length") or 0), 2 * 1024 * 1024)
+def png_size(data):
+    if data[:8] != PNG_SIGNATURE or data[12:16] != b"IHDR":
+        return 0, 0
+    return struct.unpack(">II", data[16:24])
+
+
+def make_png(width, height, rgba_rows):
+    def chunk(kind, body):
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body) & 0xFFFFFFFF)
+    raw = b"".join(b"\x00" + row for row in rgba_rows)
+    return (PNG_SIGNATURE + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+
+def dib_to_png(blob):
+    """A 32-bit icon bitmap (BGRA, bottom-up) from an .exe, as a PNG."""
+    header, width, height2, planes, bits = struct.unpack_from("<IiiHH", blob, 0)
+    height = height2 // 2
+    if header < 40 or bits != 32 or width <= 0 or height <= 0:
+        return None
+    stride = width * 4
+    pixels = blob[header:header + stride * height]
+    if len(pixels) < stride * height:
+        return None
+    rows = []
+    for y in range(height - 1, -1, -1):
+        row = bytearray(pixels[y * stride:(y + 1) * stride])
+        row[0::4], row[2::4] = row[2::4], row[0::4]
+        rows.append(bytes(row))
+    return make_png(width, height, rows)
+
+
+def exe_icon_png(path):
+    """The biggest icon inside a Windows .exe, as PNG bytes (or None)."""
+    try:
+        with open(path, "rb") as handle, mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as data:
+            if data[:2] != b"MZ":
+                return None
+            pe = struct.unpack_from("<I", data, 0x3C)[0]
+            if data[pe:pe + 4] != b"PE\0\0":
+                return None
+            sections, optional_size = struct.unpack_from("<H", data, pe + 6)[0], struct.unpack_from("<H", data, pe + 20)[0]
+            optional = pe + 24
+            magic = struct.unpack_from("<H", data, optional)[0]
+            directory = optional + (112 if magic == 0x20B else 96)
+            resource_rva = struct.unpack_from("<I", data, directory + 16)[0]
+            table = optional + optional_size
+
+            def offset(rva):
+                for index in range(sections):
+                    vsize, vaddr, rawsize, rawptr = struct.unpack_from("<IIII", data, table + 40 * index + 8)
+                    if vaddr <= rva < vaddr + max(vsize, rawsize):
+                        return rva - vaddr + rawptr
+                return None
+
+            base = offset(resource_rva)
+            if not resource_rva or base is None:
+                return None
+
+            def entries(at):
+                named, ids = struct.unpack_from("<HH", data, base + at + 12)
+                for index in range(named + ids):
+                    yield struct.unpack_from("<II", data, base + at + 16 + 8 * index)
+
+            best = None
+            for ident, sub in entries(0):
+                if ident != 3 or not sub & 0x80000000:      # 3 = RT_ICON
+                    continue
+                for _, icon in entries(sub & 0x7FFFFFFF):
+                    if not icon & 0x80000000:
+                        continue
+                    for _, leaf in entries(icon & 0x7FFFFFFF):
+                        if leaf & 0x80000000:
+                            continue
+                        rva, size = struct.unpack_from("<II", data, base + leaf)
+                        start = offset(rva)
+                        if start is None:
+                            continue
+                        blob = bytes(data[start:start + size])
+                        try:
+                            png = blob if blob[:8] == PNG_SIGNATURE else dib_to_png(blob)
+                        except (ValueError, struct.error):
+                            png = None
+                        if png and (best is None or png_size(png)[0] > png_size(best)[0]):
+                            best = png
+            return best
+    except (OSError, ValueError, struct.error):
+        return None
+
+
+def find_icon(given=None):
+    """('png'|'icns'|'svg', bytes) for the exported app, or None."""
+    if given:
+        path = os.path.abspath(os.path.expanduser(given))
         try:
-            payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
-        except ValueError:
-            return self.reply({"error": "bad request"}, 400)
-        path = urllib.parse.urlparse(self.path).path
-        if path == "/api/configure":
-            if JOB["running"]:
-                return self.reply({"error": "Wait for the current job to finish."}, 409)
-            game = (payload.get("game") or "").strip() or None
-            mods = (payload.get("mods") or "").strip() or None
-            with CONFIG_LOCK:
-                ok = configure(game, mods, remember=True, interactive=False)
-                return self.reply(dict(state(), ok=ok))
-        if path == "/api/pick":
-            chosen = pick_folder(payload.get("title") or "Choose a folder")
-            return self.reply({"path": chosen, "unavailable": chosen is None})
-        if path == "/api/run":
-            if JOB["running"]:
-                return self.reply({"error": "A job is already running."}, 409)
-            action = payload.get("action", "")
-            JOB.update(running=True, action=action, result=None)
-            threading.Thread(target=run_job, args=(action, payload), daemon=True).start()
-            return self.reply({"started": action})
-        if path == "/api/mods":
-            if JOB["running"]:
-                return self.reply({"error": "Wait for the current job to finish."}, 409)
-            if not os.path.isdir(MODS):
-                return self.reply({"error": "Mods folder not found."}, 400)
-            write_enabled(payload.get("on") or [])
-            return self.reply({"mods": mod_rows(), "hasList": True})
-        if path == "/api/bug":
-            try:
-                zip_path = bug_report(payload.get("description", ""), payload.get("steps", ""),
-                                      payload.get("contact", ""))
-                with zipfile.ZipFile(zip_path) as archive:
-                    text = archive.read("REPORT.txt").decode("utf-8", "replace")
-            except Exception as exc:
-                return self.reply({"error": str(exc)}, 500)
-            return self.reply({"zip": zip_path, "text": text})
-        if path == "/api/open":
-            target = {"mods": MODS, "logs": LOGS, "game": GAME}.get(payload.get("what"), "")
-            if payload.get("what") == "logs":
-                os.makedirs(LOGS, exist_ok=True)
-            return self.reply({"ok": open_folder(target)})
-        if path == "/api/link":
-            url = payload.get("url", "")
-            ok = url.startswith(("https://", "mailto:")) and open_url(url)
-            return self.reply({"ok": bool(ok)})
-        if path == "/api/ui":
-            # Text size and theme are kept in the settings file, because the
-            # panel's address (and so the browser's own storage) changes every run.
-            with CONFIG_LOCK:
-                settings = load_settings()
-                try:
-                    scale = min(2.5, max(0.8, float(payload.get("scale", 1))))
-                except (TypeError, ValueError):
-                    scale = 1.0
-                theme = payload.get("theme") if payload.get("theme") in ("auto", "dark", "light") else "auto"
-                settings["ui"] = {"scale": scale, "theme": theme}
-                with open(SETTINGS, "w", encoding="utf-8") as handle:
-                    json.dump(settings, handle, indent=2)
-            return self.reply({"ok": True})
-        if path == "/api/clear":
-            with LINES_LOCK:
-                LINES.clear()
-            return self.reply({"ok": True})
-        if path == "/api/quit":
-            self.reply({"ok": True})
-            threading.Thread(target=SERVER[0].shutdown, daemon=True).start()
-            return None
-        return self.send(404, "not found", "text/plain")
+            with open(path, "rb") as handle:
+                data = handle.read()
+        except OSError:
+            say("WARNING: could not read --icon " + path)
+            data = b""
+        if data[:8] == PNG_SIGNATURE:
+            return "png", data
+        if data[:4] == b"icns":
+            return "icns", data
+        if b"<svg" in data[:2048]:
+            return "svg", data
+        if data:
+            say("WARNING: --icon must be a .png, .icns or .svg file; using the game's icon instead.")
+    if GAME.endswith(".app"):
+        try:
+            with open(os.path.join(GAME, "Contents", "Info.plist"), "rb") as handle:
+                icon = plistlib.load(handle).get("CFBundleIconFile", "")
+            if icon:
+                icon = icon if icon.endswith(".icns") else icon + ".icns"
+                with open(os.path.join(RESOURCES, icon), "rb") as handle:
+                    return "icns", handle.read()
+        except (OSError, ValueError, plistlib.InvalidFileException):
+            pass
+    if GAME and os.path.isdir(GAME) and not GAME.endswith(".app"):
+        for name in sorted(os.listdir(GAME)):
+            if name.lower().endswith(".exe") and "uninstall" not in name.lower():
+                png = exe_icon_png(os.path.join(GAME, name))
+                if png:
+                    return "png", png
+    for folder in (RESOURCES, APP, GAME):
+        if not folder or not os.path.isdir(folder):
+            continue
+        for name in sorted(os.listdir(folder)):
+            low = name.lower()
+            if low.endswith(".png") and ("icon" in low or low.startswith("tits")):
+                with open(os.path.join(folder, name), "rb") as handle:
+                    data = handle.read()
+                if png_size(data)[0] >= 64:
+                    return "png", data
+    return None
 
 
-def watchdog():
-    """Close the patcher a while after its browser tab is closed (no console to close on a packed exe)."""
-    while True:
-        time.sleep(15)
-        if LAST_PING[0] and not JOB["running"] and time.time() - LAST_PING[0] > 120:
-            say("Browser tab closed; stopping NestPatcher.")
-            SERVER[0].shutdown()
+def icns_from_png(png):
+    kinds = {16: b"icp4", 32: b"icp5", 64: b"icp6", 128: b"ic07", 256: b"ic08", 512: b"ic09", 1024: b"ic10"}
+    width, height = png_size(png)
+    if width != height or width not in kinds:
+        return None
+    body = kinds[width] + struct.pack(">I", 8 + len(png)) + png
+    return b"icns" + struct.pack(">I", 8 + len(body)) + body
+
+
+# ---------- the game files that go into the export ----------
+
+def payload(simple_shell=False):
+    """List of (path inside resources/, source file or bytes) for the patched game."""
+    items = []
+    if RESOURCES and os.path.isdir(os.path.join(RESOURCES, "app")) and not simple_shell:
+        for dirpath, dirnames, filenames in os.walk(RESOURCES):
+            rel_dir = os.path.relpath(dirpath, RESOURCES)
+            if rel_dir == ".":
+                dirnames[:] = [d for d in dirnames if d not in SKIP_RESOURCES and not d.endswith(".lproj")]
+                filenames = [f for f in filenames if f not in SKIP_RESOURCES and not f.endswith(".icns")
+                             and not (f == "app.asar" and os.path.isdir(os.path.join(RESOURCES, "app")))]
+            for name in filenames:
+                path = os.path.join(dirpath, name)
+                if os.path.isfile(path):
+                    items.append((os.path.relpath(path, RESOURCES).replace(os.sep, "/"), path))
+        package = os.path.join(APP, "package.json")
+        main = "index.js"
+        try:
+            with open(package, encoding="utf-8") as handle:
+                main = json.load(handle).get("main") or "index.js"
+        except (OSError, ValueError, AttributeError):
+            main = None
+        if main and os.path.isfile(os.path.join(APP, main)):
+            return items
+        say("The game has no Electron start script of its own, so NestPatcher adds a small one.")
+        items = [item for item in items if item[0] != "app/package.json"]
+    else:
+        items = []
+        if RESOURCES:
+            for dirpath, dirnames, filenames in os.walk(RESOURCES):
+                rel_dir = os.path.relpath(dirpath, RESOURCES)
+                if rel_dir == ".":
+                    dirnames[:] = [d for d in dirnames if d == "app"]
+                    filenames = []
+                for name in filenames:
+                    path = os.path.join(dirpath, name)
+                    rel = os.path.relpath(path, RESOURCES).replace(os.sep, "/")
+                    if rel != "app/package.json":
+                        items.append((rel, path))
+        else:
+            for dirpath, dirnames, filenames in os.walk(APP):
+                for name in filenames:
+                    path = os.path.join(dirpath, name)
+                    items.append(("app/" + os.path.relpath(path, APP).replace(os.sep, "/"), path))
+    version = plain_version(game_version()) or "1.0.0"
+    package = {"name": "tits-nestpatched", "productName": EXPORT_NAME, "version": version,
+               "description": EXPORT_TITLE + ", patched by NestPatcher", "main": "nest-electron-main.js"}
+    items.append(("app/package.json", (json.dumps(package, indent=2) + "\n").encode()))
+    items.append(("app/nest-electron-main.js", SHELL_MAIN.encode()))
+    return items
+
+
+def warn_native_modules(items):
+    native = [rel for rel, _ in items if rel.endswith(".node")]
+    if native:
+        say("WARNING: the game has compiled add-ons that only work on the system they were built for:")
+        for rel in native[:5]:
+            say("  " + rel)
+        say("If the exported game will not start, export again with --simple-shell.")
+
+
+def read_item(source):
+    if isinstance(source, bytes):
+        return source
+    with open(source, "rb") as handle:
+        return handle.read()
+
+
+# ---------- macOS ----------
+
+def mac_rename(rel, name):
+    """Electron.app paths -> renamed paths, the way electron-packager does it."""
+    if rel == "Contents/MacOS/Electron":
+        return "Contents/MacOS/" + name
+    prefix = "Contents/Frameworks/Electron Helper"
+    if rel.startswith(prefix):
+        return "/".join(part.replace("Electron Helper", name + " Helper", 1) if part.startswith("Electron Helper")
+                        else part for part in rel.split("/"))
+    return rel
+
+
+def mac_plist(data, name, version, icon_file, helper=False):
+    info = plistlib.loads(data)
+    if helper:
+        for key in ("CFBundleName", "CFBundleDisplayName", "CFBundleExecutable"):
+            if isinstance(info.get(key), str):
+                info[key] = info[key].replace("Electron Helper", name + " Helper", 1)
+        if isinstance(info.get("CFBundleIdentifier"), str):
+            info["CFBundleIdentifier"] = info["CFBundleIdentifier"].replace("com.github.Electron", BUNDLE_ID, 1)
+    else:
+        info.update({"CFBundleName": name, "CFBundleDisplayName": name, "CFBundleExecutable": name,
+                     "CFBundleIdentifier": BUNDLE_ID,
+                     "LSApplicationCategoryType": "public.app-category.role-playing-games",
+                     "NSHumanReadableCopyright": EXPORT_TITLE + ", patched by NestPatcher (" + CREDIT + ")"})
+        if version:
+            info["CFBundleShortVersionString"] = info["CFBundleVersion"] = version
+        if icon_file:
+            info["CFBundleIconFile"] = icon_file
+        info.pop("ElectronAsarIntegrity", None)
+    return plistlib.dumps(info, fmt=plistlib.FMT_XML)
+
+
+def zip_entry(name, mode, date_time=(2026, 1, 1, 0, 0, 0)):
+    info = zipfile.ZipInfo(name, date_time=date_time)
+    info.create_system = 3
+    info.external_attr = (mode & 0xFFFF) << 16
+    if stat.S_ISDIR(mode):
+        info.external_attr |= 0x10
+    info.compress_type = zipfile.ZIP_STORED if stat.S_ISLNK(mode) or stat.S_ISDIR(mode) else zipfile.ZIP_DEFLATED
+    return info
+
+
+def zip_existing_app(out, app_root, top):
+    """Copy a ready TiTS.app into the zip as-is (symlinks kept, backups left out)."""
+    for dirpath, dirnames, filenames in os.walk(app_root):
+        dirnames.sort()
+        keep = []
+        for dirname in dirnames:
+            path = os.path.join(dirpath, dirname)
+            if dirname in BACKUP_NAMES:
+                continue
+            if os.path.islink(path):
+                filenames.append(dirname)
+            else:
+                keep.append(dirname)
+        dirnames[:] = keep
+        rel_dir = os.path.relpath(dirpath, app_root).replace(os.sep, "/")
+        base = top + ("" if rel_dir == "." else rel_dir + "/")
+        out.writestr(zip_entry(base, stat.S_IFDIR | 0o755), b"")
+        for filename in sorted(filenames):
+            if filename in BACKUP_NAMES:
+                continue
+            path = os.path.join(dirpath, filename)
+            if os.path.islink(path):
+                out.writestr(zip_entry(base + filename, stat.S_IFLNK | 0o755), os.readlink(path).encode())
+            elif os.path.isfile(path):
+                mode = os.stat(path).st_mode
+                with open(path, "rb") as source, out.open(zip_entry(base + filename, mode), "w", force_zip64=True) as dest:
+                    shutil.copyfileobj(source, dest, 1 << 20)
+
+
+def mac_readme(name, folder_name):
+    return ("""How to open """ + name + """.app (patched by NestPatcher)
+================================================
+
+1. Double-click this zip on your Mac to unzip it. Move """ + name + """.app wherever you like
+   (for example your Applications folder).
+2. Open Terminal (Applications > Utilities > Terminal) and type these two lines.
+   Type "cd ", then drag the folder that holds """ + name + """.app into the window and press Enter first.
+
+       xattr -cr """ + name + """.app
+       codesign --force --deep --sign - """ + name + """.app
+
+   (If codesign is missing, run  xcode-select --install  once, then try again.)
+3. Double-click """ + name + """.app. If macOS still says it can't check the app,
+   right-click it, choose Open, then Open again.
+
+Why: NestPatcher changed the game files, so the app no longer matches the
+signature it came with. Those two lines remove the "downloaded" flag and give
+the app a fresh local signature, which is all macOS needs to run it.
+
+Your saves are kept inside the game. They are not shared with the Windows game,
+so use the game's own Save to File / Load from File to move a save across.
+
+Made by NestPatcher """ + TOOL_VERSION + """ (""" + CREDIT + """)
+Electron (the program around the game) is MIT licensed.
+""")
+
+
+def export_mac(out=None, arch=None, version=None, electron_zip_path=None, icon=None, simple_shell=False):
+    """Write <name>_v<game>_NestPatched_macOS-<arch>.zip (and on a Mac, the unpacked, signed .app)."""
+    problem = export_preflight()
+    if problem:
+        say(problem)
+        return 1
+    kind = source_kind()
+    game_ver = plain_version(game_version())
+    reuse = kind == "mac" and not version and not electron_zip_path and not simple_shell
+    arch = arch or (host_arch() if PLATFORM == "mac" else "x64")
+    folder_name = EXPORT_NAME + "_v" + (game_ver or "unknown") + "_NestPatched_macOS" + ("" if reuse else "-" + arch)
+    out_dir = export_folder(out)
+    target = os.path.join(out_dir, folder_name + ".zip")
+    part = target + ".part"
+    name = EXPORT_NAME
+    say("Making a macOS app from: " + GAME)
+    try:
+        with zipfile.ZipFile(part, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as out_zip:
+            out_zip.writestr(zip_entry(folder_name + "/", stat.S_IFDIR | 0o755), b"")
+            top = folder_name + "/" + name + ".app/"
+            if reuse:
+                say("This is already a Mac game, so its own Electron is kept.")
+                zip_existing_app(out_zip, GAME, top)
+            else:
+                version = pick_electron(version, electron_zip_path)
+                say("Electron " + version + " for macOS " + arch + ("" if arch == "x64" else " (Apple Silicon)"))
+                source = electron_zip(version, "darwin", arch, electron_zip_path)
+                if not source:
+                    raise RuntimeError("")
+                items = payload(simple_shell)
+                warn_native_modules(items)
+                icon_data = find_icon(icon)
+                icns = None
+                if icon_data and icon_data[0] == "icns":
+                    icns = icon_data[1]
+                elif icon_data and icon_data[0] == "png":
+                    icns = icns_from_png(icon_data[1])
+                    if not icns:
+                        say("The game's icon is not a square 16-1024 px PNG, so the app keeps Electron's icon.")
+                icon_file = name + ".icns" if icns else ""
+                with zipfile.ZipFile(source) as electron:
+                    if not any(n.startswith("Electron.app/Contents/MacOS/") for n in electron.namelist()):
+                        say("STOP: that Electron zip has no Electron.app inside, so it is not a macOS Electron.")
+                        raise RuntimeError("")
+                    for info in electron.infolist():
+                        entry = info.filename
+                        if not entry.startswith("Electron.app/"):
+                            if entry in ("LICENSE", "LICENSES.chromium.html"):
+                                out_zip.writestr(zip_entry(folder_name + "/licenses/Electron-" + entry, 0o100644),
+                                                 electron.read(info))
+                            continue
+                        rel = entry[len("Electron.app/"):]
+                        if rel == "Contents/Resources/default_app.asar":
+                            continue
+                        if rel == "Contents/Resources/electron.icns" and icns:
+                            continue
+                        mode = info.external_attr >> 16 or (0o40755 if entry.endswith("/") else 0o100644)
+                        new = top + mac_rename(rel, name)
+                        is_helper_plist = rel.startswith("Contents/Frameworks/Electron Helper") and \
+                            rel.endswith(".app/Contents/Info.plist")
+                        if rel == "Contents/Info.plist" or is_helper_plist:
+                            out_zip.writestr(zip_entry(new, mode),
+                                             mac_plist(electron.read(info), name, game_ver, icon_file, is_helper_plist))
+                        elif stat.S_ISLNK(mode) or stat.S_ISDIR(mode) or entry.endswith("/"):
+                            out_zip.writestr(zip_entry(new, mode), electron.read(info) if stat.S_ISLNK(mode) else b"")
+                        else:
+                            with electron.open(info) as reader, out_zip.open(zip_entry(new, mode), "w", force_zip64=True) as writer:
+                                shutil.copyfileobj(reader, writer, 1 << 20)
+                if icns:
+                    out_zip.writestr(zip_entry(top + "Contents/Resources/" + icon_file, 0o100644), icns)
+                for rel, source_item in items:
+                    out_zip.writestr(zip_entry(top + "Contents/Resources/" + rel, 0o100644), read_item(source_item))
+                say("Added " + str(len(items)) + " game files.")
+            out_zip.writestr(zip_entry(folder_name + "/HOW-TO-OPEN.txt", 0o100644), mac_readme(name, folder_name))
+        os.replace(part, target)
+    except RuntimeError:
+        if os.path.exists(part):
+            os.remove(part)
+        return 1
+    except (OSError, zipfile.BadZipFile, ValueError) as exc:
+        if os.path.exists(part):
+            os.remove(part)
+        say("STOP: could not make the Mac app: " + str(exc))
+        return 1
+    say("DONE: Mac app zip saved to " + target)
+    if PLATFORM == "mac":
+        unpack_and_sign_mac(target, out_dir, folder_name, name)
+    else:
+        say("Copy the zip to the Mac, unzip it, and follow HOW-TO-OPEN.txt inside (two Terminal lines).")
+    return 0
+
+
+def unpack_and_sign_mac(zip_path, out_dir, folder_name, name):
+    folder = os.path.join(out_dir, folder_name)
+    if os.path.isdir(folder):
+        shutil.rmtree(folder)
+    ditto = which_tool("ditto")
+    if ditto:
+        result = subprocess.run([ditto, "-x", "-k", zip_path, out_dir], capture_output=True, text=True)
+        if result.returncode:
+            say("WARNING: could not unzip the app: " + (result.stderr or result.stdout).strip())
             return
+    else:
+        with zipfile.ZipFile(zip_path) as archive:
+            for info in archive.infolist():
+                dest = os.path.join(out_dir, *info.filename.rstrip("/").split("/"))
+                mode = info.external_attr >> 16
+                if info.filename.endswith("/"):
+                    os.makedirs(dest, exist_ok=True)
+                elif stat.S_ISLNK(mode):
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+                    os.symlink(archive.read(info).decode(), dest)
+                else:
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+                    with archive.open(info) as reader, open(dest, "wb") as writer:
+                        shutil.copyfileobj(reader, writer, 1 << 20)
+                    os.chmod(dest, (mode & 0o777) or 0o644)
+    app = os.path.join(folder, name + ".app")
+    sign_app(app)
+    say("Your Mac app is ready: " + app)
+    say("Drag it to Applications if you like, then double-click it.")
 
 
-def gui_main():
+def sign_app(app):
+    xattr = which_tool("xattr")
+    if xattr:
+        subprocess.run([xattr, "-cr", app], capture_output=True)
+    codesign = which_tool("codesign")
+    if not codesign:
+        say("WARNING: codesign not found. Run  xcode-select --install  once, then:")
+        say("  codesign --force --deep --sign - \"" + app + "\"")
+        return
+    result = subprocess.run([codesign, "--force", "--deep", "--sign", "-", app], capture_output=True, text=True)
+    if result.returncode:
+        say("WARNING: ad-hoc signing failed:\n" + (result.stderr or result.stdout).strip())
+    else:
+        say("Ad-hoc signed " + os.path.basename(app) + " so macOS will open it.")
+
+
+# ---------- Linux AppImage ----------
+
+APPRUN = """#!/bin/sh
+# {title}, patched by NestPatcher and packed as an AppImage.
+HERE="$(dirname "$(readlink -f "$0")")"
+# Chromium's sandbox needs user namespaces. Some systems (Ubuntu 24.04+, hardened
+# kernels) turn them off for unpacked programs, and Electron then refuses to start.
+# In that case start without the sandbox. NEST_NO_SANDBOX=1 forces it.
+# Electron also refuses to run as root with the sandbox on.
+if [ -n "$NEST_NO_SANDBOX" ] || [ "$(id -u)" = "0" ] \\
+   || [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null)" = "1" ] \\
+   || [ "$(cat /proc/sys/kernel/unprivileged_userns_clone 2>/dev/null)" = "0" ]; then
+  set -- --no-sandbox "$@"
+fi
+exec "$HERE/{binary}" "$@"
+"""
+
+DESKTOP = """[Desktop Entry]
+Type=Application
+Name={title} (NestPatched)
+Comment={title}, patched by NestPatcher
+Exec={binary}
+Icon={icon}
+Terminal=false
+Categories=Game;RolePlaying;
+"""
+
+
+def squashfs_hint():
+    family = distro_family() if PLATFORM == "linux" else ""
+    if PLATFORM == "mac":
+        return "brew install squashfs"
+    if family == "fedora":
+        return "sudo dnf install squashfs-tools"
+    if family == "arch":
+        return "sudo pacman -S squashfs-tools"
+    return "sudo apt install squashfs-tools"
+
+
+def copy_tree(source, dest, skip=()):
+    shutil.copytree(source, dest, symlinks=True,
+                    ignore=lambda folder, names: [n for n in names if n in skip])
+
+
+def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, icon=None,
+                    simple_shell=False, runtime=None):
+    """Write <name>_v<game>_NestPatched-<arch>.AppImage next to the patcher (NestExports/)."""
+    problem = export_preflight()
+    if problem:
+        say(problem)
+        return 1
+    if PLATFORM == "windows":
+        say("STOP: an AppImage can only be made on Linux (it needs mksquashfs).")
+        say("On Windows you can still make the Mac app, or copy the patched game folder to Linux.")
+        return 1
+    mksquashfs = which_tool("mksquashfs")
+    if not mksquashfs:
+        say("STOP: mksquashfs is missing. It packs the AppImage. Install it with:")
+        say("  " + squashfs_hint())
+        return 1
+    kind = source_kind()
+    game_ver = plain_version(game_version())
+    reuse = kind in ("linux", "appdir") and not version and not electron_zip_path and not simple_shell
+    if reuse:
+        own = linux_game_binary(GAME)
+        found = elf_arch(os.path.join(GAME, own)) if own else ""
+        if arch and found and arch != found:
+            say("Note: the game's own Electron is " + found + ", so the AppImage is " + found + " (not " + arch + ").")
+        arch = found or arch or host_arch()
+    arch = arch or host_arch()
+    machine = APPIMAGE_ARCH[arch]
+    out_dir = export_folder(out)
+    target = os.path.join(out_dir, EXPORT_NAME + "_v" + (game_ver or "unknown") + "_NestPatched-" + machine + ".AppImage")
+    work = tempfile.mkdtemp(prefix="nest-appdir-", dir=out_dir)
+    appdir = os.path.join(work, "AppDir")
+    binary = EXPORT_NAME
+    say("Making an AppImage from: " + GAME)
+    try:
+        runtime_path = appimage_runtime(machine, runtime)
+        if not runtime_path:
+            say("STOP: could not get the AppImage runtime (" + RUNTIME_URL.format(arch=machine) + ").")
+            say("Check your internet connection, or download that file yourself and use --appimage-runtime FILE.")
+            return 1
+        icon_data = find_icon(icon)
+        if kind == "appdir" and reuse:
+            say("This is an unpacked AppImage, so it is packed again as it is.")
+            copy_tree(GAME, appdir, skip=BACKUP_NAMES)
+            desktop = [n for n in os.listdir(appdir) if n.endswith(".desktop")]
+            if not desktop:
+                inner = linux_game_binary(appdir) or binary
+                write_desktop(appdir, inner, icon_data)
+        else:
+            if reuse:
+                binary = linux_game_binary(GAME)
+                say("This is already a Linux game, so its own Electron is kept (" + binary + ").")
+                copy_tree(GAME, appdir, skip=BACKUP_NAMES)
+            else:
+                version = pick_electron(version, electron_zip_path)
+                say("Electron " + version + " for Linux " + arch)
+                source = electron_zip(version, "linux", arch, electron_zip_path)
+                if not source:
+                    return 1
+                items = payload(simple_shell)
+                warn_native_modules(items)
+                inner = appdir
+                with zipfile.ZipFile(source) as electron:
+                    if "electron" not in electron.namelist():
+                        say("STOP: that Electron zip has no 'electron' program inside, so it is not a Linux Electron.")
+                        return 1
+                    for info in electron.infolist():
+                        if info.filename.endswith("/") or info.filename == "resources/default_app.asar":
+                            continue
+                        rel = binary if info.filename == "electron" else info.filename
+                        dest = os.path.join(inner, *rel.split("/"))
+                        os.makedirs(os.path.dirname(dest), exist_ok=True)
+                        mode = info.external_attr >> 16
+                        if stat.S_ISLNK(mode):
+                            os.symlink(electron.read(info).decode(), dest)
+                            continue
+                        with electron.open(info) as reader, open(dest, "wb") as writer:
+                            shutil.copyfileobj(reader, writer, 1 << 20)
+                        os.chmod(dest, (mode & 0o777) or (0o755 if rel == binary else 0o644))
+                for rel, source_item in items:
+                    dest = os.path.join(inner, "resources", *rel.split("/"))
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+                    if isinstance(source_item, bytes):
+                        with open(dest, "wb") as handle:
+                            handle.write(source_item)
+                    else:
+                        shutil.copyfile(source_item, dest)
+                say("Added " + str(len(items)) + " game files.")
+            with open(os.path.join(appdir, "AppRun"), "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(APPRUN.format(title=EXPORT_TITLE, binary=binary))
+            os.chmod(os.path.join(appdir, "AppRun"), 0o755)
+            write_desktop(appdir, binary, icon_data)
+        open_permissions(appdir)
+        squash = os.path.join(work, "game.squashfs")
+        say("Packing (this takes a minute)...")
+        result = subprocess.run([mksquashfs, appdir, squash, "-root-owned", "-noappend", "-comp", "gzip", "-quiet"],
+                                capture_output=True, text=True)
+        if result.returncode:
+            say("STOP: mksquashfs failed:\n" + (result.stderr or result.stdout).strip())
+            return 1
+        part = target + ".part"
+        with open(part, "wb") as dest:
+            for piece in (runtime_path, squash):
+                with open(piece, "rb") as source:
+                    shutil.copyfileobj(source, dest, 1 << 20)
+        os.chmod(part, 0o755)
+        os.replace(part, target)
+    except (OSError, zipfile.BadZipFile, ValueError) as exc:
+        say("STOP: could not make the AppImage: " + str(exc))
+        return 1
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    say("DONE: AppImage saved to " + target)
+    say("Start it by double-clicking it, or from a terminal: \"" + target + "\"")
+    say("If your file manager won't run it, right-click > Properties > allow running as a program.")
+    return 0
+
+
+def open_permissions(folder):
+    """Everyone must be able to read the AppImage's files (it is mounted as root),
+    whatever the user's umask was while it was built."""
+    for dirpath, dirnames, filenames in os.walk(folder):
+        os.chmod(dirpath, 0o755)
+        for name in filenames:
+            path = os.path.join(dirpath, name)
+            if os.path.islink(path):
+                continue
+            mode = os.stat(path).st_mode
+            os.chmod(path, 0o755 if mode & 0o100 else 0o644)
+
+
+def write_desktop(appdir, binary, icon_data):
+    icon_name = EXPORT_NAME.lower()
+    if icon_data and icon_data[0] == "png":
+        icon_path, data = icon_name + ".png", icon_data[1]
+    elif icon_data and icon_data[0] == "svg":
+        icon_path, data = icon_name + ".svg", icon_data[1]
+    else:
+        icon_path, data = icon_name + ".svg", FALLBACK_SVG.encode()
+    for old in (icon_name + ".png", icon_name + ".svg", ".DirIcon"):
+        if os.path.lexists(os.path.join(appdir, old)):
+            os.remove(os.path.join(appdir, old))
+    with open(os.path.join(appdir, icon_path), "wb") as handle:
+        handle.write(data)
+    os.symlink(icon_path, os.path.join(appdir, ".DirIcon"))
+    with open(os.path.join(appdir, icon_name + ".desktop"), "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(DESKTOP.format(title=EXPORT_TITLE, binary=binary, icon=icon_name))
+
+
+def export_preflight():
+    if not APP or not os.path.isfile(os.path.join(APP, "index.html")):
+        if RESOURCES and os.path.isfile(os.path.join(RESOURCES, "app.asar")):
+            return "STOP: the game is still packed as app.asar. Unpack it (--unpack-asar) and patch it first."
+        return "STOP: no game files found at " + (APP or "(no game folder set)") + ". Pick the game folder first."
+    if not (os.path.isdir(BACKUP) and os.listdir(BACKUP)):
+        say("Note: this game has not been patched yet, so the export will have no mods in it.")
+    elif not os.path.isfile(os.path.join(RUNTIME_DIR, RUNTIME_NAME)):
+        say("Note: no NestPatcher files are in the game right now (all mods off?), so the export will be unmodded.")
+    return ""
+
+
+# --------------------------------------------------------------------------
+# Command line
+# --------------------------------------------------------------------------
+
+import argparse
+
+MENU = [
+    ("Test my mods (dry run, changes nothing)", ["--dry-run"]),
+    ("Patch the game with my mods", []),
+    ("Turn all mods off (restore the original game files)", ["--restore"]),
+    ("Make a bug report zip", ["--bug-report"]),
+    ("Show the folders and tools in use", ["--show"]),
+    ("Unpack app.asar (only if the patcher asked for it)", ["--unpack-asar"]),
+    ("Make a macOS app (zip) from the patched game", ["--export-mac"]),
+    ("Make a Linux AppImage from the patched game (Linux only)", ["--export-appimage"]),
+]
+
+
+def menu():
+    say("")
+    say("NestPatcher " + TOOL_VERSION + " for " + PLATFORM_LABEL)
+    say(CREDIT)
+    for number, (label, _) in enumerate(MENU, 1):
+        say("  " + str(number) + ") " + label)
+    say("  0) Quit")
+    try:
+        answer = input("Type a number and press Enter: ").strip()
+    except EOFError:
+        return None
+    if answer.isdigit() and 1 <= int(answer) <= len(MENU):
+        return MENU[int(answer) - 1][1]
+    return None
+
+
+def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
         try:
             sys.stdout.reconfigure(errors="replace")
         except (AttributeError, ValueError):
             pass
-    no_browser = "--no-browser" in sys.argv
-    port = 0
-    for arg in sys.argv[1:]:
-        if arg.startswith("--port="):
-            port = int(arg.split("=", 1)[1])
-    configure(interactive=False)
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    SERVER[0] = server
-    url = "http://127.0.0.1:" + str(server.server_address[1]) + "/#k=" + KEY
-    say("NestPatcher GUI " + TOOL_VERSION + " is running.")
-    say("If your browser did not open, copy this into it:  " + url)
-    say("Keep this window open while you use it. Close the browser tab or press Ctrl+C to stop.")
-    if not no_browser:
-        threading.Timer(0.6, open_url, args=(url,)).start()
-    threading.Thread(target=watchdog, daemon=True).start()
-    try:
-        server.serve_forever(poll_interval=0.5)
-    except KeyboardInterrupt:
-        pass
-    server.server_close()
-    return 0
+    parser = argparse.ArgumentParser(
+        description="NestPatcher " + TOOL_VERSION + " (" + PLATFORM_LABEL + "): validated, reversible game-file patching")
+    parser.add_argument("--dry-run", action="store_true", help="validate and preview without writing game files")
+    parser.add_argument("--fresh", action="store_true", help="regenerate from saved baselines; clear obsolete NestPatcher runtime files (also default)")
+    parser.add_argument("--skip-validation", action="store_true", help="dangerous: skip Node.js syntax validation")
+    parser.add_argument("--find", nargs="+", metavar="TERM", help="search game JavaScript and save excerpts to nestmods/logs/SourceSearch.txt (read-only)")
+    parser.add_argument("--game", "--app", dest="game", metavar="PATH", help="the TiTS game folder (remembered for later runs)")
+    parser.add_argument("--mods", metavar="PATH", help="mods folder (default: nestmods next to this script; remembered)")
+    parser.add_argument("--unpack-asar", action="store_true", help="extract resources/app.asar to resources/app so it can be patched")
+    if PLATFORM_DEFAULT == "linux":
+        parser.add_argument("--extract-appimage", metavar="FILE", help="unpack a TiTS .AppImage into a folder that can be patched")
+    parser.add_argument("--export-mac", action="store_true", help="pack the patched game as a macOS TiTS.app (zip; on a Mac also unpacked and signed)")
+    parser.add_argument("--export-appimage", action="store_true", help="pack the patched game as one Linux .AppImage file (needs mksquashfs)")
+    parser.add_argument("--out", metavar="FOLDER", help="with --export-*: where to save it (default: NestExports next to this script)")
+    parser.add_argument("--arch", choices=["x64", "arm64"], help="with --export-*: x64 (Intel/AMD, the default off-Mac) or arm64 (Apple Silicon, ARM Linux)")
+    parser.add_argument("--electron", metavar="VERSION", help="with --export-*: use this Electron version instead of the game's own")
+    parser.add_argument("--electron-zip", metavar="FILE", help="with --export-*: an Electron zip you downloaded yourself (no internet needed)")
+    parser.add_argument("--appimage-runtime", metavar="FILE", help="with --export-appimage: an AppImage runtime file you downloaded yourself")
+    parser.add_argument("--icon", metavar="FILE", help="with --export-*: a .png (square), .icns or .svg icon instead of the game's")
+    parser.add_argument("--simple-shell", action="store_true", help="with --export-*: start the game with NestPatcher's small starter instead of the game's own")
+    parser.add_argument("--restore", action="store_true", help="put the clean original game files back (turns every mod off)")
+    parser.add_argument("--bug-report", action="store_true", help="save a zip with your log, enabled.txt and system info to send to the mod author")
+    parser.add_argument("--note", metavar="TEXT", default="", help="with --bug-report: what went wrong, in your own words")
+    parser.add_argument("--menu", action="store_true", help="show a numbered menu instead of using flags")
+    parser.add_argument("--show", action="store_true", help="print the paths in use and exit")
+    parser.add_argument("--forget", action="store_true", help="delete saved --game/--mods settings and exit")
+    parser.add_argument("--version", action="version", version="NestPatcher " + TOOL_VERSION + ". " + CREDIT)
+    args = parser.parse_args(argv)
 
+    if args.menu:
+        picked = menu()
+        if picked is None:
+            return 0
+        keep = []
+        if args.game:
+            keep += ["--game", args.game]
+        if args.mods:
+            keep += ["--mods", args.mods]
+        return main(keep + picked)
 
-PAGE = r"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NestPatcher</title>
-<style>
-:root,:root[data-theme=dark]{--bg:#121318;--logbg:#0b0c10;--thumb:#5a5f70;--track:#1b1d24;--panel:#1b1d24;--panel2:#23262f;--line:#2f3340;--text:#e7e8ee;--dim:#9aa0b0;
---accent:#c48cff;--accent2:#8f5ad6;--ok:#6fdc8c;--warn:#ffcf5c;--bad:#ff7a85;--focus:#ffd34d;--wbg:#2a2618;--bbg:#2b1a1e;--gbg:#17281d;color-scheme:dark}
-@media (prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#f6f6f9;--panel:#ffffff;--panel2:#eef0f5;--line:#c9ccd6;--text:#17181d;--dim:#4f5566;--accent:#6b2fbf;--accent2:#6b2fbf;--ok:#17703a;--warn:#7a5600;--bad:#b0182a;--focus:#0a58ca;--logbg:#fbfbfd;--thumb:#8a90a2;--track:#e6e8ee;--wbg:#fff6dc;--bbg:#fde8eb;--gbg:#e4f5e9;color-scheme:light}}
-:root[data-theme=light]{--bg:#f6f6f9;--panel:#ffffff;--panel2:#eef0f5;--line:#c9ccd6;--text:#17181d;--dim:#4f5566;--accent:#6b2fbf;--accent2:#6b2fbf;--ok:#17703a;--warn:#7a5600;--bad:#b0182a;--focus:#0a58ca;--logbg:#fbfbfd;--thumb:#8a90a2;--track:#e6e8ee;--wbg:#fff6dc;--bbg:#fde8eb;--gbg:#e4f5e9;color-scheme:light}
-html{font-size:calc(16px * var(--scale,1))}
-*{box-sizing:border-box}
-*{scrollbar-width:auto;scrollbar-color:var(--thumb) var(--track)}
-::-webkit-scrollbar{width:14px;height:14px}::-webkit-scrollbar-track{background:var(--track)}
-::-webkit-scrollbar-thumb{background:var(--thumb);border-radius:7px;border:3px solid var(--track)}
-html,body{overflow-y:auto}main{overflow-x:auto}
-.status span,code{overflow-wrap:anywhere}
-.a11y{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.a11y button,.a11y select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:.9rem;cursor:pointer;min-width:2.6rem}
-.a11y .lbl{color:var(--dim);font-size:.85rem}
-body{margin:0;background:var(--bg);color:var(--text);font:1rem/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
-header h1{font-size:1.25rem;margin:0;white-space:nowrap}header .ver{color:var(--dim);font-size:0.875rem}
-header .sp{flex:1}
-nav{display:flex;gap:4px;padding:8px 16px 0;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
-nav button{background:none;border:0;color:var(--dim);padding:10px 14px;font:inherit;border-bottom:3px solid transparent;cursor:pointer}
-nav button[aria-selected=true]{color:var(--text);border-bottom-color:var(--accent)}
-main{max-width:980px;margin:0 auto;padding:20px 16px 40px}
-section[hidden]{display:none}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
-.card h2{font-size:1.0625rem;margin:0 0 10px}
-label{display:block;font-weight:600;margin:10px 0 4px}
-.hint{color:var(--dim);font-size:0.875rem;margin:4px 0}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input[type=text],textarea{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit}
-textarea{min-height:90px;resize:vertical}
-.row input[type=text]{flex:1;min-width:200px}
-button.b{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer}
-button.b:hover{border-color:var(--accent)}
-button.p{background:var(--accent2);border-color:var(--accent2);color:#fff}
-button.p:hover{background:var(--accent)}
-button.d{border-color:#6b3a42}
-button:disabled{opacity:.45;cursor:not-allowed}
-:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.status{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.9375rem}
-.status b{color:var(--dim);font-weight:600}
-.good{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.chip{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:6px 12px;font:inherit;font-size:0.875rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#log{background:var(--logbg);resize:vertical;border:1px solid var(--line);border-radius:10px;padding:10px 12px;height:24rem;overflow:auto;
-font:.8125rem/1.45 ui-monospace,Consolas,"DejaVu Sans Mono",monospace;white-space:pre-wrap;word-break:break-word}
-#log .ok{color:var(--ok)}#log .bad{color:var(--bad)}#log .warn{color:var(--warn)}#log .dim{color:var(--dim)}
-.mods{list-style:none;margin:0;padding:0;max-height:30rem;overflow:auto;border:1px solid var(--line);border-radius:10px}
-.mods li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line)}
-.mods li:last-child{border-bottom:0}
-.mods input{width:20px;height:20px;accent-color:var(--accent)}
-.mods .n{flex:1;word-break:break-all}.mods .k{color:var(--dim);font-size:0.8125rem}
-.banner{border-left:4px solid var(--warn);background:var(--wbg);color:var(--text);padding:10px 12px;border-radius:6px;margin-bottom:14px}
-.banner.bad{border-color:var(--bad);background:var(--bbg)}
-.banner.good{border-color:var(--ok);background:var(--gbg)}
-@media (max-width:600px){header{flex-wrap:wrap}.status{grid-template-columns:1fr}#log{height:19rem}}
-</style></head><body>
-<header><h1>🪺 NestPatcher</h1><span class="ver" id="ver"></span><span class="sp"></span>
-<div class="a11y" role="group" aria-label="Display settings"><span class="lbl" id="sizelbl">Text 100%</span>
-<button id="smaller" aria-label="Smaller text" title="Smaller text">A−</button><button id="bigger" aria-label="Bigger text" title="Bigger text">A+</button>
-<button id="resetsize" title="Normal text size">Reset</button>
-<label class="lbl" for="theme" style="margin:0;font-weight:400">Theme</label><select id="theme"><option value="auto">Auto</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
-<button class="b" id="quit" title="Stop NestPatcher">Close</button></header>
-<p class="hint" style="margin:6px 20px 0">This is <b>NestPatcher</b>, not KittyPatcher. It uses its own <b>nestmods</b> folder. Based on KittyPatcher by LibraKitty.</p>
-<nav role="tablist" aria-label="Sections">
-<button role="tab" data-tab="setup" aria-selected="true">1. Setup</button>
-<button role="tab" data-tab="patch" aria-selected="false">2. Patch</button>
-<button role="tab" data-tab="mods" aria-selected="false">Mods on/off</button>
-<button role="tab" data-tab="search" aria-selected="false">Search game code</button>
-<button role="tab" data-tab="bug" aria-selected="false">Report a bug</button>
-</nav>
-<main>
-<div id="banner" role="status" aria-live="polite"></div>
+    if PLATFORM != PLATFORM_DEFAULT:
+        say("Note: this is the " + PLATFORM_LABEL + " patcher but you seem to be on " + PLATFORM + ".")
+        say("It will still try, but the matching patcher for your system gives better help messages.")
 
-<section id="setup">
- <div class="card"><h2>Game folder</h2>
-  <p class="hint" id="gamehint">The folder you start TiTS from. On Windows it has TiTS.exe and a resources folder.</p>
-  <div class="row"><input type="text" id="game" aria-label="Game folder path" placeholder="Paste the game folder path here">
-   <button class="b" id="pickgame">Browse…</button></div>
-  <div class="chips" id="found" aria-label="Game folders found on this computer"></div>
- </div>
- <div class="card"><h2>Mods folder</h2>
-  <p class="hint">Holds enabled.txt and your .mod / .js files. NestPatcher calls it <b>nestmods</b>. If you pick an old <b>kitty-mods</b> folder, NestPatcher renames it to nestmods for you (backups move with it), so KittyPatcher can't use it by mistake.</p>
-  <div class="row"><input type="text" id="mods" aria-label="Mods folder path">
-   <button class="b" id="pickmods">Browse…</button></div>
-  <div class="row" style="margin-top:12px"><button class="b p" id="save">Save folders</button>
-   <button class="b" id="openmods">Open mods folder</button></div>
- </div>
- <div class="card"><h2>Check</h2><div class="status" id="status"></div>
-  <div class="row" style="margin-top:12px" id="extra"></div></div>
-</section>
-
-<section id="patch" hidden>
- <div class="card"><h2>Patch the game</h2>
-  <p class="hint">Close TiTS first. <b>Test</b> changes nothing and tells you if every mod fits. <b>Patch</b> writes the mods into the game. <b>Turn all mods off</b> puts the original game files back.</p>
-  <div class="row"><button class="b" id="dry">Test my mods</button><button class="b p" id="go">Patch the game</button>
-  <button class="b d" id="restore">Turn all mods off</button><button class="b" id="openlogs">Open logs folder</button>
-  <button class="b" id="clear">Clear</button></div>
-  <p class="hint" id="androidnote" hidden>Android: after patching, rebuild and sign the APK with your usual tools. The patcher does not sign APKs.</p>
- </div>
- <div class="card"><h2>What happened</h2><div id="log" role="log" aria-live="polite" tabindex="0"></div>
-  <p class="hint">If it says STOP, MISS or INVALID, the game was not changed. Make a bug report from the <a href="#" data-go="bug" style="color:var(--accent)">Report a bug</a> tab.</p></div>
-</section>
-
-<section id="mods" hidden>
- <div class="card"><h2>Mods on or off</h2>
-  <p class="hint">Tick the mods you want, then Save. This rewrites enabled.txt in the same order (a copy is kept as enabled.txt.bak). Then go to Patch.</p>
-  <div class="row" style="margin-bottom:10px"><button class="b p" id="savemods">Save</button><button class="b" id="allon">All on</button><button class="b" id="reload">Reload</button></div>
-  <ul class="mods" id="modlist"></ul></div>
-</section>
-
-<section id="search" hidden>
- <div class="card"><h2>Search the game's code</h2>
-  <p class="hint">Read-only. Finds text in the game's JavaScript (from the clean backups when they exist), for writing new .mod files. Results show on the Patch tab and in logs/SourceSearch.txt.</p>
-  <div class="row"><input type="text" id="terms" aria-label="Search terms" placeholder="e.g. shellyTalk  (separate several with |)">
-  <button class="b p" id="find">Search</button></div></div>
-</section>
-
-<section id="bug" hidden>
- <div class="card"><h2>Report a bug</h2>
-  <p class="hint">This makes a zip with your patch log, enabled.txt, the mod list and system info. Your user name and home folder are blanked out. No save files are included.</p>
-  <label for="what">What went wrong?</label><textarea id="what" placeholder="e.g. The game shows a black screen after patching"></textarea>
-  <label for="steps">What were you doing just before?</label><textarea id="steps" placeholder="e.g. Turned on TN_Virine.mod, pressed Patch, opened Lerris's shop"></textarea>
-  <label for="contact">How can the mod author reach you? (optional)</label><input type="text" id="contact" placeholder="Discord name or email">
-  <div class="row" style="margin-top:12px"><button class="b p" id="makebug">Make bug report</button></div>
-  <div id="bugout" style="margin-top:12px"></div></div>
-</section>
-</main>
-<script>
-const KEY=new URLSearchParams(location.hash.slice(1)).get("k")||"";
-let S={},logNext=0,polling=false;
-const $=id=>document.getElementById(id);
-async function api(path,body){
- const r=await fetch(path,{method:body?"POST":"GET",headers:{"X-Nest-Key":KEY,"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
- if(r.status===403){banner("This page lost its key. Close it and start NestPatcher again.","bad");throw new Error("key")}
- return r.json();
-}
-function banner(text,kind){$("banner").innerHTML=text?'<div class="banner '+(kind||"")+'">'+esc(text).replace(/\n/g,"<br>")+'</div>':""}
-function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
-function tab(name){document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===name));
- document.querySelectorAll("main section").forEach(s=>s.hidden=s.id!==name);if(name==="mods")loadMods()}
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>tab(b.dataset.tab));
-document.querySelectorAll("[data-go]").forEach(a=>a.onclick=e=>{e.preventDefault();tab(a.dataset.go)});
-function show(st){S=st;$("ver").textContent="v"+st.version+" · "+st.platform;
- if(document.activeElement!==$("game"))$("game").value=st.game||"";
- if(document.activeElement!==$("mods"))$("mods").value=st.mods||"";
- $("found").innerHTML=(st.found||[]).map(f=>'<button class="chip" title="'+esc(f)+'">'+esc(f)+'</button>').join("");
- $("found").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{$("game").value=c.title;save()});
- const rows=[["Game files",st.gameOk?'<span class="good">found</span> '+esc(st.app):(st.asar?'<span class="warn">packed as app.asar, press Unpack below</span>':'<span class="bad">not found</span>')],
-  ["TiTS version",esc(st.titsVersion||"?")],
-  ["Mods folder",st.modsOk?'<span class="good">found</span>':'<span class="bad">not found</span>'],
-  ["Node.js",st.node?'<span class="good">found</span>':'<span class="bad">missing</span> '+esc(st.nodeHint)],
-  ["Patched before",st.patched?"yes (clean backups saved)":"no"]];
- $("status").innerHTML=rows.map(r=>"<b>"+r[0]+"</b><span>"+r[1]+"</span>").join("");
- let extra="";if(st.asar&&!st.gameOk)extra+='<button class="b p" id="unpack">Unpack app.asar</button>';
- if(st.platform==="linux")extra+='<button class="b" id="appimg">My game is an .AppImage…</button>';
- $("extra").innerHTML=extra;
- if($("unpack"))$("unpack").onclick=()=>run("unpack");
- if($("appimg"))$("appimg").onclick=()=>{const p=prompt("Full path to the TiTS .AppImage file:");if(p){tab("patch");run("appimage",{path:p})}};
- $("androidnote").hidden=st.platform!=="android";
- if(st.kitty)banner("KittyPatcher (LibraKitty's patcher) is in this folder: "+st.kitty+"\nNestPatcher is a different program. Use only one of them on a game, or each will undo the other's changes. Move KittyPatcher somewhere else.","bad");
- else if(st.problem)banner(st.problem,"warn");else if(!st.node)banner("Node.js is missing, so mods cannot be checked yet.\n"+st.nodeHint,"warn");else banner("");
- ["dry","go","restore","find","savemods"].forEach(id=>$(id).disabled=st.running);
-}
-async function refresh(){show(await api("/api/state"))}
-async function save(){const st=await api("/api/configure",{game:$("game").value,mods:$("mods").value});show(st);
- if(st.ok&&!st.problem)banner("Folders saved.","good")}
-$("save").onclick=save;
-async function pick(id,title){const r=await api("/api/pick",{title});if(r.unavailable){banner("No folder picker on this system. Paste the path into the box instead.","warn");return}
- if(r.path){$(id).value=r.path;save()}}
-$("pickgame").onclick=()=>pick("game","Choose the TiTS game folder");
-$("pickmods").onclick=()=>pick("mods","Choose your mods folder");
-$("openmods").onclick=()=>api("/api/open",{what:"mods"});
-$("openlogs").onclick=()=>api("/api/open",{what:"logs"});
-$("clear").onclick=async()=>{await api("/api/clear",{});$("log").innerHTML="";logNext=0};
-function cls(l){if(/^(STOP|MISS|INVALID|WRITE FAILURE|ROLLBACK|CRASH|PERMISSION)/.test(l))return"bad";
- if(/^(OK |DONE|DRY RUN|RESTORED|Unpacked|Bug report saved|\[finished: OK)/.test(l))return"ok";
- if(/^(Missing|WARNING|Retrying|Skip|\[finished)/.test(l))return"warn";if(/^VALID /.test(l))return"dim";return""}
-async function poll(){if(polling)return;polling=true;
- try{for(;;){const r=await api("/api/log?since="+logNext);logNext=r.next;
-  if(r.lines.length){const box=$("log"),stick=box.scrollTop+box.clientHeight>=box.scrollHeight-30,frag=document.createDocumentFragment();
-   r.lines.forEach(l=>{const d=document.createElement("div");d.textContent=l;const c=cls(l);if(c)d.className=c;frag.appendChild(d)});
-   box.appendChild(frag);if(stick)box.scrollTop=box.scrollHeight}
-  if(!r.running&&!r.lines.length)break;await new Promise(f=>setTimeout(f,r.running?400:50))}}
- finally{polling=false;refresh()}}
-async function run(action,extra){tab("patch");const r=await api("/api/run",Object.assign({action},extra||{}));
- if(r.error){banner(r.error,"warn");return}refresh();poll()}
-$("dry").onclick=()=>run("dry");
-$("go").onclick=()=>run("patch");
-$("restore").onclick=()=>{if(confirm("Put the original game files back? Every mod will be off until you patch again."))run("restore")};
-$("find").onclick=()=>{const t=$("terms").value.split("|").map(s=>s.trim()).filter(Boolean);if(t.length)run("find",{terms:t})};
-$("terms").onkeydown=e=>{if(e.key==="Enter")$("find").click()};
-let MODS=[];
-async function loadMods(){const r=await api("/api/mods");MODS=r.mods;drawMods(r.hasList)}
-function drawMods(hasList){const ul=$("modlist");
- if(!MODS.length){ul.innerHTML='<li>No mods found. Check the mods folder on the Setup tab.</li>';return}
- ul.innerHTML=MODS.map((m,i)=>'<li><input type="checkbox" id="m'+i+'" '+(m.on?"checked":"")+'><label for="m'+i+'" class="n" style="margin:0;font-weight:400">'+esc(m.name)+
-  (m.missing?' <span class="bad">(file missing; untick it)</span>':'')+'</label><span class="k">'+(m.kind==="script"?"script":"patch")+(m.size?" · "+Math.max(1,Math.round(m.size/1024))+" KB":"")+'</span></li>').join("");
- if(!hasList)banner("There is no enabled.txt yet, so every mod in the folder is used. Saving here creates one.","warn")}
-$("savemods").onclick=async()=>{const on=MODS.filter((m,i)=>$("m"+i).checked).map(m=>m.name);const r=await api("/api/mods",{on});
- if(r.error){banner(r.error,"bad");return}MODS=r.mods;drawMods(true);banner("Saved. Now press Patch the game on the Patch tab.","good")};
-$("allon").onclick=()=>MODS.forEach((m,i)=>{if(!m.missing)$("m"+i).checked=true});
-$("reload").onclick=loadMods;
-$("makebug").onclick=async()=>{$("makebug").disabled=true;
- try{const r=await api("/api/bug",{description:$("what").value,steps:$("steps").value,contact:$("contact").value});
- if(r.error){$("bugout").innerHTML='<div class="banner bad">'+esc(r.error)+'</div>';return}
- let h='<div class="banner good">Saved: <code>'+esc(r.zip)+'</code></div><div class="row"><button class="b" id="openbug">Open logs folder</button><button class="b" id="copybug">Copy report text</button>';
- const title="NestPatcher bug: "+($("what").value.split("\n")[0].slice(0,80)||"problem");
- if(S.reportUrl)h+='<button class="b p" id="sendurl">Open the report page</button>';
- if(S.reportEmail)h+='<button class="b p" id="sendmail">Email it</button>';
- h+='</div><p class="hint">'+(S.reportUrl||S.reportEmail?"Attach the zip file when the page or email opens.":"Send the zip to whoever gave you the mods (for example by Discord or email).")+'</p>';
- $("bugout").innerHTML=h;
- $("openbug").onclick=()=>api("/api/open",{what:"logs"});
- $("copybug").onclick=async()=>{try{await navigator.clipboard.writeText(r.text);$("copybug").textContent="Copied"}catch(e){prompt("Copy this:",r.text)}};
- const body=r.text.slice(0,6000);
- if($("sendurl"))$("sendurl").onclick=()=>api("/api/link",{url:S.reportUrl+(S.reportUrl.includes("?")?"&":"?")+"title="+encodeURIComponent(title)+"&body="+encodeURIComponent(body)});
- if($("sendmail"))$("sendmail").onclick=()=>api("/api/link",{url:"mailto:"+S.reportEmail+"?subject="+encodeURIComponent(title)+"&body="+encodeURIComponent(body.slice(0,1500))});
- }finally{$("makebug").disabled=false}};
-$("quit").onclick=async()=>{if(!confirm("Close NestPatcher?"))return;await api("/api/quit",{});document.body.innerHTML='<main><div class="card"><h2>NestPatcher closed.</h2><p class="hint">You can close this tab.</p></div></main>'};
-setInterval(()=>{if(!polling)api("/api/state").then(show).catch(()=>{})},10000);
-let UI={scale:1,theme:"auto"};
-function applyUI(){document.documentElement.style.setProperty("--scale",UI.scale);
- if(UI.theme==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",UI.theme);
- $("sizelbl").textContent="Text "+Math.round(UI.scale*100)+"%";$("theme").value=UI.theme;
- $("smaller").disabled=UI.scale<=0.8;$("bigger").disabled=UI.scale>=2.5}
-function saveUI(){applyUI();api("/api/ui",UI).catch(()=>{})}
-$("smaller").onclick=()=>{UI.scale=Math.max(0.8,Math.round((UI.scale-0.1)*10)/10);saveUI()};
-$("bigger").onclick=()=>{UI.scale=Math.min(2.5,Math.round((UI.scale+0.1)*10)/10);saveUI()};
-$("resetsize").onclick=()=>{UI.scale=1;saveUI()};
-$("theme").onchange=()=>{UI.theme=$("theme").value;saveUI()};
-document.addEventListener("keydown",e=>{if(e.altKey&&(e.key==="="||e.key==="+")){e.preventDefault();$("bigger").click()}
- if(e.altKey&&e.key==="-"){e.preventDefault();$("smaller").click()}});
-refresh().then(()=>{if(S.ui){UI=Object.assign(UI,S.ui)}applyUI();if(S.gameOk&&S.modsOk)tab("patch");poll()});
-</script></body></html>
-"""
+    if args.forget:
+        if os.path.isfile(SETTINGS):
+            os.remove(SETTINGS)
+        say("Saved settings cleared.")
+        return 0
+    if PLATFORM_DEFAULT == "linux" and getattr(args, "extract_appimage", None):
+        target = extract_appimage(args.extract_appimage)
+        if not target:
+            return 1
+        args.game = target
+    if not configure(args.game, args.mods):
+        return 1
+    if args.show:
+        return show_paths()
+    if args.unpack_asar:
+        return unpack_asar()
+    if args.export_mac or args.export_appimage:
+        options = dict(out=args.out, arch=args.arch, version=args.electron,
+                       electron_zip_path=args.electron_zip, icon=args.icon, simple_shell=args.simple_shell)
+        result = 0
+        if args.export_mac:
+            result = export_mac(**options)
+        if args.export_appimage and result == 0:
+            result = export_appimage(runtime=args.appimage_runtime, **options)
+        return result
+    if args.restore:
+        return restore_originals()
+    if args.find:
+        return find_sources(args.find)
+    if args.bug_report:
+        bug_report(args.note)
+        return 0
+    return apply(args.dry_run, args.fresh, not args.skip_validation,
+                 after_build=resign_bundle if PLATFORM == "mac" else None)
 
 
 if __name__ == "__main__":
-    raise SystemExit(gui_main())
+    raise SystemExit(main())

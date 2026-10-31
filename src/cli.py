@@ -13,6 +13,8 @@ MENU = [
     ("Make a bug report zip", ["--bug-report"]),
     ("Show the folders and tools in use", ["--show"]),
     ("Unpack app.asar (only if the patcher asked for it)", ["--unpack-asar"]),
+    ("Make a macOS app (zip) from the patched game", ["--export-mac"]),
+    ("Make a Linux AppImage from the patched game (Linux only)", ["--export-appimage"]),
 ]
 
 
@@ -49,6 +51,15 @@ def main(argv=None):
     parser.add_argument("--unpack-asar", action="store_true", help="extract resources/app.asar to resources/app so it can be patched")
     if PLATFORM_DEFAULT == "linux":
         parser.add_argument("--extract-appimage", metavar="FILE", help="unpack a TiTS .AppImage into a folder that can be patched")
+    parser.add_argument("--export-mac", action="store_true", help="pack the patched game as a macOS TiTS.app (zip; on a Mac also unpacked and signed)")
+    parser.add_argument("--export-appimage", action="store_true", help="pack the patched game as one Linux .AppImage file (needs mksquashfs)")
+    parser.add_argument("--out", metavar="FOLDER", help="with --export-*: where to save it (default: NestExports next to this script)")
+    parser.add_argument("--arch", choices=["x64", "arm64"], help="with --export-*: x64 (Intel/AMD, the default off-Mac) or arm64 (Apple Silicon, ARM Linux)")
+    parser.add_argument("--electron", metavar="VERSION", help="with --export-*: use this Electron version instead of the game's own")
+    parser.add_argument("--electron-zip", metavar="FILE", help="with --export-*: an Electron zip you downloaded yourself (no internet needed)")
+    parser.add_argument("--appimage-runtime", metavar="FILE", help="with --export-appimage: an AppImage runtime file you downloaded yourself")
+    parser.add_argument("--icon", metavar="FILE", help="with --export-*: a .png (square), .icns or .svg icon instead of the game's")
+    parser.add_argument("--simple-shell", action="store_true", help="with --export-*: start the game with NestPatcher's small starter instead of the game's own")
     parser.add_argument("--restore", action="store_true", help="put the clean original game files back (turns every mod off)")
     parser.add_argument("--bug-report", action="store_true", help="save a zip with your log, enabled.txt and system info to send to the mod author")
     parser.add_argument("--note", metavar="TEXT", default="", help="with --bug-report: what went wrong, in your own words")
@@ -89,6 +100,15 @@ def main(argv=None):
         return show_paths()
     if args.unpack_asar:
         return unpack_asar()
+    if args.export_mac or args.export_appimage:
+        options = dict(out=args.out, arch=args.arch, version=args.electron,
+                       electron_zip_path=args.electron_zip, icon=args.icon, simple_shell=args.simple_shell)
+        result = 0
+        if args.export_mac:
+            result = export_mac(**options)
+        if args.export_appimage and result == 0:
+            result = export_appimage(runtime=args.appimage_runtime, **options)
+        return result
     if args.restore:
         return restore_originals()
     if args.find:

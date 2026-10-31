@@ -160,6 +160,9 @@ def state():
         "running": JOB["running"], "reportUrl": REPORT_URL, "reportEmail": REPORT_EMAIL,
         "problem": preflight() if GAME else "Pick your game folder first.",
         "kitty": KITTY_FOUND[0],
+        "canAppImage": PLATFORM != "windows" and bool(which_tool("mksquashfs")),
+        "squashHint": squashfs_hint() if PLATFORM in ("linux", "mac") else "",
+        "hostArch": host_arch(),
         "ui": load_settings().get("ui", {}),
     }
 
@@ -182,6 +185,12 @@ def run_job(action, payload):
                 with open(path, encoding="utf-8", errors="replace") as handle:
                     text = handle.read()
                 say(text[:200000] + ("\n... (cut; open the full file from the logs folder)" if len(text) > 200000 else ""))
+        elif action in ("export_mac", "export_appimage"):
+            arch = payload.get("arch") if payload.get("arch") in ("x64", "arm64") else None
+            if action == "export_mac":
+                result = export_mac(arch=arch)
+            else:
+                result = export_appimage(arch=arch)
         elif action == "appimage":
             target = extract_appimage(payload.get("path", ""))
             result = 0 if target else 1
@@ -294,9 +303,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply({"error": str(exc)}, 500)
             return self.reply({"zip": zip_path, "text": text})
         if path == "/api/open":
-            target = {"mods": MODS, "logs": LOGS, "game": GAME}.get(payload.get("what"), "")
-            if payload.get("what") == "logs":
-                os.makedirs(LOGS, exist_ok=True)
+            target = {"mods": MODS, "logs": LOGS, "game": GAME,
+                      "exports": os.path.join(ROOT, "NestExports")}.get(payload.get("what"), "")
+            if payload.get("what") in ("logs", "exports"):
+                os.makedirs(target, exist_ok=True)
             return self.reply({"ok": open_folder(target)})
         if path == "/api/link":
             url = payload.get("url", "")
@@ -470,6 +480,14 @@ font:.8125rem/1.45 ui-monospace,Consolas,"DejaVu Sans Mono",monospace;white-spac
   <button class="b" id="clear">Clear</button></div>
   <p class="hint" id="androidnote" hidden>Android: after patching, rebuild and sign the APK with your usual tools. The patcher does not sign APKs.</p>
  </div>
+ <div class="card"><h2>Make an app to play on another computer</h2>
+  <p class="hint">Patch first. This packs the patched game into a <b>macOS app</b> (a zip with TiTS.app inside) or a <b>Linux AppImage</b> (one file you double-click). If it needs a different Electron than your game has, NestPatcher downloads it once (about 100 MB) and checks it. Files go in the <b>NestExports</b> folder next to NestPatcher.</p>
+  <label for="arch">Computer it is for</label>
+  <select id="arch" class="b" style="padding:8px 10px"><option value="x64">Intel or AMD (x64), works on every Mac</option><option value="arm64">Apple Silicon M1–M4 / ARM Linux (arm64)</option></select>
+  <div class="row" style="margin-top:12px"><button class="b p" id="expmac">Make Mac app</button><button class="b p" id="expai">Make AppImage</button>
+  <button class="b" id="openexp">Open NestExports folder</button></div>
+  <p class="hint" id="aihint" hidden></p>
+ </div>
  <div class="card"><h2>What happened</h2><div id="log" role="log" aria-live="polite" tabindex="0"></div>
   <p class="hint">If it says STOP, MISS or INVALID, the game was not changed. Make a bug report from the <a href="#" data-go="bug" style="color:var(--accent)">Report a bug</a> tab.</p></div>
 </section>
@@ -500,7 +518,7 @@ font:.8125rem/1.45 ui-monospace,Consolas,"DejaVu Sans Mono",monospace;white-spac
 </main>
 <script>
 const KEY=new URLSearchParams(location.hash.slice(1)).get("k")||"";
-let S={},logNext=0,polling=false;
+let S={},logNext=0,polling=false,archSet=false;
 const $=id=>document.getElementById(id);
 async function api(path,body){
  const r=await fetch(path,{method:body?"POST":"GET",headers:{"X-Nest-Key":KEY,"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
@@ -530,9 +548,13 @@ function show(st){S=st;$("ver").textContent="v"+st.version+" · "+st.platform;
  if($("unpack"))$("unpack").onclick=()=>run("unpack");
  if($("appimg"))$("appimg").onclick=()=>{const p=prompt("Full path to the TiTS .AppImage file:");if(p){tab("patch");run("appimage",{path:p})}};
  $("androidnote").hidden=st.platform!=="android";
+ if(!archSet){$("arch").value=st.platform==="mac"&&st.hostArch==="arm64"?"arm64":"x64";archSet=true}
+ const aiOk=st.canAppImage;$("expai").hidden=st.platform==="windows"||st.platform==="android";$("aihint").hidden=aiOk||$("expai").hidden;
+ $("aihint").textContent=aiOk?"":"Making an AppImage needs mksquashfs. Install it with: "+st.squashHint;
  if(st.kitty)banner("KittyPatcher (LibraKitty's patcher) is in this folder: "+st.kitty+"\nNestPatcher is a different program. Use only one of them on a game, or each will undo the other's changes. Move KittyPatcher somewhere else.","bad");
  else if(st.problem)banner(st.problem,"warn");else if(!st.node)banner("Node.js is missing, so mods cannot be checked yet.\n"+st.nodeHint,"warn");else banner("");
- ["dry","go","restore","find","savemods"].forEach(id=>$(id).disabled=st.running);
+ ["dry","go","restore","find","savemods","expmac"].forEach(id=>$(id).disabled=st.running);
+ $("expai").disabled=st.running||!aiOk;
 }
 async function refresh(){show(await api("/api/state"))}
 async function save(){const st=await api("/api/configure",{game:$("game").value,mods:$("mods").value});show(st);
@@ -558,6 +580,9 @@ async function poll(){if(polling)return;polling=true;
 async function run(action,extra){tab("patch");const r=await api("/api/run",Object.assign({action},extra||{}));
  if(r.error){banner(r.error,"warn");return}refresh();poll()}
 $("dry").onclick=()=>run("dry");
+$("expmac").onclick=()=>run("export_mac",{arch:$("arch").value});
+$("expai").onclick=()=>run("export_appimage",{arch:$("arch").value});
+$("openexp").onclick=()=>api("/api/open",{what:"exports"});
 $("go").onclick=()=>run("patch");
 $("restore").onclick=()=>{if(confirm("Put the original game files back? Every mod will be off until you patch again."))run("restore")};
 $("find").onclick=()=>{const t=$("terms").value.split("|").map(s=>s.trim()).filter(Boolean);if(t.length)run("find",{terms:t})};

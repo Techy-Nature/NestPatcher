@@ -5,7 +5,7 @@
 #include <windows.h>
 #include <wchar.h>
 
-/* packaging/build_bundles.sh passes the real name, e.g. -DSCRIPT=L\"NestPatcher_TiTS_GUI_v0.6.py\" */
+/* packaging/build_bundles.sh passes the real name, e.g. -DSCRIPT=L\"NestPatcher_TiTS_GUI_v0.7.py\" */
 #ifndef SCRIPT
 #define SCRIPT L"NestPatcher_TiTS_GUI.py"
 #endif

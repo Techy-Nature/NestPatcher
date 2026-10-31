@@ -46,6 +46,16 @@ jobs:
       - name: Android app runs every patcher
         if: runner.os == 'Linux'
         run: python tests/test_android_harness.py
+      - name: squashfs-tools for the AppImage export test
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y squashfs-tools
+      - name: Mac app and AppImage export (Linux patcher)
+        if: runner.os != 'Windows'
+        run: python tests/test_export.py patchers/NestPatcher_TiTS_Linux_v*.py
+      - name: Mac app export (Windows patcher)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: python tests/test_export.py (Get-ChildItem patchers/NestPatcher_TiTS_Windows_v*.py).FullName
 
   bundles:
     name: Build GUI bundles
