@@ -44,6 +44,10 @@ The GUI bundles include Python and Node.js. The command-line versions need Pytho
 - If a write fails partway through, the game files are put back the way they were.
 - After a TiTS update, install the fresh game, delete `nestmods/backup`, then patch again.
 
+## The TN mods
+
+The newest TN mod pack (Modv2.5, for TiTS 0.9.167) is in [`mods/`](mods/): the mods and `enabled.txt` are in [`mods/TITS-Mods/`](mods/TITS-Mods/), and the install guides are in [`mods/guides/`](mods/guides/). See [`mods/README.md`](mods/README.md) for a quick install.
+
 ## For developers
 
 - `src/engine.py` is the shared patch engine. `src/cli.py` and `src/gui.py` are the front ends. `python src/build.py` glues them into the single-file scripts in `patchers/`. **Edit `src/`, not `patchers/`.** CI fails if `patchers/` is out of date.
