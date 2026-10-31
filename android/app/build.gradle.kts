@@ -31,7 +31,7 @@ android {
             create("release") {
                 storeFile = file(keystoreFile)
                 storePassword = System.getenv("NEST_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("NEST_KEY_ALIAS")
+                keyAlias = System.getenv("NEST_KEY_ALIAS_CLEAN") ?: System.getenv("NEST_KEY_ALIAS")
                 keyPassword = System.getenv("NEST_KEY_PASSWORD")
             }
         }

@@ -125,19 +125,36 @@ jobs:
       - name: Signing key (only if the secrets are set)
         env:
           NEST_KEYSTORE_BASE64: ${{ secrets.NEST_KEYSTORE_BASE64 }}
+          NEST_KEYSTORE_PASSWORD: ${{ secrets.NEST_KEYSTORE_PASSWORD }}
+          NEST_KEY_ALIAS: ${{ secrets.NEST_KEY_ALIAS }}
         run: |
-          if [ -n "$NEST_KEYSTORE_BASE64" ]; then
-            echo "$NEST_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/nest.jks"
-            echo "NEST_KEYSTORE_FILE=$RUNNER_TEMP/nest.jks" >> "$GITHUB_ENV"
-            echo "Signing with your own key."
-          else
+          if [ -z "$NEST_KEYSTORE_BASE64" ]; then
             echo "No signing secrets, so the APK is signed with a throwaway debug key."
+            exit 0
           fi
+          # Secrets pasted on a phone or from Windows often pick up spaces or line endings.
+          printf '%s' "$NEST_KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/nest.jks"
+          alias=$(printf '%s' "$NEST_KEY_ALIAS" | tr -d '\r\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+          echo "::add-mask::$alias"
+          if ! keytool -list -keystore "$RUNNER_TEMP/nest.jks" -storepass "$NEST_KEYSTORE_PASSWORD" > "$RUNNER_TEMP/keys.txt" 2>&1; then
+            echo "::error::Couldn't open the keystore. Check NEST_KEYSTORE_BASE64 holds the whole .jks and NEST_KEYSTORE_PASSWORD is its password."
+            grep -iv "password" "$RUNNER_TEMP/keys.txt" | head -5
+            exit 1
+          fi
+          # Key names (aliases) aren't secret; show them so a wrong NEST_KEY_ALIAS is easy to fix.
+          echo "Keys inside this keystore:"
+          grep -E 'PrivateKeyEntry|trustedCertEntry' "$RUNNER_TEMP/keys.txt" | cut -d, -f1 | sed 's/^/  - /'
+          if ! keytool -list -keystore "$RUNNER_TEMP/nest.jks" -storepass "$NEST_KEYSTORE_PASSWORD" -alias "$alias" > /dev/null 2>&1; then
+            echo "::error::NEST_KEY_ALIAS doesn't match any key listed above. Set it to one of those names."
+            exit 1
+          fi
+          echo "NEST_KEYSTORE_FILE=$RUNNER_TEMP/nest.jks" >> "$GITHUB_ENV"
+          echo "NEST_KEY_ALIAS_CLEAN=$alias" >> "$GITHUB_ENV"
+          echo "Signing with your own key."
       - name: Build the APK
         working-directory: android
         env:
           NEST_KEYSTORE_PASSWORD: ${{ secrets.NEST_KEYSTORE_PASSWORD }}
-          NEST_KEY_ALIAS: ${{ secrets.NEST_KEY_ALIAS }}
           NEST_KEY_PASSWORD: ${{ secrets.NEST_KEY_PASSWORD }}
         run: gradle --no-daemon assembleRelease
       - name: Name it with its version
