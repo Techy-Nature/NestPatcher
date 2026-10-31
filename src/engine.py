@@ -964,8 +964,10 @@ def extract_appimage(path):
         return None
     finally:
         shutil.rmtree(work, ignore_errors=True)
+    save_game_runtime(path)
     say("Unpacked to " + target)
     say("From now on start the game with: \"" + os.path.join(target, "AppRun") + "\"")
+    say("After patching you can pack it back into one file with --export-appimage.")
     return target
 
 

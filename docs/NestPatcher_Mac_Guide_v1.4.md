@@ -138,6 +138,12 @@ The game itself stays wherever it is, for example `/Applications/TiTS.app`. Insi
 | `--forget` | Clear the remembered paths |
 
 All the safety rules match the other patchers: a missing file in `enabled.txt`, a missed replacement, a needle that matches more than 8 times, or invalid JavaScript all **stop the build with nothing changed**. Disabling a mod and rebuilding removes its old edits.
+---
+
+## Already have a TiTS.app? It stays an app
+
+This patcher changes `TiTS.app` in place and re-signs it, so what you end up with is still a normal Mac app. If you only have the **Windows** TiTS (or want to make the Mac app on a PC), use NestPatcher 1.6 on Windows/Linux or the GUI 0.7 and its **Make Mac app** button: it puts the patched game into a fresh `TiTS.app`. See [Guide_Export_Mac_AppImage_v1.6.md](Guide_Export_Mac_AppImage_v1.6.md).
+
 
 ---
 

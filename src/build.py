@@ -4,8 +4,8 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "patchers")
-CLI_VERSION = "1.5"
-GUI_VERSION = "0.6"
+CLI_VERSION = "1.6"
+GUI_VERSION = "0.7"
 
 HEADERS = {
     "linux": """#!/usr/bin/env python3
@@ -27,6 +27,8 @@ HEADERS = {
 #     (pure Python, no npm needed) and keeps the original as app.asar.nest-original.
 #   * Node.js install hints match your distro (apt on Debian/Ubuntu, dnf on
 #     Fedora/Nobara).
+#   * --export-appimage packs the patched game into one .AppImage file, and
+#     --export-mac makes a macOS TiTS.app (as a zip) from the same game.
 #   * Mods live in nestmods/ next to this script, outside the game, so a game
 #     update cannot wipe them.
 """,
@@ -43,7 +45,8 @@ HEADERS = {
 #     C:\\Games and Program Files, or you point at it once with --game.
 #   * Program Files is write-protected, so the patcher explains how to move the
 #     game to C:\\Games if Windows blocks it.
-#   * Double-click NestPatcher_Windows_v1.5.bat for a numbered menu.
+#   * Double-click NestPatcher_Windows_v1.6.bat for a numbered menu.
+#   * --export-mac makes a macOS TiTS.app (as a zip) from the patched game.
 #   * Mods live in nestmods\\ next to this script, outside the game, so a game
 #     update cannot wipe them.
 """,
@@ -58,6 +61,8 @@ HEADERS = {
 #   * Tabs: Patch (test / patch / restore), Mods (tick mods on or off; this
 #     rewrites enabled.txt and keeps a .bak), Search, and Report a bug (writes a
 #     zip with your log and system info, user name blanked out).
+#   * Export: makes a macOS TiTS.app zip, or (on Linux) one .AppImage file,
+#     from the patched game.
 #   * Only Python's standard library is used, so it packs cleanly into a
 #     Windows .exe or a Linux AppImage with PyInstaller (see the build scripts).
 """,
@@ -72,6 +77,7 @@ NAMES = {"linux": "NestPatcher_TiTS_Linux_v" + CLI_VERSION + ".py",
 def build(kind):
     engine = open(os.path.join(HERE, "engine.py"), encoding="utf-8").read()
     front = open(os.path.join(HERE, "gui.py" if kind == "gui" else "cli.py"), encoding="utf-8").read()
+    export = open(os.path.join(HERE, "export.py"), encoding="utf-8").read()
     version = GUI_VERSION if kind == "gui" else CLI_VERSION
     settings = {"linux": "NestPatcher_TiTS_Linux.settings.json",
                 "windows": "NestPatcher_TiTS_Windows.settings.json",
@@ -88,7 +94,7 @@ def build(kind):
         "",
     ])
     imports_end = engine.index("\n# ----")
-    text = HEADERS[kind] + "\n" + engine[:imports_end] + "\n" + constants + engine[imports_end:] + front
+    text = HEADERS[kind] + "\n" + engine[:imports_end] + "\n" + constants + engine[imports_end:] + export + front
     path = os.path.join(OUT, NAMES[kind])
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(text)
