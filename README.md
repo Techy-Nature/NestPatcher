@@ -1,3 +1,5 @@
+<img src="src/launcher/nestpatcher-icon.svg" width="96" alt="NestPatcher logo: a nest with a barred brown feather">
+
 # NestPatcher
 
 NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Tainted Space**. It runs on Windows, Linux, macOS and Android (as an app or in Termux), and it has a browser-based GUI for people who'd rather not use the command line.
