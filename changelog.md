@@ -1,6 +1,6 @@
 # TN Mod Pack Changelog
 
-Latest: 2.3
+Latest: 2.4
 
 <!--
   How this file works (this comment is not shown in the game):
@@ -12,6 +12,12 @@ Latest: 2.3
   - You can use **bold**, *italics*, ~~strike~~, `code` and [links](https://example.com).
   - Bump "Latest:" when you release; players on an older build see "Modv#.# is available".
 -->
+
+## Modv2.4 — Android menu stays on Android (2026-10-31)
+
+- **Android Mods:** The Android mod menu now only starts on Android. On Windows, Linux and Mac it switches itself off instead of adding its Options panel and TN DEBUG button, which could mess up desktop installs. Old save flags still carry over on every system.
+- **All mods:** Every TN mod now uses the Android mod menu only when it's installed **and** the game is running on Android. On desktop, or without the menu, they work with their default settings and don't error.
+- **All mods:** Changed files now have the pack version in their name (for example `AndroidModMenu_v2.4.js`), and `enabled.txt` lists the new names.
 
 ## Modv2.3 — Markdown changelog (2026-10-31)
 
