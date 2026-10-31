@@ -456,8 +456,9 @@ class MainActivity : AppCompatActivity() {
     private fun customDir() = File(filesDir, "custom").also { it.mkdirs() }
 
     private fun allScripts(): List<File> {
-        // The Mac patcher needs a TiTS.app bundle, so it can't run on a phone.
-        val bundled = scripts.filter { !it.name.contains("_Mac_") }
+        // Every bundled patcher is offered; each one's NEST_NEEDS says which folders to ask for.
+        // (The Mac one needs a copy of TiTS.app on the phone.)
+        val bundled = scripts
         val custom = customDir().listFiles()?.filter { it.name.endsWith(".py") }?.sortedBy { it.name } ?: emptyList()
         val android = bundled.filter { it.name.startsWith("NestPatcher_TiTS_Android_v") }
         return android + (bundled - android.toSet()) + custom
@@ -471,6 +472,7 @@ class MainActivity : AppCompatActivity() {
             name.contains("_GUI_") -> "GUI, opens inside the app: $name"
             name.contains("_Linux_") -> "Linux command-line: $name"
             name.contains("_Windows_") -> "Windows command-line: $name"
+            name.contains("_Mac_") -> "Mac (patches a TiTS.app copy): $name"
             else -> name
         }
     }

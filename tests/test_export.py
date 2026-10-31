@@ -1,6 +1,6 @@
 """Checks --export-mac and --export-appimage on a tiny fake game, with no internet.
 
-    python tests/test_export.py patchers/NestPatcher_TiTS_Linux_v1.6.py
+    python tests/test_export.py patchers/NestPatcher_TiTS_Linux_v1.7.py
 
 Fake Electron zips are built here with the same layout as the real ones
 (Electron.app with framework symlinks and helper apps for macOS; a top-level

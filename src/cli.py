@@ -6,6 +6,19 @@
 
 import argparse
 
+# What this patcher needs, for the NestPatcher Android app (read without running
+# this file; see "NEST_NEEDS" in the Android app guide). Keep it when you edit or
+# rename this file, or the app can't tell which folders to ask for.
+NEST_NEEDS = [
+    {"key": "game", "label": "Game folder", "check": "game", "flag": "--game",
+     "default": "extracted/apk/assets/www",
+     "help": "The unpacked game: the folder with index.html and main.<something>.js in it. "
+             "A folder above it also works (an extracted APK, or a PC game folder with resources/app)."},
+    {"key": "mods", "label": "Mods folder", "check": "mods", "flag": "--mods", "default": "mods",
+     "help": "Holds enabled.txt and your .mod / .js files. On a PC this is the nestmods folder. "
+             "Clean backups of the game files are kept in its backup folder."},
+]
+
 MENU = [
     ("Test my mods (dry run, changes nothing)", ["--dry-run"]),
     ("Patch the game with my mods", []),

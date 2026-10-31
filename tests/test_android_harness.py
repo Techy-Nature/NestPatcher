@@ -188,6 +188,39 @@ def main():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+    # Every shipped patcher says what it needs, so the app never has to guess from its name.
+    expected = {"Android": ("android", ["project"]), "Mac": ("custom", ["app", "mods"]),
+                "Linux": ("cli", ["game", "mods"]), "Windows": ("cli", ["game", "mods"]),
+                "GUI": ("gui", ["game", "mods"])}
+    scripts = sorted(glob.glob(os.path.join(REPO, "patchers", "*.py")))
+    for script in scripts:
+        name = os.path.basename(script)
+        declared = nest_android._declared_needs(nest_android._read(script))
+        check(name + " has NEST_NEEDS", bool(declared))
+        for part, (kind, keys) in expected.items():
+            if "_" + part + "_" in name:
+                info = json.loads(nest_android.needs_json(script, "/x/TITS-Modding"))
+                check(name + " is run as " + kind + " and asks for " + "/".join(keys),
+                      info["kind"] == kind and [n["key"] for n in info["needs"]] == keys)
+    check("every kind of patcher was checked", len(scripts) >= len(expected))
+
+    # The Mac patcher runs from the app with a TiTS.app and a mods folder.
+    root = tempfile.mkdtemp(prefix="nest-android-")
+    try:
+        www = make_project(root)
+        bundle = os.path.join(root, "TiTS.app")
+        os.makedirs(os.path.join(bundle, "Contents", "Resources"))
+        shutil.move(www, os.path.join(bundle, "Contents", "Resources", "app"))
+        script = one("NestPatcher_TiTS_Mac_v*.py")
+        paths = json.dumps({"app": bundle, "mods": os.path.join(root, "mods")})
+        check("Mac folders check out", "MISSING" not in nest_android.describe_paths(script, paths))
+        sink = Sink()
+        code = nest_android.run(script, paths, "auto", "--dry-run", NodeChecker(), sink)
+        check("Mac patcher dry run from the app", code == 0 and "DRY RUN: 3 replacements" in sink.text(), sink)
+        check("Mac settings stay out of TiTS.app", not any("settings" in f for _, _, files in os.walk(bundle) for f in files))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
     # The GUI starts its server and answers with the right key.
     root = tempfile.mkdtemp(prefix="nest-android-")
     try:

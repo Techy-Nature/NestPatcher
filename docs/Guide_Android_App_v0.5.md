@@ -1,4 +1,4 @@
-# NestPatcher Android app v0.4 — step by step
+# NestPatcher Android app v0.5 — step by step
 
 The NestPatcher app runs the NestPatcher patcher on your phone without Termux. It is **not KittyPatcher**. It is based on KittyPatcher by LibraKitty.
 
@@ -20,7 +20,7 @@ TITS-Modding/
 ## 1. Get the APK
 
 1. Open the repo's **Actions** tab on GitHub, open the newest green **Test and build** run, and download **nestpatcher-android-apk**. If you'd rather use a tagged version, use **Releases** instead.
-2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.4.apk`.
+2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.5.apk`.
 
 ## 2. Install it
 
@@ -55,6 +55,7 @@ Step 3 changes to match the patcher you picked. It says which kind of patcher it
 |---|---|
 | Android (default) | Your **TITS-Modding folder**. Inside it: `extracted/apk/assets/www` (the unpacked game) and `mods` (`enabled.txt` plus your mods). |
 | Linux / Windows command-line, GUI | A **Game folder**: the folder with `index.html` in it, or a folder above it, such as an extracted APK. A **Mods folder**: it holds `enabled.txt` and your mods. On a PC this is `nestmods`. |
+| Mac | **TiTS.app** (the Mac game, copied to your phone) and a **Mods folder**. |
 | Your own .py | Whatever the script lists in `NEST_NEEDS` (see below). If it lists nothing, one **Working folder**. |
 
 1. The boxes start from `/storage/emulated/0/git.gay-repos/TITS-Modding`, the same folder Termux calls `~/storage/shared/git.gay-repos/TITS-Modding`.
@@ -64,6 +65,8 @@ Step 3 changes to match the patcher you picked. It says which kind of patcher it
 The app remembers the folders separately for each kind of patcher, so switching back and forth doesn't lose them.
 
 ### For people writing their own patcher: NEST_NEEDS
+
+Every NestPatcher script (Android, Mac, Linux, Windows and GUI) has a `NEST_NEEDS` list near its top, so the app always knows which folders it needs, even after you rename the file. If you edit a patcher, keep that list.
 
 Put a list called `NEST_NEEDS` at the top level of your .py. The app reads it without running the script, shows one box per entry, and passes each folder to your `main(argv)` with its `flag`:
 
@@ -78,7 +81,7 @@ NEST_NEEDS = [
 - `key` is required. `label` and `help` are what the app shows.
 - `default` is a starting path. A relative one is joined to the TITS-Modding folder.
 - `flag` is the option your script receives, for example `--game /storage/.../www`.
-- `check` sets what **Check folders** tests: `game` (has `index.html`), `mods` (a folder, plus `enabled.txt`), `dir` (any folder) or `file` (a file you type in).
+- `check` sets what **Check folders** tests: `game` (has `index.html`), `mac-app` (a TiTS.app with the game inside), `mods` (a folder, plus `enabled.txt`), `dir` (any folder) or `file` (a file you type in).
 
 Text in **Extra options** (step 4) is added after the folders.
 
