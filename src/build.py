@@ -4,8 +4,9 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "patchers")
-CLI_VERSION = "1.7"
-GUI_VERSION = "0.8"
+CLI_VERSION = "1.8"
+GUI_VERSION = "0.9"
+MAC_VERSION = "1.6"
 
 HEADERS = {
     "linux": """#!/usr/bin/env python3
@@ -45,7 +46,7 @@ HEADERS = {
 #     C:\\Games and Program Files, or you point at it once with --game.
 #   * Program Files is write-protected, so the patcher explains how to move the
 #     game to C:\\Games if Windows blocks it.
-#   * Double-click NestPatcher_Windows_v1.7.bat for a numbered menu.
+#   * Double-click NestPatcher_Windows_v1.8.bat for a numbered menu.
 #   * --export-mac makes a macOS TiTS.app (as a zip) from the patched game.
 #   * Mods live in nestmods\\ next to this script, outside the game, so a game
 #     update cannot wipe them.
@@ -103,7 +104,23 @@ def build(kind):
     print("built " + path)
 
 
+def build_mac():
+    """The Mac patcher is src/mac.py with the shared export code (src/export.py) put in."""
+    source = open(os.path.join(HERE, "mac.py"), encoding="utf-8").read()
+    export = open(os.path.join(HERE, "export.py"), encoding="utf-8").read()
+    assert "# @EXPORT@" in source, "src/mac.py lost its # @EXPORT@ marker"
+    text = source.replace("@MAC_VERSION@", MAC_VERSION).replace("# @EXPORT@", export.strip("\n"), 1)
+    path = os.path.join(OUT, "NestPatcher_TiTS_Mac_v" + MAC_VERSION + ".py")
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+    os.chmod(path, 0o755)
+    print("built " + path)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    for kind in sys.argv[2:] or ("linux", "windows", "gui"):
-        build(kind)
+    for kind in sys.argv[2:] or ("linux", "windows", "gui", "mac"):
+        if kind == "mac":
+            build_mac()
+        else:
+            build(kind)

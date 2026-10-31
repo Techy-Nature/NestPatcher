@@ -2,7 +2,7 @@
 
 > Based on KittyPatcher by LibraKitty (the original Windows patcher). Renamed to NestPatcher in v1.2; your saved settings carry over.
 
-`NestPatcher_TiTS_Mac_v1.5.py` does the same job as the Desktop and Android patchers. It uses the same `.mod` format, the same `enabled.txt` load list, the same clean backups, the same `node --check` validation and the same flags. On top of that it handles the Mac-only parts:
+`NestPatcher_TiTS_Mac_v1.6.py` does the same job as the Desktop and Android patchers. It uses the same `.mod` format, the same `enabled.txt` load list, the same clean backups, the same `node --check` validation and the same flags. On top of that it handles the Mac-only parts:
 
 - It finds `TiTS.app` for you (in `/Applications`, `~/Applications`, `~/Downloads`, `~/Desktop`, or next to the script) and remembers it.
 - If the game is packed as `app.asar`, it can unpack it so it can be patched.
@@ -44,7 +44,7 @@ Make a modding folder anywhere you like. This guide uses `~/TITS-Modding`:
 
 ```text
 ~/TITS-Modding/
-├── NestPatcher_TiTS_Mac_v1.5.py
+├── NestPatcher_TiTS_Mac_v1.6.py
 ├── NestPatcher_TiTS_Mac.settings.json   ← made automatically, remembers your paths
 └── nestmods/                           ← your mods (same contents as Drive TITS-Mods)
     ├── enabled.txt
@@ -60,7 +60,7 @@ Make a modding folder anywhere you like. This guide uses `~/TITS-Modding`:
    mkdir -p ~/TITS-Modding/nestmods
    ```
 
-2. Put `NestPatcher_TiTS_Mac_v1.5.py` in `~/TITS-Modding/`.
+2. Put `NestPatcher_TiTS_Mac_v1.6.py` in `~/TITS-Modding/`.
 3. Copy everything from your Drive **TITS-Mods** folder into `~/TITS-Modding/nestmods/` (your `.mod` files, `.js` files, `enabled.txt`, `changelog.json`). **Don't** copy an old `backup/` folder from Android: those backups are of the Android bundles, and the Mac game needs its own.
 
 The game itself stays wherever it is, for example `/Applications/TiTS.app`. Inside it, the patcher edits `TiTS.app/Contents/Resources/app/`.
@@ -75,10 +75,10 @@ The game itself stays wherever it is, for example `/Applications/TiTS.app`. Insi
    cd ~/TITS-Modding
    ```
 
-2. Tell it where the game is. Type `python3 NestPatcher_TiTS_Mac_v1.5.py --show --app ` (with a space at the end), then **drag TiTS.app from Finder into the Terminal window** and press Return:
+2. Tell it where the game is. Type `python3 NestPatcher_TiTS_Mac_v1.6.py --show --app ` (with a space at the end), then **drag TiTS.app from Finder into the Terminal window** and press Return:
 
    ```bash
-   python3 NestPatcher_TiTS_Mac_v1.5.py --show --app /Applications/TiTS.app
+   python3 NestPatcher_TiTS_Mac_v1.6.py --show --app /Applications/TiTS.app
    ```
 
    It saves the path, so you never need `--app` again. Check the output: `Game folder` and `Mods folder` must not say `(missing)`, and `Node.js` must show a path.
@@ -88,7 +88,7 @@ The game itself stays wherever it is, for example `/Applications/TiTS.app`. Insi
 3. **If `Game folder` says `(missing)`**, the game is packed as `app.asar`. Unpack it once:
 
    ```bash
-   python3 NestPatcher_TiTS_Mac_v1.5.py --unpack-asar
+   python3 NestPatcher_TiTS_Mac_v1.6.py --unpack-asar
    ```
 
    This extracts `app.asar` into `app/` and renames the original to `app.asar.nest-original` (and `app.asar.unpacked` to `app.asar.unpacked.nest-original` if there is one). Electron then loads the `app/` folder instead.
@@ -101,13 +101,13 @@ The game itself stays wherever it is, for example `/Applications/TiTS.app`. Insi
 2. Dry run (checks everything, writes nothing):
 
    ```bash
-   python3 NestPatcher_TiTS_Mac_v1.5.py --fresh --dry-run
+   python3 NestPatcher_TiTS_Mac_v1.6.py --fresh --dry-run
    ```
 
 3. If it ends with `DRY RUN` and every file shows `VALID`, build for real:
 
    ```bash
-   python3 NestPatcher_TiTS_Mac_v1.5.py --fresh
+   python3 NestPatcher_TiTS_Mac_v1.6.py --fresh
    ```
 
 4. The end of the output should look like:
@@ -130,20 +130,46 @@ The game itself stays wherever it is, for example `/Applications/TiTS.app`. Insi
 | `--dry-run` | Check and preview, write nothing |
 | `--find TERM [TERM...]` | Read-only search of the game code; report in `nestmods/logs/SourceSearch.txt` |
 | `--skip-validation` | Skip `node --check`. Emergencies only |
-| `--app PATH` | Use this TiTS.app (remembered) |
+| `--app PATH` (or `--game`) | Use this TiTS.app, or the Windows game folder (patched, then made into TiTS.app). Remembered |
 | `--mods PATH` | Use this mods folder instead of `nestmods/` next to the script (remembered) |
 | `--unpack-asar` | Turn `app.asar` into a patchable `app/` folder |
 | `--no-resign` | Don't clear quarantine or re-sign after building |
+| `--no-export` | Windows game: patch it but don't make the Mac app |
+| `--export-mac` | Also pack TiTS.app as a zip to copy to another Mac |
+| `--arch x64` / `--arch arm64` | Intel or Apple Silicon app (default: this Mac) |
+| `--electron VERSION` / `--electron-zip FILE` | Use another Electron, or one you downloaded yourself |
+| `--out FOLDER` | Where the app goes (default: `NestExports` next to the script) |
 | `--show` | Print the paths in use and exit |
 | `--forget` | Clear the remembered paths |
 
 All the safety rules match the other patchers: a missing file in `enabled.txt`, a missed replacement, a needle that matches more than 8 times, or invalid JavaScript all **stop the build with nothing changed**. Disabling a mod and rebuilding removes its old edits.
 ---
 
-## Already have a TiTS.app? It stays an app
+## Only have the Windows game (TiTS.exe)? Make a TiTS.app from it
 
-This patcher changes `TiTS.app` in place and re-signs it, so what you end up with is still a normal Mac app. If you only have the **Windows** TiTS (or want to make the Mac app on a PC), use NestPatcher 1.7 on Windows/Linux or the GUI 0.8 and its **Make Mac app** button: it puts the patched game into a fresh `TiTS.app`. See [Guide_Export_Mac_AppImage_v1.7.md](Guide_Export_Mac_AppImage_v1.7.md).
+Since **v1.6** this patcher also takes the **Windows** game folder (the one with `TiTS.exe` and a `resources` folder). It patches that folder, then turns it into a real Mac **TiTS.app**.
 
+1. Copy the whole Windows game folder to your Mac, for example to `~/TITS-Modding/TiTS-win`. (Copy the folder that holds `TiTS.exe`, not just the .exe.)
+2. Test your mods:
+   ```bash
+   cd ~/TITS-Modding
+   python3 NestPatcher_TiTS_Mac_v1.6.py --app ~/TITS-Modding/TiTS-win --dry-run
+   ```
+   The last line should say `DRY RUN: ... no changes made.`
+3. Patch and make the app:
+   ```bash
+   python3 NestPatcher_TiTS_Mac_v1.6.py
+   ```
+   It remembers the folder from step 2. The first time, it downloads the matching Electron for Mac (about 100 MB, checked against Electron's own checksums). It ends with `Your Mac app is ready: .../NestExports/TiTS_v..._NestPatched_macOS-arm64/TiTS.app`.
+4. Open Finder > your `TITS-Modding` folder > `NestExports`, drag **TiTS.app** to **Applications**, and double-click it. It's already signed for your Mac.
+
+Every time you change your mods, run step 3 again: it re-patches the Windows folder and makes a fresh TiTS.app. Your saves stay, because the app keeps the same name.
+
+On an Intel Mac you get an x64 app; on Apple Silicon (M1–M4) an arm64 app. Add `--arch x64` or `--arch arm64` to choose yourself. `--no-export` patches the Windows folder without making the app.
+
+**From the Android app:** pick the Mac patcher, choose the Windows game folder as "TiTS.app or the Windows game folder", and press **Patch the game**. The zip lands in `NestExports` next to your mods folder. Copy it to the Mac, unzip it there, and follow `HOW-TO-OPEN.txt` inside (two Terminal lines).
+
+More about how this works: [Guide_Export_Mac_AppImage_v1.8.md](Guide_Export_Mac_AppImage_v1.8.md).
 
 ---
 

@@ -221,6 +221,39 @@ def main():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+    # The Mac patcher also takes the Windows game (TiTS.exe + resources/app) and makes TiTS.app.
+    root = tempfile.mkdtemp(prefix="nest-android-")
+    try:
+        www = make_project(root)
+        game = os.path.join(root, "TiTS-win")
+        os.makedirs(os.path.join(game, "resources"))
+        shutil.move(www, os.path.join(game, "resources", "app"))
+        with open(os.path.join(game, "TiTS.exe"), "wb") as handle:
+            handle.write(b"MZ")
+        sys.path.insert(0, os.path.join(REPO, "tests"))
+        import test_export
+        electron = os.path.join(root, "electron-mac.zip")
+        test_export.fake_mac_zip(electron)
+        script = one("NestPatcher_TiTS_Mac_v*.py")
+        paths = json.dumps({"app": game, "mods": os.path.join(root, "mods")})
+        described = nest_android.describe_paths(script, paths)
+        check("Windows game is accepted by the Mac patcher's folder check", "MISSING" not in described
+              and "Windows/web game" in described, described)
+        sink = Sink()
+        code = nest_android.run(script, paths, "auto", "--electron-zip " + electron, NodeChecker(), sink)
+        out = os.path.join(root, "NestExports")
+        made = [n for n in os.listdir(out)] if os.path.isdir(out) else []
+        check("Mac patcher turns the Windows game into a Mac app zip", code == 0
+              and any(n.endswith("_macOS-x64.zip") for n in made), sink)
+        if made:
+            import zipfile
+            with zipfile.ZipFile(os.path.join(out, made[0])) as z:
+                names = z.namelist()
+            check("the exported app has the patched game", any(n.endswith("TiTS.app/Contents/Resources/app/mods/nest/nest-inline.js")
+                                                              for n in names))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
     # The GUI starts its server and answers with the right key.
     root = tempfile.mkdtemp(prefix="nest-android-")
     try:

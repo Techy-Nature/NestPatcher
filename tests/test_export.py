@@ -1,6 +1,6 @@
 """Checks --export-mac and --export-appimage on a tiny fake game, with no internet.
 
-    python tests/test_export.py patchers/NestPatcher_TiTS_Linux_v1.7.py
+    python tests/test_export.py patchers/NestPatcher_TiTS_Linux_v1.8.py
 
 Fake Electron zips are built here with the same layout as the real ones
 (Electron.app with framework symlinks and helper apps for macOS; a top-level
@@ -8,6 +8,7 @@ Fake Electron zips are built here with the same layout as the real ones
 unsquashfs (squashfs-tools); it is skipped when they are missing, or on Windows.
 """
 import argparse
+import glob
 import os
 import plistlib
 import shutil
@@ -107,9 +108,9 @@ def main():
         fake_mac_zip(mac_zip)
         fake_linux_zip(linux_zip)
 
-        def run(*extra, where=game):
+        def run(*extra, where=game, env=None):
             result = subprocess.run([args.python, local, "--game", where] + list(extra), cwd=tool,
-                                    capture_output=True, text=True, encoding="utf-8", errors="replace")
+                                    env=dict(os.environ, **(env or {})), capture_output=True, text=True, encoding="utf-8", errors="replace")
             print(result.stdout[-2500:] + result.stderr[-1500:])
             return result
 
@@ -211,6 +212,40 @@ def main():
                          if not os.path.islink(os.path.join(d, n))]
                 check("every file readable by everyone", all(m & 0o004 for m in modes))
 
+                # The built-in packer (used on phones, Windows and Macs without mksquashfs)
+                # must make an image with the same files, modes and links.
+                result = run("--export-appimage", "--electron-zip", linux_zip, "--appimage-runtime", runtime,
+                             "--arch", "x64", "--out", os.path.join(root, "builtin"),
+                             env={"NESTPATCHER_BUILTIN_SQUASHFS": "1"})
+                own = os.path.join(root, "builtin", "TiTS_v0.9.999_NestPatched-x86_64.AppImage")
+                check("built-in packer exports", result.returncode == 0 and os.path.isfile(own)
+                      and "own packer" in result.stdout)
+                if os.path.isfile(own):
+                    again = os.path.join(root, "unpacked-builtin")
+                    listing = subprocess.run(["unsquashfs", "-o", "8192", "-d", again, own],
+                                             capture_output=True, text=True)
+                    check("unsquashfs reads the built-in image", listing.returncode == 0)
+
+                    def tree(top):
+                        found = {}
+                        for d, dirs, fs in os.walk(top):
+                            for n in dirs + fs:
+                                full = os.path.join(d, n)
+                                info = os.lstat(full)
+                                if os.path.islink(full):
+                                    body = "->" + os.readlink(full)
+                                elif os.path.isdir(full):
+                                    body = "dir"
+                                else:
+                                    with open(full, "rb") as handle:
+                                        body = handle.read()
+                                found[os.path.relpath(full, top)] = (stat.S_IMODE(info.st_mode), body)
+                        return found
+                    check("built-in image has the same files as mksquashfs", tree(again) == tree(unpacked))
+                    started = subprocess.run([os.path.join(again, "AppRun"), "--hello"], capture_output=True,
+                                             text=True, env=dict(os.environ, NEST_NO_SANDBOX="1"))
+                    check("built-in image starts", "FAKE-ELECTRON-OK --no-sandbox --hello" in started.stdout)
+
             # A Linux game folder keeps its own Electron.
             linux_game = os.path.join(root, "linuxgame")
             os.makedirs(os.path.join(linux_game, "resources"))
@@ -228,6 +263,30 @@ def main():
             result = run("--export-appimage", "--appimage-runtime", runtime, "--out", os.path.join(root, "x"),
                          where=os.path.join(root, "nowhere"))
             check("export without a game stops", result.returncode != 0)
+
+        # The Mac patcher takes the Windows game folder, patches it and makes TiTS.app.
+        macs = sorted(glob.glob(os.path.join(os.path.dirname(HERE), "patchers", "NestPatcher_TiTS_Mac_v*.py")))
+        if macs:
+            second = os.path.join(root, "second")
+            os.makedirs(second)
+            smoke_test.build(second, "nestmods")
+            win = os.path.join(second, "game")
+            with open(os.path.join(win, "TiTS.exe"), "wb") as handle:
+                handle.write(b"MZ")
+            mac_tool = os.path.join(root, "mactool")
+            os.makedirs(mac_tool)
+            shutil.copy2(macs[-1], mac_tool)
+            mods = os.path.join(second, "tool", "nestmods")
+            result = subprocess.run([args.python, os.path.join(mac_tool, os.path.basename(macs[-1])), "--app", win,
+                                     "--mods", mods, "--electron-zip", mac_zip, "--arch", "x64"],
+                                    cwd=mac_tool, capture_output=True, text=True, encoding="utf-8", errors="replace")
+            print(result.stdout[-2500:] + result.stderr[-1500:])
+            out = os.path.join(mac_tool, "NestExports", "TiTS_v0.9.999_NestPatched_macOS-x64.zip")
+            check("Mac patcher turns the Windows game into TiTS.app", result.returncode == 0 and os.path.isfile(out))
+            if os.path.isfile(out):
+                with zipfile.ZipFile(out) as z:
+                    inside = z.read("TiTS_v0.9.999_NestPatched_macOS-x64/TiTS.app/Contents/Resources/app/main.1a2b3c4d.js")
+                check("Mac patcher's app has the patched game", b'return "nest"' in inside)
     finally:
         shutil.rmtree(root, ignore_errors=True)
     print("\n" + ("ALL PASSED" if not failures else str(len(failures)) + " FAILED: " + ", ".join(failures)))

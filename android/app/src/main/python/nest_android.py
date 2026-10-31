@@ -245,7 +245,14 @@ def check_need(need, path):
             return ["OK  " + label + ": game files in " + os.path.join(res, "app")]
         if os.path.isfile(os.path.join(res, "app.asar")):
             return ["OK  " + label + ": packed game (app.asar). Add --unpack-asar to Extra options the first time."]
-        return ["MISSING " + label + ": no Contents/Resources/app in " + path]
+        # The Mac patcher also takes the Windows game and turns it into TiTS.app.
+        web = _game_web_folder(path)
+        if web:
+            return ["OK  " + label + ": Windows/web game in " + web,
+                    "    After patching it is turned into a Mac TiTS.app (in NestExports next to your mods)."]
+        if os.path.isfile(os.path.join(path, "resources", "app.asar")):
+            return ["OK  " + label + ": packed Windows game (app.asar). Add --unpack-asar to Extra options the first time."]
+        return ["MISSING " + label + ": no TiTS.app game files and no Windows game (resources/app) in " + path]
     if check == "file":
         return [("OK  " if os.path.isfile(path) else "MISSING ") + label + ": " + path]
     return [("OK  " if os.path.isdir(path) else "MISSING ") + label + ": " + path]

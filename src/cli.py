@@ -27,7 +27,7 @@ MENU = [
     ("Show the folders and tools in use", ["--show"]),
     ("Unpack app.asar (only if the patcher asked for it)", ["--unpack-asar"]),
     ("Make a macOS app (zip) from the patched game", ["--export-mac"]),
-    ("Make a Linux AppImage from the patched game (Linux only)", ["--export-appimage"]),
+    ("Make a Linux AppImage from the patched game", ["--export-appimage"]),
 ]
 
 
@@ -65,7 +65,7 @@ def main(argv=None):
     if PLATFORM_DEFAULT == "linux":
         parser.add_argument("--extract-appimage", metavar="FILE", help="unpack a TiTS .AppImage into a folder that can be patched")
     parser.add_argument("--export-mac", action="store_true", help="pack the patched game as a macOS TiTS.app (zip; on a Mac also unpacked and signed)")
-    parser.add_argument("--export-appimage", action="store_true", help="pack the patched game as one Linux .AppImage file (needs mksquashfs)")
+    parser.add_argument("--export-appimage", action="store_true", help="pack the patched game as one Linux .AppImage file (uses mksquashfs if installed, else a built-in packer)")
     parser.add_argument("--out", metavar="FOLDER", help="with --export-*: where to save it (default: NestExports next to this script)")
     parser.add_argument("--arch", choices=["x64", "arm64"], help="with --export-*: x64 (Intel/AMD, the default off-Mac) or arm64 (Apple Silicon, ARM Linux)")
     parser.add_argument("--electron", metavar="VERSION", help="with --export-*: use this Electron version instead of the game's own")

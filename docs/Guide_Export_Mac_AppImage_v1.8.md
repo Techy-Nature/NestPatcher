@@ -1,6 +1,6 @@
 # Making a Mac app or a Linux AppImage from the patched game: step by step
 
-> Needs NestPatcher **1.7** (Windows or Linux command line) or the **GUI 0.8**. Based on KittyPatcher by LibraKitty.
+> Needs NestPatcher **1.6 or newer** (Windows or Linux command line), the **GUI 0.7 or newer**, or the **Mac patcher 1.6 or newer**. Based on KittyPatcher by LibraKitty.
 
 Normally NestPatcher changes the game where it sits. **Export** goes one step further: it takes the patched game and packs it into something you can copy to another computer and just open:
 
@@ -29,21 +29,28 @@ Your mods are inside the export, exactly as they were when you made it. **Patch 
 
 | Made on | Mac app | AppImage |
 |---|---|---|
-| Windows | ✅ | ❌ (needs Linux) |
-| Linux | ✅ | ✅ (needs `squashfs-tools`) |
-| Mac (GUI) | ✅ (unpacked and signed for you) | ✅ only with `brew install squashfs` |
+| Windows | ✅ | ✅ |
+| Linux | ✅ | ✅ (faster with `squashfs-tools`) |
+| Mac | ✅ (unpacked and signed for you) | ✅ |
+| Android app / Termux | ✅ | ✅ |
+
+The AppImage is packed with `mksquashfs` when it's installed. Everywhere else (Android, Windows, Mac) NestPatcher uses its own built-in packer, which makes the same kind of file, just more slowly (a few minutes on a phone).
 
 ---
 
 ## Using the GUI (easiest)
 
-1. Start NestPatcher GUI 0.8 and check the **Setup** tab: game found, mods found.
+1. Start NestPatcher GUI 0.9 and check the **Setup** tab: game found, mods found.
 2. Go to **2. Patch** and press **Patch the game**. Wait for `DONE`.
 3. In the card **Make an app to play on another computer**, choose **Computer it is for**:
    - **Intel or AMD (x64)**: works on every Mac (Apple Silicon runs it through Rosetta) and on normal Linux PCs.
    - **Apple Silicon M1–M4 / ARM Linux (arm64)**: faster on newer Macs, but won't open on an Intel Mac.
 4. Press **Make Mac app** or **Make AppImage**.
 5. When the log says `DONE`, press **Open NestExports folder**. Your file is there.
+
+## On a Mac, or from the Android app, with only the Windows game
+
+The Mac patcher (1.6 or newer) takes the Windows game folder (the one with `TiTS.exe`) directly: it patches it and makes TiTS.app in one go. Steps are in [NestPatcher_Mac_Guide_v1.6.md](NestPatcher_Mac_Guide_v1.6.md), section "Only have the Windows game". In the Android app, pick the Mac patcher and choose the Windows game folder.
 
 ## Using the command line
 
@@ -52,20 +59,20 @@ Open a terminal in your NestPatcher folder (where `nestmods` is).
 **Linux:**
 ```bash
 # 1. Patch
-python3 NestPatcher_TiTS_Linux_v1.7.py
+python3 NestPatcher_TiTS_Linux_v1.8.py
 # 2a. Make the AppImage
-python3 NestPatcher_TiTS_Linux_v1.7.py --export-appimage
+python3 NestPatcher_TiTS_Linux_v1.8.py --export-appimage
 # 2b. Make the Mac app
-python3 NestPatcher_TiTS_Linux_v1.7.py --export-mac
+python3 NestPatcher_TiTS_Linux_v1.8.py --export-mac
 ```
 
 **Windows:**
 ```bat
-py NestPatcher_TiTS_Windows_v1.7.py
-py NestPatcher_TiTS_Windows_v1.7.py --export-mac
+py NestPatcher_TiTS_Windows_v1.8.py
+py NestPatcher_TiTS_Windows_v1.8.py --export-mac
 ```
 
-Or use the menu (`./nestpatcher_linux_v1.7.sh` or `NestPatcher_Windows_v1.7.bat`): option **7** makes the Mac app, option **8** the AppImage.
+Or use the menu (`./nestpatcher_linux_v1.8.sh` or `NestPatcher_Windows_v1.8.bat`): option **7** makes the Mac app, option **8** the AppImage.
 
 The file goes into `NestExports` next to the patcher. Extra options:
 
@@ -81,9 +88,9 @@ The file goes into `NestExports` next to the patcher. Extra options:
 
 ---
 
-## Linux: one-time setup for the AppImage
+## Linux: optional, faster AppImage packing
 
-The AppImage is packed with `mksquashfs`. Install it once:
+NestPatcher can pack the AppImage by itself, but `mksquashfs` is faster. To use it, install it once:
 
 **Debian / Ubuntu / Mint / Pop!_OS**
 ```bash
