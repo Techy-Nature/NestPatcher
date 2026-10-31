@@ -11,7 +11,7 @@
 #     C:\Games and Program Files, or you point at it once with --game.
 #   * Program Files is write-protected, so the patcher explains how to move the
 #     game to C:\Games if Windows blocks it.
-#   * Double-click NestPatcher_Windows_v1.6.bat for a numbered menu.
+#   * Double-click NestPatcher_Windows_v1.7.bat for a numbered menu.
 #   * --export-mac makes a macOS TiTS.app (as a zip) from the patched game.
 #   * Mods live in nestmods\ next to this script, outside the game, so a game
 #     update cannot wipe them.
@@ -30,8 +30,8 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.6.py'
-TOOL_VERSION = '1.6'
+TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.7.py'
+TOOL_VERSION = '1.7'
 PLATFORM_DEFAULT = 'windows'
 PLATFORM_LABEL = 'Windows 10/11'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
@@ -2339,6 +2339,19 @@ def export_preflight():
 # --------------------------------------------------------------------------
 
 import argparse
+
+# What this patcher needs, for the NestPatcher Android app (read without running
+# this file; see "NEST_NEEDS" in the Android app guide). Keep it when you edit or
+# rename this file, or the app can't tell which folders to ask for.
+NEST_NEEDS = [
+    {"key": "game", "label": "Game folder", "check": "game", "flag": "--game",
+     "default": "extracted/apk/assets/www",
+     "help": "The unpacked game: the folder with index.html and main.<something>.js in it. "
+             "A folder above it also works (an extracted APK, or a PC game folder with resources/app)."},
+    {"key": "mods", "label": "Mods folder", "check": "mods", "flag": "--mods", "default": "mods",
+     "help": "Holds enabled.txt and your .mod / .js files. On a PC this is the nestmods folder. "
+             "Clean backups of the game files are kept in its backup folder."},
+]
 
 MENU = [
     ("Test my mods (dry run, changes nothing)", ["--dry-run"]),

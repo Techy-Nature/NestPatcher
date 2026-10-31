@@ -28,8 +28,8 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_GUI_v0.7.py'
-TOOL_VERSION = '0.7'
+TOOL_NAME = 'NestPatcher_TiTS_GUI_v0.8.py'
+TOOL_VERSION = '0.8'
 PLATFORM_DEFAULT = None
 PLATFORM_LABEL = 'GUI'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
@@ -2341,6 +2341,19 @@ import threading
 import webbrowser
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+# What this patcher needs, for the NestPatcher Android app (read without running
+# this file; see "NEST_NEEDS" in the Android app guide). Keep it when you edit or
+# rename this file, or the app can't tell which folders to ask for.
+NEST_NEEDS = [
+    {"key": "game", "label": "Game folder", "check": "game", "flag": "",
+     "default": "extracted/apk/assets/www",
+     "help": "The unpacked game: the folder with index.html and main.<something>.js in it. "
+             "A folder above it also works (an extracted APK, or a PC game folder with resources/app)."},
+    {"key": "mods", "label": "Mods folder", "check": "mods", "flag": "", "default": "mods",
+     "help": "Holds enabled.txt and your .mod / .js files. On a PC this is the nestmods folder. "
+             "Clean backups of the game files are kept in its backup folder."},
+]
 
 # Where bug reports go. Fill these in before you share a build, or leave them
 # empty and players are told to send the zip to whoever gave them the mods.

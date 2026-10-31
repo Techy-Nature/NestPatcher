@@ -5,7 +5,7 @@ plugins {
 }
 
 // The app's own version. The patcher scripts it carries have their own versions in their file names.
-val appVersion = "0.4"
+val appVersion = "0.5"
 
 android {
     namespace = "com.techynest.nestpatcher"
@@ -15,7 +15,7 @@ android {
         applicationId = "com.techynest.nestpatcher"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
+        versionCode = 5
         versionName = appVersion
         ndk {
             // Chaquopy's Python 3.12 is 64-bit only, so very old 32-bit phones are not supported.
@@ -23,7 +23,7 @@ android {
         }
     }
 
-    // Release signing comes from GitHub secrets when they are set (see docs/Guide_Android_App_v0.4.md);
+    // Release signing comes from GitHub secrets when they are set (see docs/Guide_Android_App_v0.5.md);
     // otherwise the build is signed with a throwaway debug key.
     val keystoreFile = System.getenv("NEST_KEYSTORE_FILE")
     signingConfigs {

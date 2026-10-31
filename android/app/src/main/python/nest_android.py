@@ -89,10 +89,12 @@ def project_paths(project):
 #   label:   what the app calls it
 #   help:    one or two sentences under the label
 #   default: starting path, worked out from the TITS-Modding folder
-#   flag:    command-line option the folder is passed with (cli scripts only)
-#   check:   how "Check folders" tests it: android-project, game, mods, dir or file
+#   flag:    command-line option the folder is passed with (cli and custom scripts)
+#   check:   how "Check folders" tests it: android-project, game, mac-app, mods, dir or file
 #
-# A custom .py can say what it needs with a top-level list, for example:
+# Every NestPatcher script (Android, Mac, Linux, Windows, GUI) has a top-level
+# NEST_NEEDS list, and tests/test_android_harness.py fails if one is missing.
+# A custom .py can say what it needs the same way, for example:
 #   NEST_NEEDS = [
 #       {"key": "game", "label": "Game folder", "flag": "--game", "check": "game"},
 #       {"key": "mods", "label": "Mods folder", "flag": "--mods", "check": "mods"},
@@ -134,9 +136,8 @@ def _declared_needs(source):
 
 
 def kind_of_source(source):
-    """Work out what sort of patcher a script is from its text, without running it."""
-    if _declared_needs(source) is not None:
-        return "custom"
+    """Work out what sort of patcher a script is from its text, without running it.
+    The kind says how the app starts it; NEST_NEEDS (if any) says which folders to ask for."""
     if "def gui_main" in source:
         return "gui"
     if "def set_game" in source and "def configure" in source:
@@ -146,13 +147,31 @@ def kind_of_source(source):
     return "custom"
 
 
+def _from_declared(declared, base):
+    needs = []
+    for item in declared:
+        need = {"key": str(item["key"]), "label": str(item.get("label") or item["key"]),
+                "help": str(item.get("help") or ""), "flag": str(item.get("flag") or ""),
+                "check": str(item.get("check") or "dir")}
+        default = str(item.get("default") or "")
+        need["default"] = default if default.startswith("/") else (
+            os.path.join(base, default) if default else base)
+        needs.append(need)
+    return needs
+
+
 def needs_for(script, base):
-    """(kind, list of needs) for a script, with defaults filled in from the TITS-Modding folder."""
+    """(kind, list of needs) for a script, with defaults filled in from the TITS-Modding folder.
+    Every NestPatcher script lists its needs in NEST_NEEDS; the built-in lists below are
+    for older copies of the patchers that don't have it yet."""
     base = (base or "").rstrip("/")
     source = _read(script)
     kind = kind_of_source(source)
     www, mods = project_paths(base)
-    if kind == "android":
+    declared = _declared_needs(source)
+    if declared:
+        needs = _from_declared(declared, base)
+    elif kind == "android":
         needs = [{
             "key": "project", "label": "Your TITS-Modding folder", "check": "android-project",
             "default": base,
@@ -169,22 +188,10 @@ def needs_for(script, base):
              "help": "Holds enabled.txt and your .mod / .js files. On a PC this is the nestmods folder. "
                      "Clean backups of the game files are kept in its backup folder."}]
     else:
-        declared = _declared_needs(source)
-        if declared:
-            needs = []
-            for item in declared:
-                need = {"key": str(item["key"]), "label": str(item.get("label") or item["key"]),
-                        "help": str(item.get("help") or ""), "flag": str(item.get("flag") or ""),
-                        "check": str(item.get("check") or "dir")}
-                default = str(item.get("default") or "")
-                need["default"] = default if default.startswith("/") else (
-                    os.path.join(base, default) if default else base)
-                needs.append(need)
-        else:
-            needs = [{
-                "key": "project", "label": "Working folder", "check": "dir", "default": base,
-                "help": "This script doesn't list what it needs (see NEST_NEEDS in the Android app guide), "
-                        "so it runs inside this folder. NESTPATCHER_HOME points here too."}]
+        needs = [{
+            "key": "project", "label": "Working folder", "check": "dir", "default": base,
+            "help": "This script doesn't list what it needs (see NEST_NEEDS in the Android app guide), "
+                    "so it runs inside this folder. NESTPATCHER_HOME points here too."}]
     for need in needs:
         need.setdefault("flag", "")
     return kind, needs
@@ -230,6 +237,15 @@ def check_need(need, path):
             return ["MISSING " + label + ": " + path]
         return ["OK  " + label + ": " + path,
                 ("OK  " if os.path.isfile(os.path.join(path, "enabled.txt")) else "no ") + "enabled.txt"]
+    if check == "mac-app":
+        res = path if os.path.basename(path) == "Resources" else os.path.join(path, "Contents", "Resources")
+        if os.path.basename(path) == "app" and os.path.isfile(os.path.join(path, "index.html")):
+            return ["OK  " + label + ": game files in " + path]
+        if os.path.isfile(os.path.join(res, "app", "index.html")):
+            return ["OK  " + label + ": game files in " + os.path.join(res, "app")]
+        if os.path.isfile(os.path.join(res, "app.asar")):
+            return ["OK  " + label + ": packed game (app.asar). Add --unpack-asar to Extra options the first time."]
+        return ["MISSING " + label + ": no Contents/Resources/app in " + path]
     if check == "file":
         return [("OK  " if os.path.isfile(path) else "MISSING ") + label + ": " + path]
     return [("OK  " if os.path.isdir(path) else "MISSING ") + label + ": " + path]
@@ -277,6 +293,9 @@ def describe(project):
 def _home_for(kind, paths):
     """The folder the patcher treats as its own: settings, logs and backups stay with the user's files."""
     if kind in ("cli", "gui") and paths.get("mods"):
+        return os.path.dirname(paths["mods"].rstrip("/")) or paths["mods"]
+    if not paths.get("project") and paths.get("mods"):
+        # e.g. the Mac patcher: keep its settings next to the mods, never inside TiTS.app.
         return os.path.dirname(paths["mods"].rstrip("/")) or paths["mods"]
     return paths.get("project") or next(iter(paths.values()), "")
 
