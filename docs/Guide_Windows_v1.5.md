@@ -38,16 +38,16 @@ Your Desktop, Documents or Downloads also work.
 
 1. Make a folder, for example `C:\Games\NestPatcher`.
 2. Put these two files in it:
-   - `NestPatcher_TiTS_Windows_v1.4.py`
-   - `NestPatcher_Windows_v1.4.bat`
+   - `NestPatcher_TiTS_Windows_v1.5.py`
+   - `NestPatcher_Windows_v1.5.bat`
 3. Copy your mods folder in next to them and **rename it to `nestmods`**. Inside it you should see `enabled.txt` and lots of `.mod` and `.js` files.
 
 It should look like this:
 
 ```
 C:\Games\NestPatcher\
-    NestPatcher_TiTS_Windows_v1.4.py
-    NestPatcher_Windows_v1.4.bat
+    NestPatcher_TiTS_Windows_v1.5.py
+    NestPatcher_Windows_v1.5.bat
     nestmods\
         enabled.txt
         AndroidModMenu.js
@@ -60,7 +60,7 @@ C:\Games\NestPatcher\
 ## Step 4: test your mods
 
 1. **Close TiTS** if it is open.
-2. Double-click **`NestPatcher_Windows_v1.4.bat`**.
+2. Double-click **`NestPatcher_Windows_v1.5.bat`**.
 3. Type **1** (Test my mods) and press **Enter**.
 4. The first time it looks for the game in the usual places. If it asks which one, type its number.
    - If it says *Could not find the game*, see "Pointing it at the game" below.
@@ -91,7 +91,7 @@ If it can't find the game by itself:
 2. Open PowerShell in the NestPatcher folder (in File Explorer: **File > Open Windows PowerShell**, or Shift + right-click > **Open PowerShell window here**).
 3. Run (paste your own path between the quotes):
    ```
-   py NestPatcher_TiTS_Windows_v1.4.py --game "C:\Games\TiTS" --dry-run
+   py NestPatcher_TiTS_Windows_v1.5.py --game "C:\Games\TiTS" --dry-run
    ```
 4. It remembers that path. From now on the `.bat` just works.
 
@@ -119,5 +119,5 @@ Use `--mods "D:\somewhere\TITS-Mods"` the same way if your mods live somewhere e
 ## Full command list
 
 ```
-py NestPatcher_TiTS_Windows_v1.4.py --help
+py NestPatcher_TiTS_Windows_v1.5.py --help
 ```

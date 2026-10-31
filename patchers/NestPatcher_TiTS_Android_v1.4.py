@@ -1,39 +1,27 @@
-#!/usr/bin/env python3
-# NestPatcher for Trials in Tainted Space, macOS edition.
+# NestPatcher for Trials in Tainted Space.
 # Based on KittyPatcher by LibraKitty (the original Windows patcher).
-# Same .mod format, flags and safety rules as the Desktop and Android patchers:
 # Replace / With still swaps exact text. Hashed bundles such as
 # content_first14.<hash>.js are found from the plain name content_first14.js.
 # Add Javascript blocks load from mods/nest/nest-inline.js.
-#
-# Mac differences:
-#   * The game lives inside an app bundle: TiTS.app/Contents/Resources/app.
-#     The patcher finds it in /Applications, ~/Applications, ~/Downloads or next
-#     to this script, or you point at it once with --app and it is remembered.
-#   * If the game ships packed as app.asar, --unpack-asar extracts it to app/
-#     (pure Python, no npm needed) and keeps the original as app.asar.nest-original.
-#   * After a real build the bundle is cleared of quarantine and ad-hoc re-signed
-#     (codesign --sign -) so macOS still opens it. --no-resign skips that.
-#   * Mods live outside the app (nestmods/ next to this script) so a game
-#     update cannot wipe them.
 
 import os
 import re
-import sys
-import json
 import shutil
-import struct
-import argparse
-import tempfile
+import sys
 import subprocess
+import tempfile
+import argparse
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-SETTINGS = os.path.join(ROOT, "NestPatcher_TiTS_Mac.settings.json")
-MODS = os.path.join(ROOT, "nestmods")
-BUNDLE = ""            # .../TiTS.app
-RESOURCES = ""         # .../TiTS.app/Contents/Resources
-APP = ""               # .../TiTS.app/Contents/Resources/app
-BACKUP = LOGS = RUNTIME_DIR = ENABLED = LOG_PATH = ""
+PROJECT = os.path.dirname(ROOT)
+APP = os.path.join(PROJECT, "extracted", "apk", "assets", "www")
+MODS = os.path.join(PROJECT, "mods")
+BACKUP = os.path.join(MODS, "backup")
+LOGS = os.path.join(MODS, "logs")
+RUNTIME_DIR = os.path.join(APP, "mods", "nest")
+RUNTIME_JS = os.path.join(RUNTIME_DIR, "nest-inline.js")
+ENABLED = os.path.join(MODS, "enabled.txt")
+LOG_PATH = os.path.join(LOGS, "ModPatchLog.txt")
 
 HEADER = re.compile(
     r"^(?P<kind>Add Javascript|Add Content|Add Boot|Add Item|Item JS|Replace|Add JS|Rep|Add C|Add B)"
@@ -43,143 +31,6 @@ WITH_LINE = re.compile(r"^\s*(?:With:|W:)\s*$")
 
 HASHED = re.compile(r"^(?P<base>.+)\.[a-fA-F0-9]{8,}\.(?P<ext>js|css)$")
 
-# Homebrew and the nodejs.org installer put node here; Finder-launched shells
-# and some Terminal setups do not have these on PATH.
-EXTRA_BIN = ["/opt/homebrew/bin", "/usr/local/bin", os.path.expanduser("~/.volta/bin")]
-
-
-# --------------------------------------------------------------------------
-# Paths and settings
-# --------------------------------------------------------------------------
-
-def set_mods(path):
-    global MODS, BACKUP, LOGS, ENABLED, LOG_PATH
-    MODS = os.path.abspath(os.path.expanduser(path))
-    BACKUP = os.path.join(MODS, "backup")
-    LOGS = os.path.join(MODS, "logs")
-    ENABLED = os.path.join(MODS, "enabled.txt")
-    LOG_PATH = os.path.join(LOGS, "ModPatchLog.txt")
-
-
-def set_bundle(path):
-    """Accept TiTS.app, its Contents/Resources, or the app folder itself."""
-    global BUNDLE, RESOURCES, APP, RUNTIME_DIR
-    path = os.path.abspath(os.path.expanduser(path.rstrip("/")))
-    if os.path.basename(path) == "app" and os.path.basename(os.path.dirname(path)) == "Resources":
-        RESOURCES = os.path.dirname(path)
-    elif os.path.basename(path) == "Resources":
-        RESOURCES = path
-    else:
-        RESOURCES = os.path.join(path, "Contents", "Resources")
-    BUNDLE = os.path.dirname(os.path.dirname(RESOURCES))
-    APP = os.path.join(RESOURCES, "app")
-    RUNTIME_DIR = os.path.join(APP, "mods", "nest")
-
-
-def load_settings():
-    # Fall back to the file saved under the old KittyPatcher name.
-    for path in (SETTINGS, os.path.join(ROOT, "KittyPatcher_TiTS_Mac.settings.json")):
-        try:
-            with open(path, "r", encoding="utf-8") as handle:
-                return json.load(handle)
-        except (OSError, ValueError):
-            continue
-    return {}
-
-
-def save_settings(data):
-    with open(SETTINGS, "w", encoding="utf-8") as handle:
-        json.dump(data, handle, indent=2)
-    print("Saved settings to " + SETTINGS)
-
-
-def is_game_bundle(bundle):
-    res = os.path.join(bundle, "Contents", "Resources")
-    return (os.path.isfile(os.path.join(res, "app", "index.html"))
-            or os.path.isfile(os.path.join(res, "app.asar")))
-
-
-def find_bundles():
-    """Look for TiTS-like .app bundles in the usual places."""
-    places = [ROOT, os.path.dirname(ROOT), "/Applications",
-              os.path.expanduser("~/Applications"), os.path.expanduser("~/Downloads"),
-              os.path.expanduser("~/Desktop")]
-    found = []
-    for place in places:
-        if not os.path.isdir(place):
-            continue
-        try:
-            names = sorted(os.listdir(place))
-        except OSError:
-            continue
-        for name in names:
-            low = name.lower()
-            if not low.endswith(".app"):
-                continue
-            if "tits" not in low and "tainted" not in low:
-                continue
-            bundle = os.path.join(place, name)
-            if is_game_bundle(bundle) and bundle not in found:
-                found.append(bundle)
-    return found
-
-
-def configure(args):
-    settings = load_settings()
-    chosen_mods = args.mods or settings.get("mods") or os.path.join(ROOT, "nestmods")
-    # NestPatcher never reads kitty-mods (KittyPatcher's folder): rename it once.
-    parent, name = os.path.split(os.path.abspath(os.path.expanduser(chosen_mods)).rstrip("/"))
-    if name.lower() == "kitty-mods":
-        chosen_mods = os.path.join(parent, "nestmods")
-    old_dir = os.path.join(os.path.dirname(os.path.abspath(os.path.expanduser(chosen_mods))), "kitty-mods")
-    if os.path.basename(chosen_mods) == "nestmods" and os.path.isdir(old_dir) and not os.path.exists(chosen_mods):
-        os.rename(old_dir, chosen_mods)
-        print("Renamed " + old_dir + " to " + chosen_mods + " (NestPatcher uses its own nestmods folder).")
-    set_mods(chosen_mods)
-    chosen = args.app or settings.get("app")
-    if not chosen:
-        bundles = find_bundles()
-        if len(bundles) == 1:
-            chosen = bundles[0]
-            print("Found game: " + chosen)
-        elif len(bundles) > 1:
-            print("Several TiTS apps were found:")
-            for number, bundle in enumerate(bundles, 1):
-                print("  " + str(number) + ") " + bundle)
-            if sys.stdin.isatty():
-                answer = input("Type the number to use: ").strip()
-                if answer.isdigit() and 1 <= int(answer) <= len(bundles):
-                    chosen = bundles[int(answer) - 1]
-            if not chosen:
-                print("Run again with --app \"/path/to/TiTS.app\".")
-                return False
-        else:
-            print("Could not find TiTS.app. Run again with --app \"/path/to/TiTS.app\"")
-            print("(tip: type --app then drag the app from Finder into Terminal).")
-            return False
-    set_bundle(chosen)
-    if args.app or args.mods:
-        settings["app"] = BUNDLE
-        settings["mods"] = MODS
-        save_settings(settings)
-    return True
-
-
-def which_tool(*names):
-    for name in names:
-        hit = shutil.which(name)
-        if hit:
-            return hit
-        for folder in EXTRA_BIN:
-            candidate = os.path.join(folder, name)
-            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
-                return candidate
-    return None
-
-
-# --------------------------------------------------------------------------
-# Core patcher (same behaviour as the Desktop / Android NestPatcher)
-# --------------------------------------------------------------------------
 
 def log(message):
     print(message)
@@ -199,7 +50,7 @@ def basename_key(path):
 def load_game_files():
     found = {}
     for name in os.listdir(APP):
-        if not name.endswith(".js") or name.startswith("._"):
+        if not name.endswith(".js"):
             continue
         backup = os.path.join(BACKUP, name)
         path = backup if os.path.isfile(backup) else os.path.join(APP, name)
@@ -215,6 +66,19 @@ def read_file(path, binary=False):
             return handle.read()
     with open(path, encoding="utf-8") as handle:
         return handle.read()
+
+
+VERSION_TAG = re.compile(r"_v\d+(?:\.\d+)*(?=\.[^.]+$)", re.IGNORECASE)
+
+
+def same_mod_twice(names):
+    """Groups of enabled files that are versions of one mod, e.g. TN_X.mod and TN_X_v2.6.mod.
+    Running both applies the mod twice, so the second copy can't find its text."""
+    groups = {}
+    for name in names:
+        key = VERSION_TAG.sub("", os.path.basename(name)).lower()
+        groups.setdefault(key, []).append(name)
+    return [group for group in groups.values() if len(group) > 1]
 
 
 # A needle may name minified functions through @@name@@ wildcards, because the
@@ -321,8 +185,7 @@ def enabled_mods():
     else:
         names = sorted(
             name for name in os.listdir(MODS)
-            if (name.lower().endswith(".mod") or name.lower().endswith(".js"))
-            and not name.startswith("._")
+            if name.lower().endswith(".mod") or name.lower().endswith(".js")
         )
     resolved = []
     for name in names:
@@ -349,6 +212,53 @@ def locate(files, target, block):
         if len(hashed) == 1:
             return hashed[0], "searched"
     return None, hits
+
+
+def snapshot(real_name, dry_run):
+    """Keep the first pre-patch copy. Later runs read that copy, not the patched game."""
+    source = os.path.join(APP, real_name)
+    dest = os.path.join(BACKUP, real_name)
+    os.makedirs(BACKUP, exist_ok=True)
+    if os.path.isfile(dest):
+        return
+    if dry_run:
+        log("Would back up " + real_name)
+        return
+    shutil.copy2(source, dest)
+    log("Backed up " + real_name)
+
+
+def ensure_script_tag(dry_run):
+    index_path = os.path.join(APP, "index.html")
+    with open(index_path, "r", encoding="utf-8") as handle:
+        content = handle.read()
+    backup = os.path.join(BACKUP, "index.html")
+    if not os.path.isfile(backup) and not dry_run:
+        os.makedirs(BACKUP, exist_ok=True)
+        shutil.copy2(index_path, backup)
+    names = ["nest-inline.js"]
+    if os.path.isdir(RUNTIME_DIR):
+        for name in sorted(os.listdir(RUNTIME_DIR)):
+            if name.endswith(".js") and name not in names:
+                names.append(name)
+    insert = []
+    for name in names:
+        tag = '<script defer src="mods/nest/' + name + '"></script>'
+        if tag not in content:
+            insert.append(tag)
+    if not insert:
+        log("index.html already loads the NestPatcher runtime")
+        return
+    if "</head>" not in content:
+        log("index.html has no </head>, runtime was not linked")
+        return
+    if dry_run:
+        log("Would link " + ", ".join(insert))
+        return
+    content = content.replace("</head>", "\n".join(insert) + "</head>", 1)
+    with open(index_path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(content)
+    log("Linked NestPatcher runtime from index.html")
 
 
 def check_js(label, source, node):
@@ -378,7 +288,6 @@ def clean_index(source):
     return re.sub(
         r'<script\b(?=[^>]*\bsrc="mods/(?:kitty|nest)/[^"<>]+\.js")[^>]*></script>\s*',
         '', source,
-        flags=re.IGNORECASE,
     )
 
 
@@ -386,59 +295,25 @@ def make_runtime(blocks):
     parts = ["/* NestPatcher runtime: generated; do not edit. */"]
     for block in blocks:
         # Preserve isolation between independent mods.
-        parts.extend(["try {", "/* " + block["mod"].replace("*/", "* /") + " */",
+        parts.extend(["try {", "/* " + block["mod"].replace("*/", "* /" ) + " */",
                       block["new"], "} catch (err) { console.error('[NestPatcher runtime]', err); }"])
     return "\n".join(parts) + "\n"
 
 
-def game_running():
-    name = os.path.basename(BUNDLE)
-    try:
-        result = subprocess.run(["pgrep", "-f", name + "/Contents/MacOS/"],
-                                capture_output=True, text=True)
-        return result.returncode == 0
-    except OSError:
-        return False
-
-
-def permission_hint(exc):
-    log("PERMISSION DENIED: " + str(exc))
-    log("macOS blocked writing inside " + BUNDLE + ". Fix one of these, then run again:")
-    log("  1. System Settings > Privacy & Security > App Management: turn on Terminal.")
-    log("  2. Or copy TiTS.app out of /Applications (e.g. to ~/Games) and use --app on the copy.")
-    log("  3. If the app belongs to another user, run: sudo chown -R $(whoami) \"" + BUNDLE + "\"")
-
-
-def apply(dry_run=False, fresh=False, validate=True, resign=True):
+def apply(dry_run=False, fresh=False, validate=True):
     if os.path.isfile(LOG_PATH) and not dry_run:
         os.remove(LOG_PATH)
-    if not os.path.isdir(MODS):
-        print("Mods folder not found: " + MODS)
-        print("Create it and put enabled.txt plus your .mod/.js files inside.")
-        return 1
     if not os.path.isdir(APP):
-        if os.path.isfile(os.path.join(RESOURCES, "app.asar")):
-            log("This game is packed as app.asar. Run once with --unpack-asar, then patch.")
-        else:
-            log("Game folder not found: " + APP)
+        log("Game folder not found: " + APP)
         return 1
-    if os.path.isfile(os.path.join(RESOURCES, "app.asar")):
-        log("STOP: both app/ and app.asar exist. Electron loads app.asar first, so patches would be ignored.")
-        log("Run --unpack-asar again (it moves app.asar aside) or rename app.asar yourself.")
-        return 1
-    if not dry_run and game_running():
-        log("STOP: TiTS is running. Quit it (Cmd+Q) and run the patcher again.")
-        return 1
-    node = which_tool("node", "nodejs")
+    node = shutil.which("node") or shutil.which("nodejs")
     if validate and not node:
-        log("STOP: Node.js is required for JavaScript syntax checking. Install it with: brew install node")
-        log("(or the macOS installer from nodejs.org). Nothing was changed.")
-        log("You may explicitly opt out using --skip-validation (not recommended).")
+        log("STOP: Node.js is required for JavaScript syntax checking. In proot-Debian: apt install nodejs")
+        log("Nothing was changed. You may explicitly opt out using --skip-validation (not recommended).")
         return 1
-    log("Game: " + APP)
-    log("Mods: " + MODS)
     files = load_game_files()  # Backups, if present, are the clean baseline.
     log("Loaded " + str(len(files)) + " game scripts (using available backups)")
+    backups = {}
     replacements, scripts, copy_js = [], [], []
     missing = []
     for path in enabled_mods():
@@ -464,6 +339,12 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
     if missing:
         log("STOP: Missing enabled files: " + ", ".join(missing))
         log("Remove missing entries from enabled.txt or restore the missing files. No changes made.")
+        return 1
+    twice = same_mod_twice([os.path.basename(path) for path in enabled_mods()])
+    if twice:
+        for group in twice:
+            log("STOP: two versions of the same mod are turned on: " + ", ".join(group))
+        log("Keep only the newest version of each in enabled.txt (put # in front of the others). No changes made.")
         return 1
 
     pending = list(replacements)
@@ -523,8 +404,9 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
         log("STOP: index.html lacks </head>. No changes made.")
         return 1
     # Defer NestPatcher runtime scripts so the game's deferred Webpack bundles run first.
+    # Rebuilds always regenerate these tags from the clean index baseline.
     script_tags = "\n".join('<script defer src="mods/nest/' + name + '"></script>'
-                            for name in sorted(runtime_js))
+                             for name in sorted(runtime_js))
     new_index = index_clean.replace("</head>", script_tags + "\n</head>", 1)
 
     if validate:
@@ -575,23 +457,17 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
         with open(index_path, "w", encoding="utf-8", newline="\n") as h:
             h.write(new_index)
     except Exception as exc:
-        if isinstance(exc, PermissionError):
-            permission_hint(exc)
         log("WRITE FAILURE: " + str(exc) + "; rolling back game files")
         for path, data in original.items():
             try:
                 if data is None:
-                    if os.path.exists(path):
-                        os.remove(path)
+                    if os.path.exists(path): os.remove(path)
                 else:
                     os.makedirs(os.path.dirname(path), exist_ok=True)
-                    with open(path, "wb") as h:
-                        h.write(data)
+                    with open(path, "wb") as h: h.write(data)
             except OSError as recovery_error:
                 log("ROLLBACK FAILED for " + path + ": " + str(recovery_error))
         return 1
-    if resign:
-        resign_bundle()
     leftover = os.path.join(APP, "mods", "kitty")
     if os.path.isdir(leftover):
         shutil.rmtree(leftover, ignore_errors=True)
@@ -600,127 +476,10 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
     return 0
 
 
-# --------------------------------------------------------------------------
-# macOS: quarantine + code signature
-# --------------------------------------------------------------------------
 
-def resign_bundle():
-    """Editing files in Contents/Resources breaks the app's signature seal.
-    Clear quarantine and apply a local ad-hoc signature so Gatekeeper still opens it."""
-    if sys.platform != "darwin":
-        log("Not on macOS: skipped quarantine removal and re-signing")
-        return
-    xattr = which_tool("xattr")
-    if xattr:
-        subprocess.run([xattr, "-dr", "com.apple.quarantine", BUNDLE], capture_output=True)
-        log("Cleared quarantine flag on " + os.path.basename(BUNDLE))
-    codesign = which_tool("codesign")
-    if not codesign:
-        log("WARNING: codesign not found. If macOS says the app is damaged, run: xcode-select --install")
-        return
-    result = subprocess.run([codesign, "--force", "--deep", "--sign", "-", BUNDLE],
-                            capture_output=True, text=True)
-    if result.returncode:
-        log("WARNING: ad-hoc re-sign failed:\n" + (result.stderr or result.stdout).strip())
-        log("The game may still open. If not, right-click TiTS.app > Open, or see the guide.")
-    else:
-        log("Ad-hoc re-signed " + os.path.basename(BUNDLE))
-
-
-# --------------------------------------------------------------------------
-# macOS: app.asar support
-# --------------------------------------------------------------------------
-
-def read_asar_header(path):
-    with open(path, "rb") as handle:
-        head = handle.read(16)
-        if len(head) < 16:
-            raise ValueError("app.asar is too small")
-        # Chromium pickle: [4][header pickle size][payload size][json length][json]
-        header_size = struct.unpack("<I", head[4:8])[0]
-        json_len = struct.unpack("<I", head[12:16])[0]
-        header = json.loads(handle.read(json_len).decode("utf-8"))
-    return header, 8 + header_size
-
-
-def extract_asar(asar_path, dest):
-    header, base = read_asar_header(asar_path)
-    unpacked_root = asar_path + ".unpacked"
-    count = 0
-    with open(asar_path, "rb") as handle:
-        stack = [(header, dest, unpacked_root)]
-        while stack:
-            node, out_dir, unpacked_dir = stack.pop()
-            os.makedirs(out_dir, exist_ok=True)
-            for name, entry in node.get("files", {}).items():
-                if "/" in name or name in ("..", "."):
-                    raise ValueError("unsafe path in app.asar: " + name)
-                out = os.path.join(out_dir, name)
-                if "files" in entry:
-                    stack.append((entry, out, os.path.join(unpacked_dir, name)))
-                elif "link" in entry:
-                    continue
-                elif entry.get("unpacked"):
-                    shutil.copy2(os.path.join(unpacked_dir, name), out)
-                    count += 1
-                else:
-                    handle.seek(base + int(entry["offset"]))
-                    remaining = int(entry["size"])
-                    with open(out, "wb") as target:
-                        while remaining:
-                            chunk = handle.read(min(remaining, 1 << 20))
-                            if not chunk:
-                                raise ValueError("app.asar ended early at " + name)
-                            target.write(chunk)
-                            remaining -= len(chunk)
-                    if entry.get("executable"):
-                        os.chmod(out, 0o755)
-                    count += 1
-    return count
-
-
-def unpack_asar():
-    asar_path = os.path.join(RESOURCES, "app.asar")
-    if not os.path.isfile(asar_path):
-        print("No app.asar in " + RESOURCES + ". Nothing to unpack (the game is already a plain folder).")
-        return 0
-    if os.path.isdir(APP):
-        print("STOP: " + APP + " already exists. Move it aside before unpacking again.")
-        return 1
-    staging = APP + ".nest-unpacking"
-    if os.path.isdir(staging):
-        shutil.rmtree(staging)
-    try:
-        count = extract_asar(asar_path, staging)
-        if not os.path.isfile(os.path.join(staging, "index.html")):
-            shutil.rmtree(staging)
-            print("STOP: app.asar has no index.html at its top level, so this is not the expected TiTS layout.")
-            return 1
-        os.rename(staging, APP)
-        os.rename(asar_path, asar_path + ".nest-original")
-        if os.path.isdir(asar_path + ".unpacked"):
-            os.rename(asar_path + ".unpacked", asar_path + ".unpacked.nest-original")
-    except PermissionError as exc:
-        if os.path.isdir(staging):
-            shutil.rmtree(staging, ignore_errors=True)
-        permission_hint(exc)
-        return 1
-    except (OSError, ValueError, KeyError) as exc:
-        if os.path.isdir(staging):
-            shutil.rmtree(staging, ignore_errors=True)
-        print("STOP: could not unpack app.asar: " + str(exc))
-        return 1
-    print("Unpacked " + str(count) + " files to " + APP)
-    print("Original kept as app.asar.nest-original. Electron now loads the app/ folder.")
-    return 0
-
-
-# --------------------------------------------------------------------------
-# Read-only source search (same as Android --find)
-# --------------------------------------------------------------------------
 
 def find_sources(terms, context=150, max_hits=30):
-    """Search game JavaScript without modifying game files.
+    """Search extracted JavaScript without modifying game files.
 
     Hashed/minified bundles are reported as short surrounding excerpts rather
     than entire multi-megabyte lines. Prefer untouched backup copies when present.
@@ -738,7 +497,7 @@ def find_sources(terms, context=150, max_hits=30):
     for directory, folders, filenames in os.walk(APP):
         folders.sort()
         for filename in sorted(filenames):
-            if not filename.lower().endswith(".js") or filename.startswith("._"):
+            if not filename.lower().endswith(".js"):
                 continue
             live_path = os.path.join(directory, filename)
             rel = os.path.relpath(live_path, APP)
@@ -783,45 +542,17 @@ def find_sources(terms, context=150, max_hits=30):
     return 0
 
 
-def show_paths():
-    print("Settings file: " + SETTINGS)
-    print("Game app:      " + BUNDLE)
-    print("Game folder:   " + APP + ("" if os.path.isdir(APP) else "  (missing)"))
-    print("Mods folder:   " + MODS + ("" if os.path.isdir(MODS) else "  (missing)"))
-    print("Backups:       " + BACKUP)
-    print("Log:           " + LOG_PATH)
-    print("Node.js:       " + (which_tool("node", "nodejs") or "NOT FOUND (brew install node)"))
-    return 0
-
-
 
 def main():
-    parser = argparse.ArgumentParser(description="NestPatcher (macOS): validated, reversible game-file patching")
+    parser = argparse.ArgumentParser(description="NestPatcher: validated, reversible game-file patching")
+    parser.add_argument("--find", nargs="+", metavar="TERM", help="search extracted JavaScript and save excerpts to mods/logs/SourceSearch.txt (read-only)")
     parser.add_argument("--dry-run", action="store_true", help="validate and preview without writing game files")
     parser.add_argument("--fresh", action="store_true", help="regenerate from saved baselines; clear obsolete NestPatcher runtime files (also default)")
     parser.add_argument("--skip-validation", action="store_true", help="dangerous: skip Node.js syntax validation")
-    parser.add_argument("--find", nargs="+", metavar="TERM", help="search game JavaScript and save excerpts to nestmods/logs/SourceSearch.txt (read-only)")
-    parser.add_argument("--app", metavar="PATH", help="path to TiTS.app (remembered for later runs)")
-    parser.add_argument("--mods", metavar="PATH", help="mods folder (default: nestmods next to this script; remembered)")
-    parser.add_argument("--unpack-asar", action="store_true", help="extract Contents/Resources/app.asar to app/ so it can be patched")
-    parser.add_argument("--no-resign", action="store_true", help="do not clear quarantine or ad-hoc re-sign TiTS.app after patching")
-    parser.add_argument("--show", action="store_true", help="print the paths in use and exit")
-    parser.add_argument("--forget", action="store_true", help="delete saved --app/--mods settings and exit")
     args = parser.parse_args()
-    if args.forget:
-        if os.path.isfile(SETTINGS):
-            os.remove(SETTINGS)
-        print("Saved settings cleared.")
-        return 0
-    if not configure(args):
-        return 1
-    if args.show:
-        return show_paths()
-    if args.unpack_asar:
-        return unpack_asar()
     if args.find:
         return find_sources(args.find)
-    return apply(args.dry_run, args.fresh, not args.skip_validation, not args.no_resign)
+    return apply(args.dry_run, args.fresh, not args.skip_validation)
 
 
 if __name__ == "__main__":
