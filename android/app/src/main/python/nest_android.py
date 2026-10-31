@@ -17,13 +17,6 @@ import traceback
 
 NODE_STANDIN = "phone-javascript-engine"
 
-# What each patcher needs on its command line to find the project's files.
-#   android: the script finds PROJECT/extracted/apk/assets/www and PROJECT/mods by
-#            itself, from where it thinks it lives (PROJECT/NestPatcher-app/).
-#   cli:     --game and --mods point at the same folders.
-#   gui:     configured with the same folders, then serves its panel on port 8765.
-
-
 class _ShutilWithNode(object):
     """shutil, except which('node') answers with the phone's JavaScript checker."""
 
@@ -89,16 +82,203 @@ def project_paths(project):
     return www, mods
 
 
-def describe(project):
-    """One line per thing the app should show about the chosen folder."""
-    www, mods = project_paths(project)
+# ---------------------------------------------------------------- what each patcher needs
+#
+# Each patcher gets a list of "needs": the folders the app asks for before running it.
+#   key:     name of the folder (also the key in the paths the app sends back)
+#   label:   what the app calls it
+#   help:    one or two sentences under the label
+#   default: starting path, worked out from the TITS-Modding folder
+#   flag:    command-line option the folder is passed with (cli scripts only)
+#   check:   how "Check folders" tests it: android-project, game, mods, dir or file
+#
+# A custom .py can say what it needs with a top-level list, for example:
+#   NEST_NEEDS = [
+#       {"key": "game", "label": "Game folder", "flag": "--game", "check": "game"},
+#       {"key": "mods", "label": "Mods folder", "flag": "--mods", "check": "mods"},
+#   ]
+# "default" there may be relative; it is joined to the TITS-Modding folder.
+
+KIND_NAMES = {
+    "android": "Android patcher",
+    "cli": "command-line patcher (Linux/Windows)",
+    "gui": "GUI patcher",
+    "custom": "your own patcher",
+}
+
+
+def _read(script):
+    try:
+        with open(script, "r", encoding="utf-8") as handle:
+            return handle.read()
+    except OSError:
+        return ""
+
+
+def _declared_needs(source):
+    """NEST_NEEDS from a script, read without running it. None if it has none."""
+    import ast
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", None) == "NEST_NEEDS" for t in node.targets):
+            try:
+                value = ast.literal_eval(node.value)
+            except ValueError:
+                return None
+            if isinstance(value, (list, tuple)):
+                return [dict(item) for item in value if isinstance(item, dict) and item.get("key")]
+    return None
+
+
+def kind_of_source(source):
+    """Work out what sort of patcher a script is from its text, without running it."""
+    if _declared_needs(source) is not None:
+        return "custom"
+    if "def gui_main" in source:
+        return "gui"
+    if "def set_game" in source and "def configure" in source:
+        return "cli"
+    if "PROJECT =" in source and '"extracted"' in source:
+        return "android"
+    return "custom"
+
+
+def needs_for(script, base):
+    """(kind, list of needs) for a script, with defaults filled in from the TITS-Modding folder."""
+    base = (base or "").rstrip("/")
+    source = _read(script)
+    kind = kind_of_source(source)
+    www, mods = project_paths(base)
+    if kind == "android":
+        needs = [{
+            "key": "project", "label": "Your TITS-Modding folder", "check": "android-project",
+            "default": base,
+            "help": "The Android patcher works inside one folder. It needs extracted/apk/assets/www "
+                    "(the unpacked game) and mods (enabled.txt plus your .mod / .js files) in it."}]
+    elif kind in ("cli", "gui"):
+        needs = [
+            {"key": "game", "label": "Game folder", "check": "game", "default": www,
+             "flag": "--game" if kind == "cli" else "",
+             "help": "The unpacked game: the folder with index.html and main.<something>.js in it. "
+                     "A folder above it also works (an extracted APK, or a PC game folder with resources/app)."},
+            {"key": "mods", "label": "Mods folder", "check": "mods", "default": mods,
+             "flag": "--mods" if kind == "cli" else "",
+             "help": "Holds enabled.txt and your .mod / .js files. On a PC this is the nestmods folder. "
+                     "Clean backups of the game files are kept in its backup folder."}]
+    else:
+        declared = _declared_needs(source)
+        if declared:
+            needs = []
+            for item in declared:
+                need = {"key": str(item["key"]), "label": str(item.get("label") or item["key"]),
+                        "help": str(item.get("help") or ""), "flag": str(item.get("flag") or ""),
+                        "check": str(item.get("check") or "dir")}
+                default = str(item.get("default") or "")
+                need["default"] = default if default.startswith("/") else (
+                    os.path.join(base, default) if default else base)
+                needs.append(need)
+        else:
+            needs = [{
+                "key": "project", "label": "Working folder", "check": "dir", "default": base,
+                "help": "This script doesn't list what it needs (see NEST_NEEDS in the Android app guide), "
+                        "so it runs inside this folder. NESTPATCHER_HOME points here too."}]
+    for need in needs:
+        need.setdefault("flag", "")
+    return kind, needs
+
+
+def needs_json(script, base):
+    """needs_for() as JSON, for the app."""
+    import json
+    kind, needs = needs_for(script, base)
+    return json.dumps({"kind": kind, "kindName": KIND_NAMES.get(kind, kind), "needs": needs})
+
+
+def _game_web_folder(path):
+    """The folder with index.html that the engine would patch, or None."""
+    for inner in (path, os.path.join(path, "www"), os.path.join(path, "assets", "www"),
+                  os.path.join(path, "extracted", "apk", "assets", "www"),
+                  os.path.join(path, "resources", "app"), os.path.join(path, "app")):
+        if os.path.isfile(os.path.join(inner, "index.html")):
+            return inner
+    return None
+
+
+def check_need(need, path):
+    """Lines saying whether one folder has what its patcher needs."""
+    label = need.get("label") or need.get("key")
+    check = need.get("check") or "dir"
+    if not path:
+        return ["MISSING " + label + ": no folder chosen"]
+    if check == "android-project":
+        www, mods = project_paths(path)
+        return [("OK  " if os.path.isfile(os.path.join(www, "index.html")) else "MISSING ") + "game files: " + www,
+                ("OK  " if os.path.isdir(mods) else "MISSING ") + "mods folder: " + mods,
+                ("OK  " if os.path.isfile(os.path.join(mods, "enabled.txt")) else "no ") + "enabled.txt"]
+    if check == "game":
+        web = _game_web_folder(path)
+        if web:
+            return ["OK  " + label + ": game files in " + web]
+        if os.path.isfile(os.path.join(path, "resources", "app.asar")):
+            return ["OK  " + label + ": packed game (app.asar). Add --unpack-asar to Extra options the first time."]
+        return ["MISSING " + label + ": no index.html in " + path + " or the usual folders under it"]
+    if check == "mods":
+        if not os.path.isdir(path):
+            return ["MISSING " + label + ": " + path]
+        return ["OK  " + label + ": " + path,
+                ("OK  " if os.path.isfile(os.path.join(path, "enabled.txt")) else "no ") + "enabled.txt"]
+    if check == "file":
+        return [("OK  " if os.path.isfile(path) else "MISSING ") + label + ": " + path]
+    return [("OK  " if os.path.isdir(path) else "MISSING ") + label + ": " + path]
+
+
+def _parse_paths(paths):
+    """The app sends {key: path} as JSON; tests and older callers send one project folder."""
+    import json
+    if isinstance(paths, dict):
+        return dict(paths)
+    text = str(paths or "")
+    if text.strip().startswith("{"):
+        return {str(k): str(v).rstrip("/") for k, v in json.loads(text).items()}
+    return {"project": text.rstrip("/")}
+
+
+def _fill_paths(kind, needs, paths):
+    """Fill in anything the caller left out from the needs' defaults (and a lone project folder)."""
+    project = paths.get("project", "")
+    if project and kind in ("cli", "gui"):
+        www, mods = project_paths(project)
+        paths.setdefault("game", www)
+        paths.setdefault("mods", mods)
+    for need in needs:
+        paths.setdefault(need["key"], need.get("default", ""))
+    return paths
+
+
+def describe_paths(script, paths):
+    """Check every folder the chosen patcher needs. One line per finding."""
+    paths = _parse_paths(paths)
+    kind, needs = needs_for(script, paths.get("project") or next(iter(paths.values()), ""))
+    paths = _fill_paths(kind, needs, paths)
     lines = []
-    lines.append(("OK  " if os.path.isfile(os.path.join(www, "index.html")) else "MISSING ")
-                 + "game files: " + www)
-    lines.append(("OK  " if os.path.isdir(mods) else "MISSING ") + "mods folder: " + mods)
-    enabled = os.path.join(mods, "enabled.txt")
-    lines.append(("OK  " if os.path.isfile(enabled) else "no ") + "enabled.txt")
+    for need in needs:
+        lines += check_need(need, paths.get(need["key"], ""))
     return "\n".join(lines)
+
+
+def describe(project):
+    """Check a TITS-Modding folder for the Android patcher (kept for older callers)."""
+    return "\n".join(check_need({"label": "TITS-Modding folder", "check": "android-project"}, project))
+
+
+def _home_for(kind, paths):
+    """The folder the patcher treats as its own: settings, logs and backups stay with the user's files."""
+    if kind in ("cli", "gui") and paths.get("mods"):
+        return os.path.dirname(paths["mods"].rstrip("/")) or paths["mods"]
+    return paths.get("project") or next(iter(paths.values()), "")
 
 
 def load(script, project, checker):
@@ -132,34 +312,48 @@ def guess_kind(module):
     return "custom"
 
 
-def build_argv(kind, project, extra):
-    www, mods = project_paths(project)
+def build_argv(kind, paths, extra, needs=None):
+    if not isinstance(paths, dict):
+        paths = _fill_paths(kind, needs or [], {"project": paths})
     argv = [a for a in (extra or "").split() if a]
     if kind == "cli":
-        argv = ["--game", www, "--mods", mods] + argv
+        argv = ["--game", paths["game"], "--mods", paths["mods"]] + argv
     elif kind == "gui":
         argv = ["--no-browser", "--port=8765"] + argv
+    elif needs:
+        flagged = []
+        for need in needs:
+            if need.get("flag") and paths.get(need["key"]):
+                flagged += [need["flag"], paths[need["key"]]]
+        argv = flagged + argv
     return argv
 
 
-def run(script, project, kind, extra, checker, sink):
+def run(script, paths, kind, extra, checker, sink):
     """Run a patcher. Returns its exit code. Output goes to sink.line(text).
+    paths is {key: folder} as JSON (from the app) or one TITS-Modding folder.
     kind "auto" works out what sort of patcher the file is."""
     writer = _LineWriter(sink)
     old_out, old_err, old_argv = sys.stdout, sys.stderr, sys.argv
+    old_cwd = os.getcwd()
     sys.stdout = sys.stderr = writer
-    os.environ["NESTPATCHER_HOME"] = project
     code = 1
     try:
-        module = load(script, project, checker)
+        paths = _parse_paths(paths)
+        found_kind, needs = needs_for(script, paths.get("project") or next(iter(paths.values()), ""))
         if kind in (None, "", "auto"):
-            kind = guess_kind(module)
+            kind = found_kind
+        paths = _fill_paths(kind, needs, paths)
+        home = _home_for(kind, paths)
+        os.environ["NESTPATCHER_HOME"] = home
+        if kind == "custom" and os.path.isdir(home):
+            os.chdir(home)
+        module = load(script, home, checker)
         sink.line("[NestPatcher app: running " + os.path.basename(script) + " as " + kind + "]")
-        argv = build_argv(kind, project, extra)
+        argv = build_argv(kind, paths, extra, needs)
         sys.argv = [os.path.basename(script)] + argv
         if kind == "gui":
-            www, mods = project_paths(project)
-            module.configure(www, mods, remember=True, interactive=False)
+            module.configure(paths["game"], paths["mods"], remember=True, interactive=False)
             main = module.gui_main
         else:
             main = getattr(module, "main", None)
@@ -181,5 +375,8 @@ def run(script, project, kind, extra, checker, sink):
     finally:
         writer.flush()
         sys.stdout, sys.stderr, sys.argv = old_out, old_err, old_argv
+        try:
+            os.chdir(old_cwd)
+        except OSError:
+            pass
     return code
-

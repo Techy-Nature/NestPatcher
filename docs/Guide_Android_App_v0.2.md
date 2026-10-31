@@ -1,4 +1,4 @@
-# NestPatcher Android app v0.1 — step by step
+# NestPatcher Android app v0.2 — step by step
 
 The NestPatcher app runs the NestPatcher patcher on your phone without Termux. It is **not KittyPatcher**. It is based on KittyPatcher by LibraKitty.
 
@@ -20,7 +20,7 @@ TITS-Modding/
 ## 1. Get the APK
 
 1. Open the repo's **Actions** tab on GitHub, open the newest green **Test and build** run, and download **nestpatcher-android-apk**. If you'd rather use a tagged version, use **Releases** instead.
-2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.1.apk`.
+2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.2.apk`.
 
 ## 2. Install it
 
@@ -37,28 +37,58 @@ TITS-Modding/
 
 The app needs this because the patcher reads and writes ordinary files in your TITS-Modding folder.
 
-## 4. Tell it where your files are (step 2)
-
-1. The box starts as `/storage/emulated/0/git.gay-repos/TITS-Modding`. That's the same folder Termux calls `~/storage/shared/git.gay-repos/TITS-Modding`.
-2. If yours is somewhere else, tap **Choose folder…** and pick your **TITS-Modding** folder. You can also type the path.
-3. Tap **Check folder**. Every line should start with `OK`. A `MISSING` line names the folder or file it couldn't find.
-
-## 5. Pick a patcher (step 3)
+## 4. Pick a patcher (step 2)
 
 **Android (default): NestPatcher_TiTS_Android** is already chosen, and that's the one to use. You can change it:
 
-- **Linux / Windows command-line:** These are the newer engine. They run on the same folder.
+- **Linux / Windows command-line:** These are the newer engine.
 - **GUI, opens inside the app:** This opens the full NestPatcher panel in the app, with tabs, mod tick boxes, search and bug reports. Tap **◀ Back to the app** to leave it.
 - **Load a .py from my files…:** This adds your own patcher script. It shows up as **Your file: …** in the list.
 
-The app remembers your choice. The **Extra options** box passes options to the patcher, for example `--find shellyTalk`.
+The app remembers your choice.
+
+## 5. Tell it where your files are (step 3)
+
+Step 3 changes to match the patcher you picked. It says which kind of patcher it is and asks only for what that patcher needs:
+
+| Patcher | Step 3 asks for |
+|---|---|
+| Android (default) | Your **TITS-Modding folder**. Inside it: `extracted/apk/assets/www` (the unpacked game) and `mods` (`enabled.txt` plus your mods). |
+| Linux / Windows command-line, GUI | A **Game folder**: the folder with `index.html` in it, or a folder above it, such as an extracted APK. A **Mods folder**: it holds `enabled.txt` and your mods. On a PC this is `nestmods`. |
+| Your own .py | Whatever the script lists in `NEST_NEEDS` (see below). If it lists nothing, one **Working folder**. |
+
+1. The boxes start from `/storage/emulated/0/git.gay-repos/TITS-Modding`, the same folder Termux calls `~/storage/shared/git.gay-repos/TITS-Modding`.
+2. If a folder is somewhere else, tap **Choose folder…** under it, or type the path.
+3. Tap **Check folders**. Every line should start with `OK`. A `MISSING` line names what it couldn't find.
+
+The app remembers the folders separately for each kind of patcher, so switching back and forth doesn't lose them.
+
+### For people writing their own patcher: NEST_NEEDS
+
+Put a list called `NEST_NEEDS` at the top level of your .py. The app reads it without running the script, shows one box per entry, and passes each folder to your `main(argv)` with its `flag`:
+
+```python
+NEST_NEEDS = [
+    {"key": "game", "label": "Game folder", "flag": "--game", "check": "game",
+     "default": "extracted/apk/assets/www", "help": "The folder with index.html."},
+    {"key": "mods", "label": "Mods folder", "flag": "--mods", "check": "mods", "default": "mods"},
+]
+```
+
+- `key` is required. `label` and `help` are what the app shows.
+- `default` is a starting path. A relative one is joined to the TITS-Modding folder.
+- `flag` is the option your script receives, for example `--game /storage/.../www`.
+- `check` sets what **Check folders** tests: `game` (has `index.html`), `mods` (a folder, plus `enabled.txt`), `dir` (any folder) or `file` (a file you type in).
+
+Text in **Extra options** (step 4) is added after the folders.
 
 ## 6. Test, then patch (step 4)
 
-1. Tap **Test my mods**. This changes nothing. Read **What happened** at the bottom.
-2. If you see **STOP**, **MISS** or **INVALID**, nothing was changed. Fix that mod, or turn it off in `enabled.txt`.
-3. When the test is clean, tap **Patch the game**.
-4. Rebuild and sign the TiTS APK the way you usually do, then install it.
+1. Optional: type options for the patcher into **Extra options**, for example `--find shellyTalk`.
+2. Tap **Test my mods**. This changes nothing. Read **What happened** at the bottom.
+3. If you see **STOP**, **MISS** or **INVALID**, nothing was changed. Fix that mod, or turn it off in `enabled.txt`.
+4. When the test is clean, tap **Patch the game**.
+5. Rebuild and sign the TiTS APK the way you usually do, then install it.
 
 Tap **Copy log** to paste the log into a bug report.
 

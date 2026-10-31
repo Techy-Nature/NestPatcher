@@ -37,6 +37,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
+import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
 import java.util.concurrent.ConcurrentHashMap
@@ -59,7 +60,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var root: LinearLayout
     private lateinit var page: ScrollView
     private lateinit var accessStatus: TextView
-    private lateinit var folderInput: EditText
+    private lateinit var slotBox: LinearLayout
+    private lateinit var kindLine: TextView
     private lateinit var folderStatus: TextView
     private lateinit var patcherSpinner: Spinner
     private lateinit var extraInput: EditText
@@ -74,6 +76,13 @@ class MainActivity : AppCompatActivity() {
     private var running = false
     private var guiRunning = false
     private var guiUrl = ""
+
+    // Step 3 asks for whatever folders the chosen patcher needs (nest_android.needs_json).
+    private val slotInputs = LinkedHashMap<String, EditText>()
+    private val slotViews = mutableListOf<View>()
+    private var currentKind = "android"
+    private var pendingSlot = ""
+    private var needsVersion = 0
 
     // JavaScript checks handed from the Python thread to the WebView.
     private val checkFiles = ConcurrentHashMap<Int, String>()
@@ -179,32 +188,30 @@ class MainActivity : AppCompatActivity() {
         content.addView(accessStatus)
         content.addView(button("Allow file access") { askForAccess() })
 
-        content.addView(section("2. Where you keep your files"))
-        content.addView(text("Your TITS-Modding folder. Inside it NestPatcher expects extracted/apk/assets/www " +
-            "(the unpacked game) and mods (enabled.txt plus your .mod / .js files).", 14f))
-        folderInput = input("/storage/emulated/0/git.gay-repos/TITS-Modding")
-        folderInput.setText(prefs.getString("project", "/storage/emulated/0/git.gay-repos/TITS-Modding"))
-        content.addView(folderInput)
-        content.addView(row(
-            button("Choose folder…") { pickFolder() },
-            button("Check folder") { saveFolder(); refreshFolder() }))
+        content.addView(section("2. Which patcher"))
+        content.addView(text("NestPatcher_TiTS_Android is the default. You can switch to any other NestPatcher " +
+            "script, or load your own .py file. Step 3 changes to ask for what that patcher needs.", 14f))
+        patcherSpinner = Spinner(this)
+        content.addView(patcherSpinner)
+        content.addView(button("Load a .py from my files…") { pickScript() })
+
+        content.addView(section("3. Where your files are"))
+        kindLine = text("", 14f)
+        content.addView(kindLine)
+        slotBox = LinearLayout(this)
+        slotBox.orientation = LinearLayout.VERTICAL
+        content.addView(slotBox)
+        content.addView(button("Check folders") { saveSlots(); refreshFolder() })
         folderStatus = text("", 14f)
         folderStatus.typeface = Typeface.MONOSPACE
         content.addView(folderStatus)
-
-        content.addView(section("3. Which patcher"))
-        content.addView(text("NestPatcher_TiTS_Android is the default. You can switch to any other NestPatcher " +
-            "script, or load your own .py file.", 14f))
-        patcherSpinner = Spinner(this)
-        content.addView(patcherSpinner)
         fillSpinner()
-        content.addView(button("Load a .py from my files…") { pickScript() })
-        extraInput = input("Extra options (optional), e.g. --find shellyTalk")
-        content.addView(extraInput)
 
         content.addView(section("4. Patch"))
         content.addView(text("Test changes nothing. Patch writes your mods into the unpacked game. " +
             "Afterwards rebuild and sign the TiTS APK as usual: this app doesn't sign APKs.", 14f))
+        extraInput = input("Extra options (optional), e.g. --find shellyTalk")
+        content.addView(extraInput)
         content.addView(row(
             button("Test my mods") { runPatcher("--dry-run") },
             button("Patch the game") { runPatcher("") }))
@@ -333,9 +340,76 @@ class MainActivity : AppCompatActivity() {
 
     // ------------------------------------------------------------------ project folder
 
-    private fun project() = folderInput.text.toString().trim().trimEnd('/')
+    /** The TITS-Modding folder: the starting point for every patcher's default folders. */
+    private fun base() = prefs.getString("project", DEFAULT_PROJECT) ?: DEFAULT_PROJECT
 
-    private fun saveFolder() = prefs.edit().putString("project", project()).apply()
+    private fun slotKey(key: String) = "slot:$currentKind:$key"
+
+    private fun saveSlots() {
+        val edit = prefs.edit()
+        for ((key, box) in slotInputs) {
+            val path = box.text.toString().trim().trimEnd('/')
+            edit.putString(slotKey(key), path)
+            if (key == "project" && currentKind == "android" && path.isNotEmpty()) edit.putString("project", path)
+        }
+        edit.apply()
+    }
+
+    private fun pathsJson(): String {
+        val json = JSONObject()
+        for ((key, box) in slotInputs) json.put(key, box.text.toString().trim().trimEnd('/'))
+        return json.toString()
+    }
+
+    /** Ask Python what the chosen patcher needs, then rebuild step 3 to match. */
+    private fun loadNeeds() {
+        val script = selectedScript() ?: return
+        val version = ++needsVersion
+        val base = base()
+        Thread {
+            val info = try {
+                JSONObject(Python.getInstance().getModule("nest_android")
+                    .callAttr("needs_json", script.path, base).toString())
+            } catch (e: Exception) {
+                runOnUiThread { kindLine.text = "Could not read this patcher: " + e.message }
+                null
+            }
+            if (info != null) runOnUiThread { if (version == needsVersion) showNeeds(info) }
+        }.start()
+    }
+
+    private fun showNeeds(info: JSONObject) {
+        currentKind = info.optString("kind", "custom")
+        for (view in slotViews) {
+            texts.removeAll { it.first === view }
+            buttons.removeAll { it === view }
+        }
+        slotViews.clear()
+        slotInputs.clear()
+        slotBox.removeAllViews()
+        val needs = info.getJSONArray("needs")
+        kindLine.text = "This is the " + info.optString("kindName", currentKind) + ". It needs " +
+            (if (needs.length() == 1) "one folder:" else needs.length().toString() + " things:")
+        for (i in 0 until needs.length()) {
+            val need = needs.getJSONObject(i)
+            val key = need.getString("key")
+            val default = need.optString("default", "")
+            val label = text(need.optString("label", key), 16f, bold = true)
+            val help = text(need.optString("help", ""), 13f)
+            if (help.text.isEmpty()) help.visibility = View.GONE
+            val box = input(default)
+            box.setText(prefs.getString(slotKey(key), default))
+            val views = mutableListOf<View>(label, help, box)
+            // Android's picker only hands back folders as paths; files are typed in.
+            if (need.optString("check") != "file") views.add(button("Choose folder…") { pendingSlot = key; pickFolder() })
+            for (view in views) {
+                slotBox.addView(view)
+                slotViews.add(view)
+            }
+            slotInputs[key] = box
+        }
+        refreshFolder()
+    }
 
     private fun pickFolder() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
@@ -354,11 +428,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshFolder() {
-        val folder = project()
-        if (folder.isEmpty()) { folderStatus.text = ""; return }
+        val script = selectedScript() ?: return
+        if (slotInputs.isEmpty()) { folderStatus.text = ""; return }
+        val paths = pathsJson()
         Thread {
             val description = try {
-                Python.getInstance().getModule("nest_android").callAttr("describe", folder).toString()
+                Python.getInstance().getModule("nest_android").callAttr("describe_paths", script.path, paths).toString()
             } catch (e: Exception) { "Could not check: " + e.message }
             runOnUiThread { folderStatus.text = description }
         }.start()
@@ -410,6 +485,7 @@ class MainActivity : AppCompatActivity() {
         patcherSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 prefs.edit().putString("script", list[position].name).apply()
+                loadNeeds()
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
@@ -445,8 +521,8 @@ class MainActivity : AppCompatActivity() {
             REQUEST_FOLDER -> {
                 val path = treeToPath(uri)
                 if (path == null) { toast("Couldn't read that folder's path. Type it in instead."); return }
-                folderInput.setText(path)
-                saveFolder()
+                slotInputs[pendingSlot]?.setText(path)
+                saveSlots()
                 refreshFolder()
             }
             REQUEST_SCRIPT -> importScript(uri)
@@ -464,9 +540,11 @@ class MainActivity : AppCompatActivity() {
         if (running) { toast("Already running"); return }
         if (!hasAccess()) { toast("Allow file access first (step 1)"); return }
         val script = selectedScript() ?: run { toast("No patcher selected"); return }
-        val folder = project()
-        if (folder.isEmpty()) { toast("Choose your folder first (step 2)"); return }
-        saveFolder()
+        if (slotInputs.isEmpty() || slotInputs.values.any { it.text.isBlank() }) {
+            toast("Fill in every folder in step 3 first"); return
+        }
+        saveSlots()
+        val paths = pathsJson()
         val isGui = script.name.contains("_GUI_")
         if (isGui && guiRunning) { showGui(true); return }
         val extra = (flag + " " + extraInput.text.toString()).trim()
@@ -477,7 +555,7 @@ class MainActivity : AppCompatActivity() {
         Thread {
             val code = try {
                 Python.getInstance().getModule("nest_android")
-                    .callAttr("run", script.path, folder, "auto", if (isGui) "" else extra, JsChecker(), LogSink())
+                    .callAttr("run", script.path, paths, "auto", if (isGui) "" else extra, JsChecker(), LogSink())
                     .toInt()
             } catch (e: Exception) {
                 runOnUiThread { log("App error: " + e.message) }
@@ -559,6 +637,7 @@ class MainActivity : AppCompatActivity() {
         private const val REQUEST_FOLDER = 1
         private const val REQUEST_SCRIPT = 2
         private const val REQUEST_STORAGE = 3
+        private const val DEFAULT_PROJECT = "/storage/emulated/0/git.gay-repos/TITS-Modding"
 
         // Parses the file without running it, like `node --check`.
         private const val CHECKER_HTML = """<!doctype html><html><body><script>

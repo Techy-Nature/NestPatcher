@@ -104,6 +104,75 @@ def main():
         finally:
             shutil.rmtree(root, ignore_errors=True)
 
+    # Each patcher asks for the folders it needs.
+    base = "/storage/emulated/0/TITS-Modding"
+    expect = {"NestPatcher_TiTS_Android_v*.py": ("android", ["project"]),
+              "NestPatcher_TiTS_Linux_v*.py": ("cli", ["game", "mods"]),
+              "NestPatcher_TiTS_Windows_v*.py": ("cli", ["game", "mods"]),
+              "NestPatcher_TiTS_GUI_v*.py": ("gui", ["game", "mods"])}
+    for pattern, (kind, keys) in expect.items():
+        info = json.loads(nest_android.needs_json(one(pattern), base))
+        got = (info["kind"], [n["key"] for n in info["needs"]])
+        check(pattern + " needs " + str(keys), got == (kind, keys))
+    info = json.loads(nest_android.needs_json(one("NestPatcher_TiTS_Linux_v*.py"), base))
+    check("cli defaults point into the TITS-Modding folder",
+          info["needs"][0]["default"] == base + "/extracted/apk/assets/www"
+          and info["needs"][1]["default"] == base + "/mods" and info["needs"][0]["flag"] == "--game")
+
+    # The command-line patcher works with a game and mods folder anywhere (here: a bare www + nestmods).
+    root = tempfile.mkdtemp(prefix="nest-android-")
+    try:
+        make_project(root)
+        game = os.path.join(root, "game", "www")
+        shutil.move(os.path.join(root, "extracted", "apk", "assets", "www"), game)
+        mods = os.path.join(root, "stuff", "nestmods")
+        os.makedirs(os.path.dirname(mods))
+        shutil.move(os.path.join(root, "mods"), mods)
+        script = one("NestPatcher_TiTS_Linux_v*.py")
+        missing = nest_android.describe_paths(script, json.dumps({"game": os.path.join(root, "nope"), "mods": mods}))
+        check("check folders spots a missing game", "MISSING Game folder" in missing and "OK  enabled.txt" in missing)
+        found = nest_android.describe_paths(script, json.dumps({"game": os.path.join(root, "game"), "mods": mods}))
+        check("check folders finds a www folder one level down", "OK  Game folder: game files in " + game in found)
+        sink = Sink()
+        code = nest_android.run(script, json.dumps({"game": game, "mods": mods}), "auto", "", NodeChecker(), sink)
+        with open(os.path.join(game, "main.1a2b3c4d.js"), encoding="utf-8") as handle:
+            patched = handle.read()
+        check("cli patches separate game and nestmods folders",
+              code == 0 and 'return "nest"' in patched and os.path.isdir(os.path.join(mods, "backup")), sink)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    # A custom script can list its own needs; they arrive as command-line flags.
+    root = tempfile.mkdtemp(prefix="nest-android-")
+    try:
+        script = os.path.join(root, "my_patcher.py")
+        with open(script, "w", encoding="utf-8") as handle:
+            handle.write("NEST_NEEDS = [\n"
+                         "    {'key': 'saves', 'label': 'Save folder', 'flag': '--saves', 'default': 'saves'},\n"
+                         "    {'key': 'list', 'label': 'List file', 'flag': '--list', 'check': 'file'},\n"
+                         "]\n"
+                         "def main(argv):\n"
+                         "    print('ARGS ' + ' '.join(argv))\n"
+                         "    return 0\n")
+        info = json.loads(nest_android.needs_json(script, root))
+        check("custom NEST_NEEDS are read", info["kind"] == "custom"
+              and [n["key"] for n in info["needs"]] == ["saves", "list"]
+              and info["needs"][0]["default"] == os.path.join(root, "saves"))
+        os.makedirs(os.path.join(root, "saves"))
+        sink = Sink()
+        code = nest_android.run(script, json.dumps({"saves": os.path.join(root, "saves"), "list": "/x/list.txt"}),
+                                "auto", "--loud", NodeChecker(), sink)
+        check("custom script gets its folders as flags",
+              code == 0 and ("ARGS --saves " + os.path.join(root, "saves") + " --list /x/list.txt --loud") in sink.text(), sink)
+        plain = os.path.join(root, "plain.py")
+        with open(plain, "w", encoding="utf-8") as handle:
+            handle.write("print('hello')\n")
+        info = json.loads(nest_android.needs_json(plain, root))
+        check("a script without NEST_NEEDS gets one working folder",
+              info["kind"] == "custom" and [n["key"] for n in info["needs"]] == ["project"])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
     # A syntax error in a mod must be caught by the stand-in checker.
     root = tempfile.mkdtemp(prefix="nest-android-")
     try:
