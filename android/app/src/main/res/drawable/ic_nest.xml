@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- NestPatcher logo: a nest with a barred brown feather tucked into its side. Same drawing as src/launcher/nestpatcher-icon.svg. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="256" android:viewportHeight="256">
+    <path android:fillColor="#1B1D24" android:pathData="M48,0h160a48,48 0 0 1 48,48v160a48,48 0 0 1 -48,48h-160a48,48 0 0 1 -48,-48v-160a48,48 0 0 1 48,-48z"/>
+    <path android:fillColor="#A8743F" android:pathData="M40,140a88,22 0 1 0 176,0a88,22 0 1 0 -176,0z"/>
+    <path android:fillColor="#3E2714" android:pathData="M60,140a68,13 0 1 0 136,0a68,13 0 1 0 -136,0z"/>
+    <path android:fillColor="#C98F55" android:pathData="M170,150 C156,112 176,70 214,40 C224,82 208,124 170,150 Z"/>
+    <group>
+      <clip-path android:pathData="M170,150 C156,112 176,70 214,40 C224,82 208,124 170,150 Z"/>
+      <path android:strokeColor="#111111" android:strokeWidth="7" android:strokeLineCap="butt" android:pathData="M151.7,114.8 L207.7,136.8 M157.8,99.4 L213.8,121.4 M164.0,84.0 L220.0,106.0 M170.2,68.6 L226.2,90.6 M176.3,53.2 L232.3,75.2"/>
+    </group>
+    <path android:strokeColor="#EAD7B5" android:strokeWidth="3.5" android:strokeLineCap="round" android:pathData="M171,152 L209,50"/>
+    <path android:fillColor="#7A4C22" android:pathData="M40,140 C42,198 84,222 128,222 C172,222 214,198 216,140 C200,156 168,162 128,162 C88,162 56,156 40,140 Z"/>
+    <path android:strokeColor="#B8854A" android:strokeWidth="5" android:strokeLineCap="round" android:pathData="M54,172 C92,188 150,192 204,166 M62,194 C100,208 158,208 194,190 M92,212 C120,218 146,216 168,210"/>
+    <path android:strokeColor="#4E3015" android:strokeWidth="5" android:strokeLineCap="round" android:pathData="M68,160 C96,176 116,196 116,216 M188,160 C166,180 152,196 150,214 M120,164 C138,178 154,184 176,182"/>
+    <path android:strokeColor="#B8854A" android:strokeWidth="7" android:strokeLineCap="round" android:pathData="M40,140 C56,156 88,162 128,162 C168,162 200,156 216,140"/>
+    <path android:strokeColor="#9A6735" android:strokeWidth="5" android:strokeLineCap="round" android:pathData="M30,128 L66,150 M44,158 L24,150 M226,128 L192,152 M214,158 L234,150 M96,124 L80,114"/>
+</vector>

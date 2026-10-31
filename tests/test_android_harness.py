@@ -1,0 +1,153 @@
+"""Checks the Android app's Python harness (android/app/src/main/python/nest_android.py)
+on a PC: every bundled patcher must run through it against an Android-style project
+(PROJECT/extracted/apk/assets/www + PROJECT/mods), with Node standing in for the
+phone's JavaScript engine.
+
+    python tests/test_android_harness.py
+"""
+import glob
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import urllib.request
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(HERE)
+sys.path.insert(0, os.path.join(REPO, "android", "app", "src", "main", "python"))
+sys.path.insert(0, HERE)
+
+import nest_android  # noqa: E402
+from smoke_test import MAIN, CONTENT, INDEX, MOD  # noqa: E402
+
+NODE = shutil.which("node") or os.environ.get("NESTPATCHER_NODE")
+
+
+class NodeChecker(object):
+    def check(self, path):
+        result = subprocess.run([NODE, "--check", path], capture_output=True, text=True)
+        return (result.stderr or result.stdout).strip() if result.returncode else ""
+
+
+class Sink(object):
+    def __init__(self):
+        self.lines = []
+
+    def line(self, text):
+        self.lines.append(text)
+
+    def text(self):
+        return "\n".join(self.lines)
+
+
+def make_project(root):
+    www = os.path.join(root, "extracted", "apk", "assets", "www")
+    os.makedirs(www)
+    for name, text in {"index.html": INDEX, "main.1a2b3c4d.js": MAIN, "content_test.5e6f7a8b.js": CONTENT}.items():
+        with open(os.path.join(www, name), "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
+    mods = os.path.join(root, "mods")
+    os.makedirs(mods)
+    with open(os.path.join(mods, "Smoke.mod"), "w", encoding="utf-8") as handle:
+        handle.write(MOD)
+    with open(os.path.join(mods, "enabled.txt"), "w", encoding="utf-8") as handle:
+        handle.write("Smoke.mod\n")
+    return www
+
+
+def one(pattern):
+    hits = sorted(glob.glob(os.path.join(REPO, "patchers", pattern)))
+    assert hits, pattern
+    return hits[-1]
+
+
+def main():
+    failures = []
+
+    def say(text):
+        # The harness swaps sys.stdout while a patcher runs (the GUI keeps running).
+        sys.__stdout__.write(text + "\n")
+        sys.__stdout__.flush()
+
+    def check(label, ok, sink=None):
+        say(("PASS " if ok else "FAIL ") + label)
+        if not ok:
+            failures.append(label)
+            if sink:
+                say(sink.text()[-3000:])
+
+    cases = [("auto", one("NestPatcher_TiTS_Android_v*.py")),
+             ("auto", one("NestPatcher_TiTS_Linux_v*.py")),
+             ("auto", one("NestPatcher_TiTS_Windows_v*.py"))]
+    for kind, script in cases:
+        root = tempfile.mkdtemp(prefix="nest-android-")
+        try:
+            www = make_project(root)
+            label = os.path.basename(script)
+            sink = Sink()
+            code = nest_android.run(script, root, kind, "--dry-run", NodeChecker(), sink)
+            check(label + " dry run", code == 0 and "DRY RUN: 2 replacements" in sink.text(), sink)
+            expected = "android" if "_Android_" in label else "cli"
+            check(label + " detected as " + expected, "as " + expected + "]" in sink.text(), sink)
+            sink = Sink()
+            code = nest_android.run(script, root, kind, "", NodeChecker(), sink)
+            with open(os.path.join(www, "main.1a2b3c4d.js"), encoding="utf-8") as handle:
+                patched = handle.read()
+            check(label + " patch", code == 0 and 'return "nest"' in patched and "VALID " in sink.text(), sink)
+            with open(os.path.join(www, "index.html"), encoding="utf-8") as handle:
+                check(label + " uses mods/nest", "mods/nest/nest-inline.js" in handle.read(), sink)
+            check(label + " leaves no NestPatcher-app folder", not os.path.exists(os.path.join(root, "NestPatcher-app")))
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+    # A syntax error in a mod must be caught by the stand-in checker.
+    root = tempfile.mkdtemp(prefix="nest-android-")
+    try:
+        make_project(root)
+        with open(os.path.join(root, "mods", "Broken.js"), "w", encoding="utf-8") as handle:
+            handle.write("function (\n")
+        with open(os.path.join(root, "mods", "enabled.txt"), "a", encoding="utf-8") as handle:
+            handle.write("Broken.js\n")
+        sink = Sink()
+        code = nest_android.run(one("NestPatcher_TiTS_Android_v*.py"), root, "auto", "", NodeChecker(), sink)
+        check("broken mod is refused", code != 0 and "INVALID JavaScript in runtime/Broken.js" in sink.text(), sink)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    # The GUI starts its server and answers with the right key.
+    root = tempfile.mkdtemp(prefix="nest-android-")
+    try:
+        make_project(root)
+        sink = Sink()
+        threading.Thread(target=nest_android.run,
+                         args=(one("NestPatcher_TiTS_GUI_v*.py"), root, "auto", "", NodeChecker(), sink),
+                         daemon=True).start()
+        url = ""
+        for _ in range(100):
+            url = next((l.split("into it:", 1)[1].strip() for l in list(sink.lines) if "#k=" in l), "")
+            if url:
+                break
+            time.sleep(0.1)
+        check("GUI prints its address", bool(url), sink)
+        if url:
+            key = url.split("#k=", 1)[1]
+            request = urllib.request.Request("http://127.0.0.1:8765/api/state", headers={"X-Nest-Key": key})
+            state = json.load(urllib.request.urlopen(request, timeout=10))
+            check("GUI sees the game and mods", state["gameOk"] and state["modsOk"], sink)
+            request = urllib.request.Request("http://127.0.0.1:8765/api/quit", data=b"{}", method="POST",
+                                             headers={"X-Nest-Key": key, "Content-Type": "application/json"})
+            urllib.request.urlopen(request, timeout=10).read()
+    finally:
+        time.sleep(0.5)
+        shutil.rmtree(root, ignore_errors=True)
+
+    say("\n" + ("ALL PASSED" if not failures else str(len(failures)) + " FAILED: " + ", ".join(failures)))
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
