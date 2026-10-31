@@ -108,9 +108,9 @@ def main():
         fake_mac_zip(mac_zip)
         fake_linux_zip(linux_zip)
 
-        def run(*extra, where=game):
+        def run(*extra, where=game, env=None):
             result = subprocess.run([args.python, local, "--game", where] + list(extra), cwd=tool,
-                                    capture_output=True, text=True, encoding="utf-8", errors="replace")
+                                    env=dict(os.environ, **(env or {})), capture_output=True, text=True, encoding="utf-8", errors="replace")
             print(result.stdout[-2500:] + result.stderr[-1500:])
             return result
 
@@ -211,6 +211,40 @@ def main():
                 modes = [os.stat(os.path.join(d, n)).st_mode for d, _, fs in os.walk(unpacked) for n in fs
                          if not os.path.islink(os.path.join(d, n))]
                 check("every file readable by everyone", all(m & 0o004 for m in modes))
+
+                # The built-in packer (used on phones, Windows and Macs without mksquashfs)
+                # must make an image with the same files, modes and links.
+                result = run("--export-appimage", "--electron-zip", linux_zip, "--appimage-runtime", runtime,
+                             "--arch", "x64", "--out", os.path.join(root, "builtin"),
+                             env={"NESTPATCHER_BUILTIN_SQUASHFS": "1"})
+                own = os.path.join(root, "builtin", "TiTS_v0.9.999_NestPatched-x86_64.AppImage")
+                check("built-in packer exports", result.returncode == 0 and os.path.isfile(own)
+                      and "own packer" in result.stdout)
+                if os.path.isfile(own):
+                    again = os.path.join(root, "unpacked-builtin")
+                    listing = subprocess.run(["unsquashfs", "-o", "8192", "-d", again, own],
+                                             capture_output=True, text=True)
+                    check("unsquashfs reads the built-in image", listing.returncode == 0)
+
+                    def tree(top):
+                        found = {}
+                        for d, dirs, fs in os.walk(top):
+                            for n in dirs + fs:
+                                full = os.path.join(d, n)
+                                info = os.lstat(full)
+                                if os.path.islink(full):
+                                    body = "->" + os.readlink(full)
+                                elif os.path.isdir(full):
+                                    body = "dir"
+                                else:
+                                    with open(full, "rb") as handle:
+                                        body = handle.read()
+                                found[os.path.relpath(full, top)] = (stat.S_IMODE(info.st_mode), body)
+                        return found
+                    check("built-in image has the same files as mksquashfs", tree(again) == tree(unpacked))
+                    started = subprocess.run([os.path.join(again, "AppRun"), "--hello"], capture_output=True,
+                                             text=True, env=dict(os.environ, NEST_NO_SANDBOX="1"))
+                    check("built-in image starts", "FAKE-ELECTRON-OK --no-sandbox --hello" in started.stdout)
 
             # A Linux game folder keeps its own Electron.
             linux_game = os.path.join(root, "linuxgame")

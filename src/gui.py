@@ -173,8 +173,8 @@ def state():
         "running": JOB["running"], "reportUrl": REPORT_URL, "reportEmail": REPORT_EMAIL,
         "problem": preflight() if GAME else "Pick your game folder first.",
         "kitty": KITTY_FOUND[0],
-        "canAppImage": PLATFORM != "windows" and bool(which_tool("mksquashfs")),
-        "squashHint": squashfs_hint() if PLATFORM in ("linux", "mac") else "",
+        "canAppImage": True,      # mksquashfs if installed, else the built-in packer
+        "squashHint": "",
         "hostArch": host_arch(),
         "ui": load_settings().get("ui", {}),
     }
@@ -562,8 +562,8 @@ function show(st){S=st;$("ver").textContent="v"+st.version+" · "+st.platform;
  if($("appimg"))$("appimg").onclick=()=>{const p=prompt("Full path to the TiTS .AppImage file:");if(p){tab("patch");run("appimage",{path:p})}};
  $("androidnote").hidden=st.platform!=="android";
  if(!archSet){$("arch").value=st.platform==="mac"&&st.hostArch==="arm64"?"arm64":"x64";archSet=true}
- const aiOk=st.canAppImage;$("expai").hidden=st.platform==="windows"||st.platform==="android";$("aihint").hidden=aiOk||$("expai").hidden;
- $("aihint").textContent=aiOk?"":"Making an AppImage needs mksquashfs. Install it with: "+st.squashHint;
+ const aiOk=st.canAppImage;$("expai").hidden=false;$("aihint").hidden=aiOk||$("expai").hidden;
+ $("aihint").textContent=aiOk?"":st.squashHint;
  if(st.kitty)banner("KittyPatcher (LibraKitty's patcher) is in this folder: "+st.kitty+"\nNestPatcher is a different program. Use only one of them on a game, or each will undo the other's changes. Move KittyPatcher somewhere else.","bad");
  else if(st.problem)banner(st.problem,"warn");else if(!st.node)banner("Node.js is missing, so mods cannot be checked yet.\n"+st.nodeHint,"warn");else banner("");
  ["dry","go","restore","find","savemods","expmac"].forEach(id=>$(id).disabled=st.running);

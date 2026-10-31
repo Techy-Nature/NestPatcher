@@ -29,9 +29,12 @@ Your mods are inside the export, exactly as they were when you made it. **Patch 
 
 | Made on | Mac app | AppImage |
 |---|---|---|
-| Windows | ✅ | ❌ (needs Linux) |
-| Linux | ✅ | ✅ (needs `squashfs-tools`) |
-| Mac (GUI) | ✅ (unpacked and signed for you) | ✅ only with `brew install squashfs` |
+| Windows | ✅ | ✅ |
+| Linux | ✅ | ✅ (faster with `squashfs-tools`) |
+| Mac | ✅ (unpacked and signed for you) | ✅ |
+| Android app / Termux | ✅ | ✅ |
+
+The AppImage is packed with `mksquashfs` when it's installed. Everywhere else (Android, Windows, Mac) NestPatcher uses its own built-in packer, which makes the same kind of file, just more slowly (a few minutes on a phone).
 
 ---
 
@@ -85,9 +88,9 @@ The file goes into `NestExports` next to the patcher. Extra options:
 
 ---
 
-## Linux: one-time setup for the AppImage
+## Linux: optional, faster AppImage packing
 
-The AppImage is packed with `mksquashfs`. Install it once:
+NestPatcher can pack the AppImage by itself, but `mksquashfs` is faster. To use it, install it once:
 
 **Debian / Ubuntu / Mint / Pop!_OS**
 ```bash

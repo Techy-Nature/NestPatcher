@@ -127,7 +127,7 @@ Turn **every** mod off with option **3** (`--restore`).
 After patching, you can pack the game into a single `.AppImage` file to copy to another PC, or a Mac app:
 
 ```bash
-sudo apt install squashfs-tools        # or: sudo dnf install squashfs-tools (one time)
+sudo apt install squashfs-tools        # optional, packs faster (or: sudo dnf install squashfs-tools)
 python3 NestPatcher_TiTS_Linux_v1.8.py --export-appimage
 python3 NestPatcher_TiTS_Linux_v1.8.py --export-mac
 ```

@@ -936,12 +936,15 @@ def game_version():
 #     against Electron's SHASUMS256.txt, and kept in nestmods/downloads.
 # The Mac export is written as a zip with Python's zipfile (symlinks kept),
 # so it can be made on Windows and Linux too. On a Mac it is also unpacked
-# and ad-hoc signed. The AppImage needs mksquashfs (squashfs-tools).
+# and ad-hoc signed. The AppImage is packed with mksquashfs when it is
+# installed, or else with the small built-in packer below (pure Python), so it
+# can be made on Android or anywhere else without squashfs-tools.
 
 import mmap
 import stat
 import zlib
 import plistlib
+import urllib.error
 import urllib.request
 
 DEFAULT_ELECTRON = "28.3.3"
@@ -1142,7 +1145,18 @@ def download(url, dest):
     say("Downloading " + url)
     try:
         request = urllib.request.Request(url, headers={"User-Agent": "NestPatcher/" + TOOL_VERSION})
-        with urllib.request.urlopen(request, timeout=60) as response, open(part, "wb") as handle:
+        try:
+            response = urllib.request.urlopen(request, timeout=60)
+        except urllib.error.URLError as exc:
+            # Some Pythons (on Android, or python.org's on macOS) have no certificate list
+            # of their own; Android keeps the system's in /system/etc/security/cacerts.
+            system_certs = "/system/etc/security/cacerts"
+            if "CERTIFICATE" not in str(exc).upper() or not os.path.isdir(system_certs):
+                raise
+            import ssl
+            response = urllib.request.urlopen(request, timeout=60,
+                                              context=ssl.create_default_context(capath=system_certs))
+        with response, open(part, "wb") as handle:
             total = int(response.headers.get("Content-Length") or 0)
             done, shown = 0, -1
             while True:
@@ -1790,15 +1804,10 @@ def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, i
     if problem:
         say(problem)
         return 1
-    if PLATFORM == "windows":
-        say("STOP: an AppImage can only be made on Linux (it needs mksquashfs).")
-        say("On Windows you can still make the Mac app, or copy the patched game folder to Linux.")
-        return 1
-    mksquashfs = which_tool("mksquashfs")
+    # NESTPATCHER_BUILTIN_SQUASHFS=1 uses the built-in packer even when mksquashfs is there (tests).
+    mksquashfs = None if os.environ.get("NESTPATCHER_BUILTIN_SQUASHFS") else which_tool("mksquashfs")
     if not mksquashfs:
-        say("STOP: mksquashfs is missing. It packs the AppImage. Install it with:")
-        say("  " + squashfs_hint())
-        return 1
+        say("mksquashfs is not installed, so NestPatcher's own packer is used (slower, same result).")
     kind = source_kind()
     game_ver = plain_version(game_version())
     reuse = kind in ("linux", "appdir") and not version and not electron_zip_path and not simple_shell
@@ -1812,7 +1821,10 @@ def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, i
     machine = APPIMAGE_ARCH[arch]
     out_dir = export_folder(out)
     target = os.path.join(out_dir, EXPORT_NAME + "_v" + (game_ver or "unknown") + "_NestPatched-" + machine + ".AppImage")
-    work = tempfile.mkdtemp(prefix="nest-appdir-", dir=out_dir)
+    # Shared storage on Android (and Windows folders) can't hold symlinks or
+    # program permissions, so build the AppDir in the private temp folder there.
+    private = PLATFORM in ("android", "windows") or bool(os.environ.get("ANDROID_ROOT"))
+    work = tempfile.mkdtemp(prefix="nest-appdir-", dir=None if private else out_dir)
     appdir = os.path.join(work, "AppDir")
     binary = EXPORT_NAME
     say("Making an AppImage from: " + GAME)
@@ -1877,11 +1889,14 @@ def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, i
         open_permissions(appdir)
         squash = os.path.join(work, "game.squashfs")
         say("Packing (this takes a minute)...")
-        result = subprocess.run([mksquashfs, appdir, squash, "-root-owned", "-noappend", "-comp", "gzip", "-quiet"],
-                                capture_output=True, text=True)
-        if result.returncode:
-            say("STOP: mksquashfs failed:\n" + (result.stderr or result.stdout).strip())
-            return 1
+        if mksquashfs:
+            result = subprocess.run([mksquashfs, appdir, squash, "-root-owned", "-noappend", "-comp", "gzip", "-quiet"],
+                                    capture_output=True, text=True)
+            if result.returncode:
+                say("STOP: mksquashfs failed:\n" + (result.stderr or result.stdout).strip())
+                return 1
+        else:
+            pack_squashfs(appdir, squash, executables={"AppRun", binary, "chrome-sandbox", "chrome_crashpad_handler"})
         part = target + ".part"
         with open(part, "wb") as dest:
             for piece in (runtime_path, squash):
@@ -1926,9 +1941,179 @@ def write_desktop(appdir, binary, icon_data):
             os.remove(os.path.join(appdir, old))
     with open(os.path.join(appdir, icon_path), "wb") as handle:
         handle.write(data)
-    os.symlink(icon_path, os.path.join(appdir, ".DirIcon"))
+    try:
+        os.symlink(icon_path, os.path.join(appdir, ".DirIcon"))
+    except OSError:
+        with open(os.path.join(appdir, ".DirIcon"), "wb") as handle:
+            handle.write(data)
     with open(os.path.join(appdir, icon_name + ".desktop"), "w", encoding="utf-8", newline="\n") as handle:
         handle.write(DESKTOP.format(title=EXPORT_TITLE, binary=binary, icon=icon_name))
+
+
+# ---------- built-in squashfs packer ----------
+#
+# Writes a SquashFS 4.0 image (gzip, 128 KiB blocks, no fragments, no xattrs,
+# everything owned by root), which is what an AppImage's runtime mounts.
+# Only used when mksquashfs is not installed (for example on Android).
+
+SQUASH_BLOCK = 128 * 1024
+SQUASH_META = 8192
+
+
+class _MetaWriter:
+    """Packs a metadata table (inodes or directories) into 8 KiB blocks."""
+
+    def __init__(self):
+        self.out = bytearray()
+        self.pending = bytearray()
+
+    def position(self):
+        return len(self.out), len(self.pending)
+
+    def write(self, data):
+        self.pending += data
+        while len(self.pending) >= SQUASH_META:
+            self._flush(self.pending[:SQUASH_META])
+            del self.pending[:SQUASH_META]
+
+    def _flush(self, chunk):
+        packed = zlib.compress(bytes(chunk), 9)
+        if len(packed) < len(chunk):
+            self.out += struct.pack("<H", len(packed)) + packed
+        else:
+            self.out += struct.pack("<H", len(chunk) | 0x8000) + chunk
+
+    def finish(self):
+        if self.pending:
+            self._flush(self.pending)
+            self.pending = bytearray()
+        return bytes(self.out)
+
+
+def pack_squashfs(source, dest, executables=(), mtime=1767225600):
+    """Pack the folder source into a SquashFS image at dest. Files named in
+    executables get mode 755 even when the folder lost its permissions."""
+    entries = []                      # (path, kind, mode, parent index)
+
+    def visit(path, parent):
+        index = len(entries)
+        entries.append([path, "dir", 0o755, parent])
+        names = sorted(os.listdir(path), key=lambda n: n.encode("utf-8", "surrogateescape"))
+        children = []
+        for name in names:
+            child = os.path.join(path, name)
+            if os.path.islink(child):
+                children.append(len(entries))
+                entries.append([child, "link", 0o777, index])
+            elif os.path.isdir(child):
+                children.append(visit(child, index))
+            elif os.path.isfile(child):
+                mode = 0o755 if (name in executables or os.stat(child).st_mode & 0o111) else 0o644
+                children.append(len(entries))
+                entries.append([child, "file", mode, index])
+        entries[index].append(children)
+        return index
+
+    visit(source, None)
+    count = len(entries)
+    number = {index: index + 1 for index in range(count)}     # inode numbers start at 1
+    inodes, dirs = _MetaWriter(), _MetaWriter()
+    refs = {}
+    with open(dest, "wb") as out:
+        out.write(b"\0" * 96)
+        data_pos = 96
+        # Post-order: children before their folder, so a folder can list its children's inodes.
+        order = []
+
+        def post(index):
+            for child in entries[index][4] if entries[index][1] == "dir" else ():
+                if entries[child][1] == "dir":
+                    post(child)
+                else:
+                    order.append(child)
+            order.append(index)
+        post(0)
+        for index in order:
+            path, kind, mode, parent = entries[index][:4]
+            block, offset = inodes.position()
+            refs[index] = (block << 16) | offset
+            head = lambda t: struct.pack("<HHHHII", t, mode, 0, 0, mtime, number[index])
+            if kind == "file":
+                start = data_pos
+                sizes = []
+                size = 0
+                with open(path, "rb") as handle:
+                    while True:
+                        chunk = handle.read(SQUASH_BLOCK)
+                        if not chunk:
+                            break
+                        size += len(chunk)
+                        packed = zlib.compress(chunk, 6)
+                        if len(packed) < len(chunk):
+                            out.write(packed)
+                            sizes.append(len(packed))
+                        else:
+                            out.write(chunk)
+                            sizes.append(len(chunk) | 0x1000000)
+                        data_pos += sizes[-1] & 0xFFFFFF
+                if size >= 1 << 32 or start >= 1 << 32:
+                    raise ValueError("file too big for the built-in packer: " + path)
+                inodes.write(head(2) + struct.pack("<IIII", start, 0xFFFFFFFF, 0, size)
+                             + b"".join(struct.pack("<I", s) for s in sizes))
+            elif kind == "link":
+                target = os.readlink(path).encode("utf-8", "surrogateescape")
+                inodes.write(head(3) + struct.pack("<II", 1, len(target)) + target)
+            else:
+                children = entries[index][4]
+                listing_block, listing_offset = dirs.position()
+                listing = bytearray()
+                run = []
+
+                def flush_run():
+                    if not run:
+                        return
+                    base_block = refs[run[0]] >> 16
+                    base_number = number[run[0]]
+                    listing.extend(struct.pack("<III", len(run) - 1, base_block, base_number))
+                    for child in run:
+                        name = os.path.basename(entries[child][0]).encode("utf-8", "surrogateescape")
+                        ckind = {"dir": 1, "file": 2, "link": 3}[entries[child][1]]
+                        listing.extend(struct.pack("<HhHH", refs[child] & 0xFFFF, number[child] - base_number,
+                                                   ckind, len(name) - 1) + name)
+                    del run[:]
+
+                for child in children:
+                    if run and (len(run) == 256 or refs[child] >> 16 != refs[run[0]] >> 16
+                                or abs(number[child] - number[run[0]]) > 32767):
+                        flush_run()
+                    run.append(child)
+                flush_run()
+                dirs.write(bytes(listing))
+                subdirs = sum(1 for child in children if entries[child][1] == "dir")
+                parent_number = number[parent] if parent is not None else count + 1
+                if len(listing) + 3 > 0xFFFF:
+                    raise ValueError("folder too big for the built-in packer: " + path)
+                inodes.write(head(1) + struct.pack("<IIHHI", listing_block, 2 + subdirs, len(listing) + 3,
+                                                   listing_offset, parent_number))
+        inode_table = inodes.finish()
+        dir_table = dirs.finish()
+        inode_start = data_pos
+        out.write(inode_table)
+        dir_start = inode_start + len(inode_table)
+        out.write(dir_table)
+        ids = _MetaWriter()
+        ids.write(struct.pack("<I", 0))
+        id_block_start = dir_start + len(dir_table)
+        out.write(ids.finish())
+        id_table_start = out.tell()
+        out.write(struct.pack("<Q", id_block_start))
+        used = out.tell()
+        out.write(b"\0" * (-used % 4096))
+        none = 0xFFFFFFFFFFFFFFFF
+        out.seek(0)
+        out.write(struct.pack("<IIIIIHHHHHHQQQQQQQQ", 0x73717368, count, mtime, SQUASH_BLOCK, 0, 1, 17,
+                              0x0010 | 0x0200, 1, 4, 0, refs[0], used, id_table_start, none,
+                              inode_start, dir_start, none, none))
 
 
 def export_preflight():
