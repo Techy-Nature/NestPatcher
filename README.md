@@ -23,7 +23,7 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 | Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.3.py`](patchers/) + `NestPatcher_Windows_v1.3.bat` | [Guide_Windows_v1.3.md](docs/Guide_Windows_v1.3.md) |
 | Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.3.py`](patchers/) + `nestpatcher_linux_v1.3.sh` | [Guide_Linux_v1.3.md](docs/Guide_Linux_v1.3.md) |
 | macOS | [`patchers/NestPatcher_TiTS_Mac_v1.2.py`](patchers/) | [NestPatcher_Mac_Guide_v1.2.md](docs/NestPatcher_Mac_Guide_v1.2.md) |
-| Android, no Termux (app) | `NestPatcher_Android_App_v0.1.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.1.md](docs/Guide_Android_App_v0.1.md) |
+| Android, no Termux (app) | `NestPatcher_Android_App_v0.2.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.2.md](docs/Guide_Android_App_v0.2.md) |
 | Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.2.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.4.md](docs/Guide_GUI_v0.4.md) |
 
 The GUI bundles include Python and Node.js. The command-line versions need Python 3 and Node.js installed (Node.js checks every mod for mistakes before the game is touched).
@@ -55,7 +55,7 @@ The newest TN mod pack (Modv2.5, for TiTS 0.9.167) is in [`mods/`](mods/): the m
 - `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.3.py`.
 - `packaging/build_bundles.sh` builds the AppImage and the Windows zip on Linux. It downloads pinned, checksum-verified Python ([python-build-standalone](https://github.com/astral-sh/python-build-standalone)) and Node.js. The Windows `.exe` is a small launcher from `src/launcher/`, compiled with MinGW.
 - GitHub Actions runs the smoke test on Windows, Linux and macOS for every push. It builds the bundles, checks the Windows bundle on a real Windows machine, builds the Android APK, and attaches all of them to a release when you push a `v*` tag.
-- `android/` is the Android app (Kotlin + [Chaquopy](https://chaquo.com/chaquopy/) Python). It carries every script in `patchers/`, runs the Android one by default, and checks JavaScript with the phone's WebView instead of Node.js. `android/app/src/main/python/nest_android.py` is the glue, tested on a PC by `tests/test_android_harness.py`. CI builds the APK with `gradle assembleRelease`.
+- `android/` is the Android app (Kotlin + [Chaquopy](https://chaquo.com/chaquopy/) Python). It carries every script in `patchers/`, runs the Android one by default, asks for the folders each patcher needs (a custom .py can list its own with `NEST_NEEDS`), and checks JavaScript with the phone's WebView instead of Node.js. `android/app/src/main/python/nest_android.py` is the glue, tested on a PC by `tests/test_android_harness.py`. CI builds the APK with `gradle assembleRelease`.
 - Version numbers go in file names (for example `_v1.3`), so it's always clear which copy is newer.
 
 ## Credits
