@@ -66,7 +66,7 @@ def main(argv=None):
         parser.add_argument("--extract-appimage", metavar="FILE", help="unpack a TiTS .AppImage into a folder that can be patched")
     parser.add_argument("--export-mac", action="store_true", help="pack the patched game as a macOS TiTS.app (zip; on a Mac also unpacked and signed)")
     parser.add_argument("--export-appimage", action="store_true", help="pack the patched game as one Linux .AppImage file (uses mksquashfs if installed, else a built-in packer)")
-    parser.add_argument("--out", metavar="FOLDER", help="with --export-*: where to save it (default: NestExports next to this script)")
+    parser.add_argument("--out", metavar="FOLDER", help="with --export-*: where to save it (default: NestExports inside the mods folder)")
     parser.add_argument("--arch", choices=["x64", "arm64"], help="with --export-*: x64 (Intel/AMD, the default off-Mac) or arm64 (Apple Silicon, ARM Linux)")
     parser.add_argument("--electron", metavar="VERSION", help="with --export-*: use this Electron version instead of the game's own")
     parser.add_argument("--electron-zip", metavar="FILE", help="with --export-*: an Electron zip you downloaded yourself (no internet needed)")

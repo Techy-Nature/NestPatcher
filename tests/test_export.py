@@ -1,6 +1,6 @@
 """Checks --export-mac and --export-appimage on a tiny fake game, with no internet.
 
-    python tests/test_export.py patchers/NestPatcher_TiTS_Linux_v1.8.py
+    python tests/test_export.py patchers/NestPatcher_TiTS_Linux_v1.9.py
 
 Fake Electron zips are built here with the same layout as the real ones
 (Electron.app with framework symlinks and helper apps for macOS; a top-level
@@ -126,7 +126,7 @@ def main():
 
         # --- macOS ---
         result = run("--export-mac", "--electron-zip", mac_zip, "--arch", "arm64")
-        out = os.path.join(tool, "NestExports", "TiTS_v0.9.999_NestPatched_macOS-arm64.zip")
+        out = os.path.join(tool, "nestmods", "NestExports", "TiTS_v0.9.999_NestPatched_macOS-arm64.zip")
         check("mac export exits 0", result.returncode == 0 and os.path.isfile(out))
         if os.path.isfile(out):
             with zipfile.ZipFile(out) as z:
@@ -161,7 +161,7 @@ def main():
         if hasattr(os, "symlink") and os.name != "nt":
             os.symlink("A", os.path.join(mac_game, "Contents", "Current"))
         result = run("--export-mac", where=mac_game)
-        out = os.path.join(tool, "NestExports", "TiTS_v0.9.999_NestPatched_macOS.zip")
+        out = os.path.join(tool, "nestmods", "NestExports", "TiTS_v0.9.999_NestPatched_macOS.zip")
         check("Mac game exports with its own Electron", result.returncode == 0 and os.path.isfile(out)
               and "already a Mac game" in result.stdout)
         if os.path.isfile(out) and os.name != "nt":
@@ -191,7 +191,7 @@ def main():
             with open(runtime, "wb") as handle:
                 handle.write(b"\x7fELF" + b"\0" * 8188)
             result = run("--export-appimage", "--electron-zip", linux_zip, "--appimage-runtime", runtime, "--arch", "x64")
-            out = os.path.join(tool, "NestExports", "TiTS_v0.9.999_NestPatched-x86_64.AppImage")
+            out = os.path.join(tool, "nestmods", "NestExports", "TiTS_v0.9.999_NestPatched-x86_64.AppImage")
             check("AppImage export exits 0", result.returncode == 0 and os.path.isfile(out))
             if os.path.isfile(out):
                 check("AppImage is executable", os.access(out, os.X_OK))
@@ -281,7 +281,7 @@ def main():
                                      "--mods", mods, "--electron-zip", mac_zip, "--arch", "x64"],
                                     cwd=mac_tool, capture_output=True, text=True, encoding="utf-8", errors="replace")
             print(result.stdout[-2500:] + result.stderr[-1500:])
-            out = os.path.join(mac_tool, "NestExports", "TiTS_v0.9.999_NestPatched_macOS-x64.zip")
+            out = os.path.join(mods, "NestExports", "TiTS_v0.9.999_NestPatched_macOS-x64.zip")
             check("Mac patcher turns the Windows game into TiTS.app", result.returncode == 0 and os.path.isfile(out))
             if os.path.isfile(out):
                 with zipfile.ZipFile(out) as z:

@@ -241,7 +241,7 @@ def main():
               and "Windows/web game" in described, described)
         sink = Sink()
         code = nest_android.run(script, paths, "auto", "--electron-zip " + electron, NodeChecker(), sink)
-        out = os.path.join(root, "NestExports")
+        out = os.path.join(root, "mods", "NestExports")
         made = [n for n in os.listdir(out)] if os.path.isdir(out) else []
         check("Mac patcher turns the Windows game into a Mac app zip", code == 0
               and any(n.endswith("_macOS-x64.zip") for n in made), sink)

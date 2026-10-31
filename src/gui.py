@@ -317,7 +317,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply({"zip": zip_path, "text": text})
         if path == "/api/open":
             target = {"mods": MODS, "logs": LOGS, "game": GAME,
-                      "exports": os.path.join(ROOT, "NestExports")}.get(payload.get("what"), "")
+                      "exports": os.path.join(MODS, "NestExports")}.get(payload.get("what"), "")
             if payload.get("what") in ("logs", "exports"):
                 os.makedirs(target, exist_ok=True)
             return self.reply({"ok": open_folder(target)})

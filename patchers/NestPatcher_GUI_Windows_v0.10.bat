@@ -6,5 +6,5 @@ cd /d "%~dp0"
 set "PY=py -3"
 %PY% --version >nul 2>nul || set "PY=python"
 %PY% --version >nul 2>nul || (echo Python 3 is not installed. Run in PowerShell:  winget install Python.Python.3.12 & pause & exit /b 1)
-%PY% "%~dp0NestPatcher_TiTS_GUI_v0.9.py" %*
+%PY% "%~dp0NestPatcher_TiTS_GUI_v0.10.py" %*
 pause

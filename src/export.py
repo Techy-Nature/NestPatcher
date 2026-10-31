@@ -72,7 +72,7 @@ def host_arch():
 
 
 def export_folder(out=None):
-    folder = os.path.abspath(os.path.expanduser(out)) if out else os.path.join(ROOT, "NestExports")
+    folder = os.path.abspath(os.path.expanduser(out)) if out else os.path.join(MODS, "NestExports")
     os.makedirs(folder, exist_ok=True)
     return folder
 
@@ -877,7 +877,7 @@ def copy_tree(source, dest, skip=()):
 
 def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, icon=None,
                     simple_shell=False, runtime=None):
-    """Write <name>_v<game>_NestPatched-<arch>.AppImage next to the patcher (NestExports/)."""
+    """Write <name>_v<game>_NestPatched-<arch>.AppImage in the mods folder (mods/NestExports/)."""
     problem = export_preflight()
     if problem:
         say(problem)
@@ -899,6 +899,7 @@ def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, i
     machine = APPIMAGE_ARCH[arch]
     out_dir = export_folder(out)
     target = os.path.join(out_dir, EXPORT_NAME + "_v" + (game_ver or "unknown") + "_NestPatched-" + machine + ".AppImage")
+    say("The AppImage will be saved in: " + out_dir)
     # Shared storage on Android (and Windows folders) can't hold symlinks or
     # program permissions, so build the AppDir in the private temp folder there.
     private = PLATFORM in ("android", "windows") or bool(os.environ.get("ANDROID_ROOT"))
@@ -974,16 +975,22 @@ def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, i
                 say("STOP: mksquashfs failed:\n" + (result.stderr or result.stdout).strip())
                 return 1
         else:
-            pack_squashfs(appdir, squash, executables={"AppRun", binary, "chrome-sandbox", "chrome_crashpad_handler"})
+            pack_squashfs(appdir, squash, executables={"AppRun", binary, "chrome-sandbox", "chrome_crashpad_handler"}, report=say)
         part = target + ".part"
         with open(part, "wb") as dest:
             for piece in (runtime_path, squash):
                 with open(piece, "rb") as source:
                     shutil.copyfileobj(source, dest, 1 << 20)
-        os.chmod(part, 0o755)
+        try:
+            os.chmod(part, 0o755)
+        except OSError:
+            # Android's shared storage doesn't keep file modes; chmod +x it on the PC.
+            say("Note: this folder can't mark the AppImage as runnable. After copying it to the PC, run: chmod +x on it.")
         os.replace(part, target)
-    except (OSError, zipfile.BadZipFile, ValueError) as exc:
+    except (OSError, zipfile.BadZipFile, ValueError, MemoryError) as exc:
         say("STOP: could not make the AppImage: " + str(exc))
+        if os.path.exists(target + ".part"):
+            os.remove(target + ".part")
         return 1
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -1068,7 +1075,7 @@ class _MetaWriter:
         return bytes(self.out)
 
 
-def pack_squashfs(source, dest, executables=(), mtime=1767225600):
+def pack_squashfs(source, dest, executables=(), mtime=1767225600, report=None):
     """Pack the folder source into a SquashFS image at dest. Files named in
     executables get mode 755 even when the folder lost its permissions."""
     entries = []                      # (path, kind, mode, parent index)
@@ -1100,6 +1107,7 @@ def pack_squashfs(source, dest, executables=(), mtime=1767225600):
     with open(dest, "wb") as out:
         out.write(b"\0" * 96)
         data_pos = 96
+        read_total, next_report = 0, 25 << 20
         # Post-order: children before their folder, so a folder can list its children's inodes.
         order = []
 
@@ -1126,6 +1134,10 @@ def pack_squashfs(source, dest, executables=(), mtime=1767225600):
                         if not chunk:
                             break
                         size += len(chunk)
+                        read_total += len(chunk)
+                        if report and read_total >= next_report:
+                            report("  packed " + str(read_total >> 20) + " MB...")
+                            next_report += 25 << 20
                         packed = zlib.compress(chunk, 6)
                         if len(packed) < len(chunk):
                             out.write(packed)
