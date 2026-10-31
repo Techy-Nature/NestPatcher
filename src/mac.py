@@ -16,6 +16,13 @@
 #     (codesign --sign -) so macOS still opens it. --no-resign skips that.
 #   * Mods live outside the app (nestmods/ next to this script) so a game
 #     update cannot wipe them.
+#   * Only have the Windows game (the folder with TiTS.exe)? Point --app (or
+#     --game) at that folder instead. It is patched, then turned into a Mac
+#     TiTS.app in NestExports/ (a zip, plus the unpacked, signed app on a Mac).
+#     Works from the Android app too. --no-export skips that step.
+#
+# This file is built by src/build.py from src/mac.py + src/export.py.
+# Edit those, not this file.
 
 import os
 import re
@@ -24,6 +31,9 @@ import json
 import shutil
 import struct
 import argparse
+import hashlib
+import zipfile
+import platform
 import tempfile
 import subprocess
 
@@ -31,9 +41,10 @@ import subprocess
 # this file; see "NEST_NEEDS" in the Android app guide). Keep it when you edit or
 # rename this file, or the app can't tell which folders to ask for.
 NEST_NEEDS = [
-    {"key": "app", "label": "TiTS.app", "check": "mac-app", "flag": "--app", "default": "TiTS.app",
-     "help": "The Mac game: TiTS.app (or its Contents/Resources/app folder). "
-             "The patcher edits Contents/Resources/app inside it."},
+    {"key": "app", "label": "TiTS.app or the Windows game folder", "check": "mac-app", "flag": "--app",
+     "default": "TiTS.app",
+     "help": "The Mac game (TiTS.app), or the Windows game folder (the one with TiTS.exe and resources). "
+             "A Windows game is patched and then turned into a Mac TiTS.app in the NestExports folder."},
     {"key": "mods", "label": "Mods folder", "check": "mods", "flag": "--mods", "default": "mods",
      "help": "Holds enabled.txt and your .mod / .js files (nestmods on a Mac). "
              "Clean backups of the game files are kept in its backup folder."},
@@ -44,7 +55,7 @@ ROOT = os.path.abspath(os.environ["NESTPATCHER_HOME"]) if os.environ.get("NESTPA
     else os.path.dirname(os.path.abspath(__file__))
 SETTINGS = os.path.join(ROOT, "NestPatcher_TiTS_Mac.settings.json")
 MODS = os.path.join(ROOT, "nestmods")
-BUNDLE = ""            # .../TiTS.app
+BUNDLE = ""            # .../TiTS.app, or the Windows game folder (the one with TiTS.exe)
 RESOURCES = ""         # .../TiTS.app/Contents/Resources
 APP = ""               # .../TiTS.app/Contents/Resources/app
 BACKUP = LOGS = RUNTIME_DIR = ENABLED = LOG_PATH = ""
@@ -76,18 +87,43 @@ def set_mods(path):
 
 
 def set_bundle(path):
-    """Accept TiTS.app, its Contents/Resources, or the app folder itself."""
-    global BUNDLE, RESOURCES, APP, RUNTIME_DIR
-    path = os.path.abspath(os.path.expanduser(path.rstrip("/")))
-    if os.path.basename(path) == "app" and os.path.basename(os.path.dirname(path)) == "Resources":
+    """Accept TiTS.app, its Contents/Resources, or the app folder itself.
+    Also accepts a Windows (or Linux) game folder, its resources or resources/app,
+    or a bare web folder with index.html: those are patched, then exported as a .app."""
+    global BUNDLE, RESOURCES, APP, RUNTIME_DIR, GAME
+    path = os.path.abspath(os.path.expanduser(path.rstrip("/\\")))
+    if os.path.isfile(path):                      # TiTS.exe picked instead of its folder
+        path = os.path.dirname(path)
+    parent = os.path.basename(os.path.dirname(path))
+    if os.path.basename(path) == "app" and parent == "Resources":
         RESOURCES = os.path.dirname(path)
     elif os.path.basename(path) == "Resources":
         RESOURCES = path
+    elif path.endswith(".app"):
+        RESOURCES = os.path.join(path, "Contents", "Resources")
+    elif os.path.basename(path).lower() == "app" and parent.lower() == "resources":
+        RESOURCES = os.path.dirname(path)
+    elif os.path.basename(path).lower() == "resources":
+        RESOURCES = path
+    elif os.path.isdir(os.path.join(path, "resources")):
+        RESOURCES = os.path.join(path, "resources")
+    elif os.path.isfile(os.path.join(path, "index.html")):
+        RESOURCES = ""                            # bare web folder (e.g. the APK's assets/www)
     else:
         RESOURCES = os.path.join(path, "Contents", "Resources")
-    BUNDLE = os.path.dirname(os.path.dirname(RESOURCES))
-    APP = os.path.join(RESOURCES, "app")
+    if RESOURCES.endswith(os.path.join("Contents", "Resources")):
+        BUNDLE = os.path.dirname(os.path.dirname(RESOURCES))
+    elif RESOURCES:
+        BUNDLE = os.path.dirname(RESOURCES)
+    else:
+        BUNDLE = path
+    APP = os.path.join(RESOURCES, "app") if RESOURCES else path
     RUNTIME_DIR = os.path.join(APP, "mods", "nest")
+    GAME = BUNDLE
+
+
+def is_mac_bundle():
+    return BUNDLE.endswith(".app")
 
 
 def load_settings():
@@ -151,6 +187,9 @@ def configure(args):
         print("Renamed " + old_dir + " to " + chosen_mods + " (NestPatcher uses its own nestmods folder).")
     set_mods(chosen_mods)
     chosen = args.app or settings.get("app")
+    if chosen and not args.app and not os.path.exists(chosen):
+        print("The saved game is gone: " + chosen + "  (searching again)")
+        chosen = None
     if not chosen:
         bundles = find_bundles()
         if len(bundles) == 1:
@@ -172,6 +211,8 @@ def configure(args):
             print("(tip: type --app then drag the app from Finder into Terminal).")
             return False
     set_bundle(chosen)
+    if not is_mac_bundle():
+        print("This is not a Mac app, so after patching it is turned into one (TiTS.app in NestExports).")
     if args.app or args.mods:
         settings["app"] = BUNDLE
         settings["mods"] = MODS
@@ -419,6 +460,8 @@ def make_runtime(blocks):
 
 
 def game_running():
+    if not is_mac_bundle():
+        return False
     name = os.path.basename(BUNDLE)
     try:
         result = subprocess.run(["pgrep", "-f", name + "/Contents/MacOS/"],
@@ -444,12 +487,12 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
         print("Create it and put enabled.txt plus your .mod/.js files inside.")
         return 1
     if not os.path.isdir(APP):
-        if os.path.isfile(os.path.join(RESOURCES, "app.asar")):
+        if RESOURCES and os.path.isfile(os.path.join(RESOURCES, "app.asar")):
             log("This game is packed as app.asar. Run once with --unpack-asar, then patch.")
         else:
             log("Game folder not found: " + APP)
         return 1
-    if os.path.isfile(os.path.join(RESOURCES, "app.asar")):
+    if RESOURCES and os.path.isfile(os.path.join(RESOURCES, "app.asar")):
         log("STOP: both app/ and app.asar exist. Electron loads app.asar first, so patches would be ignored.")
         log("Run --unpack-asar again (it moves app.asar aside) or rename app.asar yourself.")
         return 1
@@ -623,7 +666,7 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
             except OSError as recovery_error:
                 log("ROLLBACK FAILED for " + path + ": " + str(recovery_error))
         return 1
-    if resign:
+    if resign and is_mac_bundle():
         resign_bundle()
     leftover = os.path.join(APP, "mods", "kitty")
     if os.path.isdir(leftover):
@@ -713,6 +756,9 @@ def extract_asar(asar_path, dest):
 
 
 def unpack_asar():
+    if not RESOURCES:
+        print("This game is a plain web folder, so there is no app.asar to unpack.")
+        return 0
     asar_path = os.path.join(RESOURCES, "app.asar")
     if not os.path.isfile(asar_path):
         print("No app.asar in " + RESOURCES + ". Nothing to unpack (the game is already a plain folder).")
@@ -818,7 +864,7 @@ def find_sources(terms, context=150, max_hits=30):
 
 def show_paths():
     print("Settings file: " + SETTINGS)
-    print("Game app:      " + BUNDLE)
+    print("Game:          " + BUNDLE + ("" if is_mac_bundle() else "  (not a Mac app: exported as one after patching)"))
     print("Game folder:   " + APP + ("" if os.path.isdir(APP) else "  (missing)"))
     print("Mods folder:   " + MODS + ("" if os.path.isdir(MODS) else "  (missing)"))
     print("Backups:       " + BACKUP)
@@ -828,16 +874,73 @@ def show_paths():
 
 
 
+# --------------------------------------------------------------------------
+# Names the shared export code (src/export.py) expects
+# --------------------------------------------------------------------------
+
+TOOL_NAME = "NestPatcher_TiTS_Mac_v" + "@MAC_VERSION@" + ".py"
+TOOL_VERSION = "@MAC_VERSION@"
+CREDIT = "Based on KittyPatcher by LibraKitty (the original Windows patcher)."
+RUNTIME_NAME = "nest-inline.js"
+GAME = ""
+if os.environ.get("ANDROID_ROOT") or os.environ.get("TERMUX_VERSION"):
+    PLATFORM = "android"
+elif sys.platform == "darwin":
+    PLATFORM = "mac"
+elif sys.platform.startswith("win"):
+    PLATFORM = "windows"
+else:
+    PLATFORM = "linux"
+
+
+def say(message):
+    print(message)
+
+
+def hidden_window():
+    return {}
+
+
+def distro_family():
+    return ""
+
+
+def game_version():
+    """TiTS keeps its version in main.<hash>.js as e.exports={i8:"x.y.z"}."""
+    try:
+        for name in os.listdir(APP):
+            if name.startswith("main.") and name.endswith(".js"):
+                path = os.path.join(BACKUP, name)
+                if not os.path.isfile(path):
+                    path = os.path.join(APP, name)
+                with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                    match = re.search(r'\{i8:"(\d+\.\d+\.\d+)"\}', handle.read())
+                if match:
+                    return match.group(1)
+    except OSError:
+        pass
+    return "unknown"
+
+# @EXPORT@
+
+
 def main():
     parser = argparse.ArgumentParser(description="NestPatcher (macOS): validated, reversible game-file patching")
     parser.add_argument("--dry-run", action="store_true", help="validate and preview without writing game files")
     parser.add_argument("--fresh", action="store_true", help="regenerate from saved baselines; clear obsolete NestPatcher runtime files (also default)")
     parser.add_argument("--skip-validation", action="store_true", help="dangerous: skip Node.js syntax validation")
     parser.add_argument("--find", nargs="+", metavar="TERM", help="search game JavaScript and save excerpts to nestmods/logs/SourceSearch.txt (read-only)")
-    parser.add_argument("--app", metavar="PATH", help="path to TiTS.app (remembered for later runs)")
+    parser.add_argument("--app", "--game", dest="app", metavar="PATH",
+                        help="TiTS.app, or the Windows game folder (patched, then turned into TiTS.app); remembered")
     parser.add_argument("--mods", metavar="PATH", help="mods folder (default: nestmods next to this script; remembered)")
     parser.add_argument("--unpack-asar", action="store_true", help="extract Contents/Resources/app.asar to app/ so it can be patched")
     parser.add_argument("--no-resign", action="store_true", help="do not clear quarantine or ad-hoc re-sign TiTS.app after patching")
+    parser.add_argument("--no-export", action="store_true", help="Windows game: patch it but don't make the Mac app")
+    parser.add_argument("--export-mac", action="store_true", help="also pack a TiTS.app as a zip you can copy to another Mac")
+    parser.add_argument("--arch", choices=["x64", "arm64"], help="Mac app for Intel (x64) or Apple Silicon (arm64); default: this Mac, else x64")
+    parser.add_argument("--electron", metavar="VERSION", help="use this Electron version instead of the game's own")
+    parser.add_argument("--electron-zip", metavar="FILE", help="an Electron zip you downloaded yourself (no internet needed)")
+    parser.add_argument("--out", metavar="FOLDER", help="where the Mac app goes (default: NestExports next to this script)")
     parser.add_argument("--show", action="store_true", help="print the paths in use and exit")
     parser.add_argument("--forget", action="store_true", help="delete saved --app/--mods settings and exit")
     args = parser.parse_args()
@@ -854,7 +957,15 @@ def main():
         return unpack_asar()
     if args.find:
         return find_sources(args.find)
-    return apply(args.dry_run, args.fresh, not args.skip_validation, not args.no_resign)
+    result = apply(args.dry_run, args.fresh, not args.skip_validation, not args.no_resign)
+    if result or args.dry_run:
+        return result
+    if (not is_mac_bundle() and not args.no_export) or args.export_mac:
+        log("")
+        log("Making the Mac app...")
+        return export_mac(out=args.out, arch=args.arch, version=args.electron,
+                          electron_zip_path=args.electron_zip)
+    return result
 
 
 if __name__ == "__main__":

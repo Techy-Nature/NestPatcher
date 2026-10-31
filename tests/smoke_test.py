@@ -1,7 +1,7 @@
 """End-to-end check of a NestPatcher command-line script on a tiny fake game.
 
-    python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.7.py
-    python tests/smoke_test.py patchers/NestPatcher_TiTS_Windows_v1.7.py --python path/to/python
+    python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.8.py
+    python tests/smoke_test.py patchers/NestPatcher_TiTS_Windows_v1.8.py --python path/to/python
 
 No TiTS files are needed: the fake game has an index.html, a hashed main.<hash>.js
 with a version string, and one content bundle. Node.js must be on PATH (or set

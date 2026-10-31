@@ -1,4 +1,4 @@
-# NestPatcher GUI v0.8 (draft): step by step
+# NestPatcher GUI v0.9 (draft): step by step
 
 > **NestPatcher is not KittyPatcher.** Don't use both on one game. NestPatcher reads only a `nestmods` folder; if it finds an old `kitty-mods` folder it renames it for you (backups included) and cleans KittyPatcher's leftovers out of the game. Based on KittyPatcher by LibraKitty.
 
@@ -13,12 +13,12 @@ Both have Python and Node.js built in, so players don't install anything.
 **Windows 10/11:** `NestPatcher_GUI_v0.4_Windows.zip` (from the Releases page)
 1. Right-click the zip > **Extract All...** and pick a folder you own, e.g. `C:\Games\NestPatcher`.
 2. Put your mods into the `nestmods` folder inside it.
-3. Double-click **`NestPatcher_GUI_v0.8.exe`**. Keep the black window open; the panel opens in your browser.
+3. Double-click **`NestPatcher_GUI_v0.9.exe`**. Keep the black window open; the panel opens in your browser.
 4. If SmartScreen says "Windows protected your PC": **More info > Run anyway** (the .exe isn't code-signed).
 
-**Linux (Debian 10+, Ubuntu, Mint, Fedora, Nobara, Steam Deck):** `NestPatcher_GUI_v0.8-x86_64.AppImage` (from the Releases page)
+**Linux (Debian 10+, Ubuntu, Mint, Fedora, Nobara, Steam Deck):** `NestPatcher_GUI_v0.9-x86_64.AppImage` (from the Releases page)
 1. Put the AppImage in a folder, e.g. `~/Games/NestPatcher`, with your `nestmods` folder next to it.
-2. Make it runnable: right-click > Properties > Permissions > "Allow executing", or `chmod +x NestPatcher_GUI_v0.8-x86_64.AppImage`.
+2. Make it runnable: right-click > Properties > Permissions > "Allow executing", or `chmod +x NestPatcher_GUI_v0.9-x86_64.AppImage`.
 3. Double-click it (or run it from a terminal to see its messages).
 4. If it says FUSE is missing (some Ubuntu/Debian installs): `sudo apt install libfuse2`, or run it with `--appimage-extract-and-run`.
 
@@ -44,13 +44,13 @@ At the top of the panel:
 
 ## Making a Mac app or an AppImage
 
-On the **2. Patch** tab, after patching, the card **Make an app to play on another computer** packs the patched game as a **Mac app** (zip with `TiTS.app`) or, on Linux, a single **AppImage** file. Pick **Intel or AMD (x64)** or **Apple Silicon / ARM (arm64)** first. Files go into `NestExports` next to NestPatcher (**Open NestExports folder** button). Full steps: [Guide_Export_Mac_AppImage_v1.7.md](Guide_Export_Mac_AppImage_v1.7.md).
+On the **2. Patch** tab, after patching, the card **Make an app to play on another computer** packs the patched game as a **Mac app** (zip with `TiTS.app`) or, on Linux, a single **AppImage** file. Pick **Intel or AMD (x64)** or **Apple Silicon / ARM (arm64)** first. Files go into `NestExports` next to NestPatcher (**Open NestExports folder** button). Full steps: [Guide_Export_Mac_AppImage_v1.8.md](Guide_Export_Mac_AppImage_v1.8.md).
 
 ## Running it on Windows
 
-1. Install Python and Node.js (steps in [Guide_Windows_v1.7.md](Guide_Windows_v1.7.md), Step 1).
-2. Put `NestPatcher_TiTS_GUI_v0.8.py` and `NestPatcher_GUI_Windows_v0.8.bat` in a folder, with your `nestmods` folder next to them.
-3. Double-click **`NestPatcher_GUI_Windows_v0.8.bat`**.
+1. Install Python and Node.js (steps in [Guide_Windows_v1.8.md](Guide_Windows_v1.8.md), Step 1).
+2. Put `NestPatcher_TiTS_GUI_v0.9.py` and `NestPatcher_GUI_Windows_v0.9.bat` in a folder, with your `nestmods` folder next to them.
+3. Double-click **`NestPatcher_GUI_Windows_v0.9.bat`**.
 4. Your browser opens the panel. Keep the black window open while you use it.
 5. Setup tab: click your game folder (or **Browse...**), then **Save folders**.
 6. Patch tab: **Test my mods**, then **Patch the game**.
@@ -58,11 +58,11 @@ On the **2. Patch** tab, after patching, the card **Make an app to play on anoth
 
 ## Running it on Linux
 
-1. Install Python and Node.js ([Guide_Linux_v1.7.md](Guide_Linux_v1.7.md), Step 1).
+1. Install Python and Node.js ([Guide_Linux_v1.8.md](Guide_Linux_v1.8.md), Step 1).
 2. Same folder layout as above, then:
    ```bash
-   chmod +x nestpatcher_gui_linux_v0.8.sh
-   ./nestpatcher_gui_linux_v0.8.sh
+   chmod +x nestpatcher_gui_linux_v0.9.sh
+   ./nestpatcher_gui_linux_v0.9.sh
    ```
 3. If the **Browse...** button says there's no folder picker, either paste the path into the box, or install Tk: `sudo apt install python3-tk` (Debian/Ubuntu) or `sudo dnf install python3-tkinter` (Fedora/Nobara).
 4. If your TiTS is a `.AppImage`, press **My game is an .AppImage...** on the Setup tab.
@@ -74,7 +74,7 @@ There's no APK yet (see below), but the GUI runs today in Termux and opens in yo
 ```bash
 pkg install python nodejs
 cd ~/storage/shared/git.gay-repos/TITS-Modding/TITS-Patcher
-python NestPatcher_TiTS_GUI_v0.8.py
+python NestPatcher_TiTS_GUI_v0.9.py
 ```
 
 On the Setup tab:
@@ -87,9 +87,9 @@ After **Patch the game**, rebuild and sign the APK with apksigner as usual. The 
 
 Do this on a Windows PC:
 
-1. Put `NestPatcher_TiTS_GUI_v0.8.py` and `build_exe_windows_v0.8.bat` in one folder.
-2. Double-click **`build_exe_windows_v0.8.bat`**. It installs PyInstaller and builds.
-3. Your program is `dist\NestPatcher_GUI_v0.8.exe`. It needs no Python, but players still need **Node.js** for mod checking.
+1. Put `NestPatcher_TiTS_GUI_v0.9.py` and `build_exe_windows_v0.9.bat` in one folder.
+2. Double-click **`build_exe_windows_v0.9.bat`**. It installs PyInstaller and builds.
+3. Your program is `dist\NestPatcher_GUI_v0.9.exe`. It needs no Python, but players still need **Node.js** for mod checking.
 4. Put the `.exe` next to a `nestmods` folder and share both.
 
 Windows SmartScreen may warn about an unsigned `.exe` from the internet. Players click **More info > Run anyway**.
@@ -100,15 +100,15 @@ Run this on the **oldest** Linux you want to support (an AppImage built on a new
 
 ```bash
 sudo apt install python3-venv curl      # or: sudo dnf install python3 curl
-chmod +x build_appimage_linux_v0.8.sh
-./build_appimage_linux_v0.8.sh
+chmod +x build_appimage_linux_v0.9.sh
+./build_appimage_linux_v0.9.sh
 ```
 
-You get `NestPatcher_GUI_v0.8-x86_64.AppImage`. It downloads `appimagetool` from the official AppImage GitHub the first time.
+You get `NestPatcher_GUI_v0.9-x86_64.AppImage`. It downloads `appimagetool` from the official AppImage GitHub the first time.
 
 ## Where bug reports go
 
-Right now the panel tells players to send the zip to whoever gave them the mods. To give them a button instead, open `NestPatcher_TiTS_GUI_v0.8.py`, find these two lines near the GUI section, and fill one in:
+Right now the panel tells players to send the zip to whoever gave them the mods. To give them a button instead, open `NestPatcher_TiTS_GUI_v0.9.py`, find these two lines near the GUI section, and fill one in:
 
 ```python
 REPORT_URL = ""      # e.g. https://github.com/YOU/REPO/issues/new

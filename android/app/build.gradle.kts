@@ -5,7 +5,7 @@ plugins {
 }
 
 // The app's own version. The patcher scripts it carries have their own versions in their file names.
-val appVersion = "0.5"
+val appVersion = "0.6"
 
 android {
     namespace = "com.techynest.nestpatcher"
@@ -15,7 +15,7 @@ android {
         applicationId = "com.techynest.nestpatcher"
         minSdk = 24
         targetSdk = 34
-        versionCode = 5
+        versionCode = 6
         versionName = appVersion
         ndk {
             // Chaquopy's Python 3.12 is 64-bit only, so very old 32-bit phones are not supported.
