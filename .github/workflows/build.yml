@@ -52,6 +52,9 @@ jobs:
       - name: Mac app and AppImage export (Linux patcher)
         if: runner.os != 'Windows'
         run: python tests/test_export.py patchers/NestPatcher_TiTS_Linux_v*.py
+      - name: Built-in Mac signing on a real Mac (real Electron, codesign --verify, launch)
+        if: runner.os == 'macOS'
+        run: bash tests/mac_real_check.sh
       - name: Mac app export (Windows patcher)
         if: runner.os == 'Windows'
         shell: pwsh

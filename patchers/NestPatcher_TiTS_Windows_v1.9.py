@@ -1326,8 +1326,8 @@ def resign_bundle():
 #     Electron is downloaded from github.com/electron/electron, checked
 #     against Electron's SHASUMS256.txt, and kept in nestmods/downloads.
 # The Mac export is written as a zip with Python's zipfile (symlinks kept),
-# so it can be made on Windows and Linux too. On a Mac it is also unpacked
-# and ad-hoc signed. The AppImage is packed with mksquashfs when it is
+# so it can be made on Windows and Linux too. It is ad-hoc signed by the
+# built-in signer below; on a Mac it is also unpacked and signed by codesign. The AppImage is packed with mksquashfs when it is
 # installed, or else with the small built-in packer below (pure Python), so it
 # can be made on Android or anywhere else without squashfs-tools.
 
@@ -1918,11 +1918,16 @@ def mac_rename(rel, name):
 
 
 def mac_plist(data, name, version, icon_file, helper=False):
+    """helper is False, or the helper app's new name (e.g. "TiTS Helper (GPU)")."""
     info = plistlib.loads(data)
     if helper:
         for key in ("CFBundleName", "CFBundleDisplayName", "CFBundleExecutable"):
             if isinstance(info.get(key), str):
                 info[key] = info[key].replace("Electron Helper", name + " Helper", 1)
+        if isinstance(helper, str):
+            # Electron's helpers leave these out; macOS then guesses from the folder name.
+            info.setdefault("CFBundleExecutable", helper)
+            info.setdefault("CFBundleName", helper)
         if isinstance(info.get("CFBundleIdentifier"), str):
             info["CFBundleIdentifier"] = info["CFBundleIdentifier"].replace("com.github.Electron", BUNDLE_ID, 1)
     else:
@@ -1948,54 +1953,55 @@ def zip_entry(name, mode, date_time=(2026, 1, 1, 0, 0, 0)):
     return info
 
 
-def zip_existing_app(out, app_root, top):
-    """Copy a ready TiTS.app into the zip as-is (symlinks kept, backups left out)."""
-    for dirpath, dirnames, filenames in os.walk(app_root):
-        dirnames.sort()
-        keep = []
-        for dirname in dirnames:
-            path = os.path.join(dirpath, dirname)
-            if dirname in BACKUP_NAMES:
-                continue
-            if os.path.islink(path):
-                filenames.append(dirname)
-            else:
-                keep.append(dirname)
-        dirnames[:] = keep
-        rel_dir = os.path.relpath(dirpath, app_root).replace(os.sep, "/")
-        base = top + ("" if rel_dir == "." else rel_dir + "/")
-        out.writestr(zip_entry(base, stat.S_IFDIR | 0o755), b"")
-        for filename in sorted(filenames):
-            if filename in BACKUP_NAMES:
-                continue
-            path = os.path.join(dirpath, filename)
-            if os.path.islink(path):
-                out.writestr(zip_entry(base + filename, stat.S_IFLNK | 0o755), os.readlink(path).encode())
-            elif os.path.isfile(path):
-                mode = os.stat(path).st_mode
-                with open(path, "rb") as source, out.open(zip_entry(base + filename, mode), "w", force_zip64=True) as dest:
-                    shutil.copyfileobj(source, dest, 1 << 20)
+def mac_opener(name):
+    """The double-click opener next to the app (Terminal runs .command files)."""
+    return ("""#!/bin/bash
+# Double-click this file to open """ + name + """ (patched by NestPatcher).
+# It clears the "downloaded from the internet" flag on """ + name + """.app, which
+# macOS puts on everything that came in a zip, and then opens the game.
+cd "$(dirname "$0")" || exit 1
+APP=\"""" + name + """.app"
+[ -d "$APP" ] || APP="/Applications/""" + name + """.app"
+if [ ! -d "$APP" ]; then
+  echo "Can't find """ + name + """.app. Keep this file in the same folder as """ + name + """.app."
+  read -r -p "Press Enter to close." _
+  exit 1
+fi
+xattr -cr "$APP" 2>/dev/null
+# NestPatcher already signed the app. If macOS disagrees, sign it again here.
+if ! /usr/bin/codesign --verify --deep "$APP" >/dev/null 2>&1; then
+  /usr/bin/codesign --force --deep --sign - "$APP" >/dev/null 2>&1
+fi
+open "$APP"
+echo "Opening """ + name + """... You can close this window."
+exit 0
+""")
 
 
-def mac_readme(name, folder_name):
+def mac_readme(name, folder_name, signed=True):
     return ("""How to open """ + name + """.app (patched by NestPatcher)
 ================================================
 
-1. Double-click this zip on your Mac to unzip it. Move """ + name + """.app wherever you like
-   (for example your Applications folder).
-2. Open Terminal (Applications > Utilities > Terminal) and type these two lines.
-   Type "cd ", then drag the folder that holds """ + name + """.app into the window and press Enter first.
+1. Double-click this zip on your Mac to unzip it.
+2. Double-click "Open """ + name + """.command" (in the same folder as """ + name + """.app).
+   The game opens. Next time you can double-click """ + name + """.app itself.
 
+The first time only, macOS may say it can't check "Open """ + name + """.command":
+   * macOS 15 or newer: click Done, open System Settings > Privacy & Security,
+     scroll down and click "Open Anyway" next to it, then confirm.
+   * older macOS: right-click the file, choose Open, then Open again.
+That message comes from the zip being downloaded. Copying the zip with a USB
+stick avoids it. Only apps signed with a paid Apple Developer ID skip it.
+
+You can move """ + name + """.app to Applications. If you do, move
+"Open """ + name + """.command" too, or keep it: it also finds the app there.
+""" + ("" if signed else """
+NestPatcher could not sign every part of this app. The opener signs it on the
+Mac instead (that needs Apple's codesign tool, which macOS includes).
+""") + """
+If you'd rather use Terminal: cd into this folder, then run
        xattr -cr """ + name + """.app
-       codesign --force --deep --sign - """ + name + """.app
-
-   (If codesign is missing, run  xcode-select --install  once, then try again.)
-3. Double-click """ + name + """.app. If macOS still says it can't check the app,
-   right-click it, choose Open, then Open again.
-
-Why: NestPatcher changed the game files, so the app no longer matches the
-signature it came with. Those two lines remove the "downloaded" flag and give
-the app a fresh local signature, which is all macOS needs to run it.
+       open """ + name + """.app
 
 Your saves are kept inside the game. They are not shared with the Windows game,
 so use the game's own Save to File / Load from File to move a save across.
@@ -2003,6 +2009,33 @@ so use the game's own Save to File / Load from File to move a save across.
 Made by NestPatcher """ + TOOL_VERSION + """ (""" + CREDIT + """)
 Electron (the program around the game) is MIT licensed.
 """)
+
+
+def stage_existing_app(tree, app_root, top):
+    """Copy a ready TiTS.app into the staged tree (symlinks kept, backups left out)."""
+    for dirpath, dirnames, filenames in os.walk(app_root):
+        dirnames.sort()
+        keep = []
+        for dirname in dirnames:
+            if dirname in BACKUP_NAMES:
+                continue
+            if os.path.islink(os.path.join(dirpath, dirname)):
+                filenames.append(dirname)
+            else:
+                keep.append(dirname)
+        dirnames[:] = keep
+        rel_dir = os.path.relpath(dirpath, app_root).replace(os.sep, "/")
+        base = top + ("" if rel_dir == "." else rel_dir + "/")
+        tree.add_dir(base)
+        for filename in sorted(filenames):
+            if filename in BACKUP_NAMES:
+                continue
+            path = os.path.join(dirpath, filename)
+            if os.path.islink(path):
+                tree.add_link(base + filename, os.readlink(path))
+            elif os.path.isfile(path):
+                with open(path, "rb") as reader:
+                    tree.add_file(base + filename, os.stat(path).st_mode, reader=reader)
 
 
 def export_mac(out=None, arch=None, version=None, electron_zip_path=None, icon=None, simple_shell=False):
@@ -2021,64 +2054,88 @@ def export_mac(out=None, arch=None, version=None, electron_zip_path=None, icon=N
     part = target + ".part"
     name = EXPORT_NAME
     say("Making a macOS app from: " + GAME)
+    say("The Mac app zip will be saved in: " + out_dir)
+    private = PLATFORM in ("android", "windows") or bool(os.environ.get("ANDROID_ROOT"))
+    work = tempfile.mkdtemp(prefix="nest-macapp-", dir=None if private else out_dir)
+    tree = StagedTree(work)
+    app = name + ".app"
+    signed = False
     try:
-        with zipfile.ZipFile(part, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as out_zip:
-            out_zip.writestr(zip_entry(folder_name + "/", stat.S_IFDIR | 0o755), b"")
-            top = folder_name + "/" + name + ".app/"
-            if reuse:
-                say("This is already a Mac game, so its own Electron is kept.")
-                zip_existing_app(out_zip, GAME, top)
-            else:
-                version = pick_electron(version, electron_zip_path)
-                say("Electron " + version + " for macOS " + arch + ("" if arch == "x64" else " (Apple Silicon)"))
-                source = electron_zip(version, "darwin", arch, electron_zip_path)
-                if not source:
+        if reuse:
+            say("This is already a Mac game, so its own Electron is kept.")
+            stage_existing_app(tree, GAME, app + "/")
+            for rel in [r for r in tree.items if "/_CodeSignature/" in r]:
+                del tree.items[rel]                   # old seals; new ones are made below
+        else:
+            version = pick_electron(version, electron_zip_path)
+            say("Electron " + version + " for macOS " + arch + ("" if arch == "x64" else " (Apple Silicon)"))
+            source = electron_zip(version, "darwin", arch, electron_zip_path)
+            if not source:
+                raise RuntimeError("")
+            items = payload(simple_shell)
+            warn_native_modules(items)
+            icon_data = find_icon(icon)
+            icns = None
+            if icon_data and icon_data[0] == "icns":
+                icns = icon_data[1]
+            elif icon_data and icon_data[0] == "png":
+                icns = icns_from_png(icon_data[1])
+                if not icns:
+                    say("The game's icon is not a square 16-1024 px PNG, so the app keeps Electron's icon.")
+            icon_file = name + ".icns" if icns else ""
+            licenses = {}
+            with zipfile.ZipFile(source) as electron:
+                if not any(n.startswith("Electron.app/Contents/MacOS/") for n in electron.namelist()):
+                    say("STOP: that Electron zip has no Electron.app inside, so it is not a macOS Electron.")
                     raise RuntimeError("")
-                items = payload(simple_shell)
-                warn_native_modules(items)
-                icon_data = find_icon(icon)
-                icns = None
-                if icon_data and icon_data[0] == "icns":
-                    icns = icon_data[1]
-                elif icon_data and icon_data[0] == "png":
-                    icns = icns_from_png(icon_data[1])
-                    if not icns:
-                        say("The game's icon is not a square 16-1024 px PNG, so the app keeps Electron's icon.")
-                icon_file = name + ".icns" if icns else ""
-                with zipfile.ZipFile(source) as electron:
-                    if not any(n.startswith("Electron.app/Contents/MacOS/") for n in electron.namelist()):
-                        say("STOP: that Electron zip has no Electron.app inside, so it is not a macOS Electron.")
-                        raise RuntimeError("")
-                    for info in electron.infolist():
-                        entry = info.filename
-                        if not entry.startswith("Electron.app/"):
-                            if entry in ("LICENSE", "LICENSES.chromium.html"):
-                                out_zip.writestr(zip_entry(folder_name + "/licenses/Electron-" + entry, 0o100644),
-                                                 electron.read(info))
-                            continue
-                        rel = entry[len("Electron.app/"):]
-                        if rel == "Contents/Resources/default_app.asar":
-                            continue
-                        if rel == "Contents/Resources/electron.icns" and icns:
-                            continue
-                        mode = info.external_attr >> 16 or (0o40755 if entry.endswith("/") else 0o100644)
-                        new = top + mac_rename(rel, name)
-                        is_helper_plist = rel.startswith("Contents/Frameworks/Electron Helper") and \
-                            rel.endswith(".app/Contents/Info.plist")
-                        if rel == "Contents/Info.plist" or is_helper_plist:
-                            out_zip.writestr(zip_entry(new, mode),
-                                             mac_plist(electron.read(info), name, game_ver, icon_file, is_helper_plist))
-                        elif stat.S_ISLNK(mode) or stat.S_ISDIR(mode) or entry.endswith("/"):
-                            out_zip.writestr(zip_entry(new, mode), electron.read(info) if stat.S_ISLNK(mode) else b"")
-                        else:
-                            with electron.open(info) as reader, out_zip.open(zip_entry(new, mode), "w", force_zip64=True) as writer:
-                                shutil.copyfileobj(reader, writer, 1 << 20)
-                if icns:
-                    out_zip.writestr(zip_entry(top + "Contents/Resources/" + icon_file, 0o100644), icns)
-                for rel, source_item in items:
-                    out_zip.writestr(zip_entry(top + "Contents/Resources/" + rel, 0o100644), read_item(source_item))
-                say("Added " + str(len(items)) + " game files.")
-            out_zip.writestr(zip_entry(folder_name + "/HOW-TO-OPEN.txt", 0o100644), mac_readme(name, folder_name))
+                for info in electron.infolist():
+                    entry = info.filename
+                    if not entry.startswith("Electron.app/"):
+                        if entry in ("LICENSE", "LICENSES.chromium.html"):
+                            licenses[entry] = electron.read(info)
+                        continue
+                    rel = entry[len("Electron.app/"):]
+                    if not rel or rel == "Contents/Resources/default_app.asar" or "/_CodeSignature/" in "/" + rel:
+                        continue
+                    if rel == "Contents/Resources/electron.icns" and icns:
+                        continue
+                    mode = info.external_attr >> 16 or (0o40755 if entry.endswith("/") else 0o100644)
+                    new = app + "/" + mac_rename(rel.rstrip("/"), name)
+                    is_helper_plist = rel.startswith("Contents/Frameworks/Electron Helper") and \
+                        rel.endswith(".app/Contents/Info.plist")
+                    if rel == "Contents/Info.plist" or is_helper_plist:
+                        helper = new.split("/Contents/Frameworks/", 1)[-1].split(".app/", 1)[0] \
+                            if is_helper_plist else False
+                        tree.add_file(new, mode, data=mac_plist(electron.read(info), name, game_ver, icon_file,
+                                                                helper))
+                    elif stat.S_ISLNK(mode):
+                        tree.add_link(new, electron.read(info).decode("utf-8"))
+                    elif stat.S_ISDIR(mode) or entry.endswith("/"):
+                        tree.add_dir(new)
+                    else:
+                        with electron.open(info) as reader:
+                            tree.add_file(new, mode, reader=reader)
+            if icns:
+                tree.add_file(app + "/Contents/Resources/" + icon_file, 0o644, data=icns)
+            for rel, source_item in items:
+                tree.add_file(app + "/Contents/Resources/" + rel, 0o644, data=read_item(source_item))
+            say("Added " + str(len(items)) + " game files.")
+        say("Signing the app (built-in ad-hoc signing)...")
+        try:
+            count = sign_tree(tree, app)
+            signed = True
+            say("Signed " + str(count) + " programs and libraries.")
+        except (ValueError, KeyError, struct.error) as exc:
+            say("WARNING: the built-in signing did not work (" + str(exc) + ").")
+            say("The opener in the zip signs the app on the Mac instead.")
+        with zipfile.ZipFile(part, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as out_zip:
+            top = folder_name + "/"
+            out_zip.writestr(zip_entry(top, stat.S_IFDIR | 0o755), b"")
+            tree.write_zip(out_zip, top)
+            for entry, data in sorted(licenses.items()) if not reuse else ():
+                out_zip.writestr(zip_entry(top + "licenses/Electron-" + entry, 0o100644), data)
+            out_zip.writestr(zip_entry(top + "Open " + name + ".command", 0o100755), mac_opener(name))
+            out_zip.writestr(zip_entry(top + "HOW-TO-OPEN.txt", 0o100644), mac_readme(name, folder_name, signed))
         os.replace(part, target)
     except RuntimeError:
         if os.path.exists(part):
@@ -2089,11 +2146,14 @@ def export_mac(out=None, arch=None, version=None, electron_zip_path=None, icon=N
             os.remove(part)
         say("STOP: could not make the Mac app: " + str(exc))
         return 1
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
     say("DONE: Mac app zip saved to " + target)
     if PLATFORM == "mac":
         unpack_and_sign_mac(target, out_dir, folder_name, name)
     else:
-        say("Copy the zip to the Mac, unzip it, and follow HOW-TO-OPEN.txt inside (two Terminal lines).")
+        say("Copy the zip to the Mac and unzip it there. Then double-click \"Open " + name + ".command\".")
+        say("(The first time, macOS may ask you to allow it: see HOW-TO-OPEN.txt.)")
     return 0
 
 
@@ -2123,7 +2183,13 @@ def unpack_and_sign_mac(zip_path, out_dir, folder_name, name):
                         shutil.copyfileobj(reader, writer, 1 << 20)
                     os.chmod(dest, (mode & 0o777) or 0o644)
     app = os.path.join(folder, name + ".app")
-    sign_app(app)
+    if os.environ.get("NESTPATCHER_NO_CODESIGN"):
+        # Keep NestPatcher's own signature (used by the tests to check it on a real Mac).
+        xattr = which_tool("xattr")
+        if xattr:
+            subprocess.run([xattr, "-cr", app], capture_output=True)
+    else:
+        sign_app(app)
     say("Your Mac app is ready: " + app)
     say("Drag it to Applications if you like, then double-click it.")
 
@@ -2142,6 +2208,406 @@ def sign_app(app):
         say("WARNING: ad-hoc signing failed:\n" + (result.stderr or result.stdout).strip())
     else:
         say("Ad-hoc signed " + os.path.basename(app) + " so macOS will open it.")
+
+
+# ---------- built-in macOS signing (ad-hoc, pure Python) ----------
+#
+# macOS only runs an app whose code signature matches its files (Apple Silicon
+# refuses unsigned code outright). Patching changes the files, so the export is
+# signed again here, the same way `codesign --force --deep --sign -` would:
+# every Mach-O program and library gets a fresh ad-hoc signature (SHA-256 page
+# hashes in a CodeDirectory), and every .app / .framework gets a
+# _CodeSignature/CodeResources file that seals its other files. This works on
+# Windows, Linux and Android too, so no Mac command is needed afterwards.
+# Ad-hoc means "signed, but by nobody in particular": macOS still asks once
+# before opening an app that came from the internet, which only a paid Apple
+# Developer ID with notarization avoids.
+
+CS_MAGIC_SUPERBLOB = 0xFADE0CC0
+CS_MAGIC_CODEDIRECTORY = 0xFADE0C02
+CS_MAGIC_REQUIREMENTS = 0xFADE0C01
+CS_MAGIC_BLOBWRAPPER = 0xFADE0B01
+CS_PAGE = 4096
+MH_MAGIC_64 = 0xFEEDFACF
+FAT_MAGIC = 0xCAFEBABE
+LC_SEGMENT_64 = 0x19
+LC_CODE_SIGNATURE = 0x1D
+
+RULES = {
+    "^Resources/": True,
+    "^Resources/.*\\.lproj/": {"optional": True, "weight": 1000.0},
+    "^Resources/.*\\.lproj/locversion.plist$": {"omit": True, "weight": 1100.0},
+    "^Resources/Base\\.lproj/": {"weight": 1010.0},
+    "^version.plist$": True,
+}
+RULES2 = {
+    ".*\\.dSYM($|/)": {"weight": 11.0},
+    "^(.*/)?\\.DS_Store$": {"omit": True, "weight": 2000.0},
+    "^(Frameworks|SharedFrameworks|PlugIns|Plug-ins|XPCServices|Helpers|MacOS|Library/(Automator|Spotlight|LoginItems))/":
+        {"nested": True, "weight": 10.0},
+    "^.*": True,
+    "^Info\\.plist$": {"omit": True, "weight": 20.0},
+    "^PkgInfo$": {"omit": True, "weight": 20.0},
+    "^Resources/": {"weight": 20.0},
+    "^Resources/.*\\.lproj/": {"optional": True, "weight": 1000.0},
+    "^Resources/.*\\.lproj/locversion.plist$": {"omit": True, "weight": 1100.0},
+    "^Resources/Base\\.lproj/": {"weight": 1010.0},
+    "^[^/]+$": {"nested": True, "weight": 10.0},
+    "^embedded\\.provisionprofile$": {"nested": True, "weight": 20.0},
+    "^version\\.plist$": {"weight": 20.0},
+}
+
+
+def _rule_for(rules, rel):
+    """The matching resource rule with the highest weight, as a dict."""
+    best, best_weight = None, -1.0
+    for pattern, rule in rules.items():
+        if re.search(pattern, rel):
+            rule = {} if rule is True else rule
+            weight = float(rule.get("weight", 1.0))
+            if weight > best_weight:
+                best, best_weight = rule, weight
+    return best
+
+
+def macho_kind(path):
+    """'thin', 'fat' or None (not a Mach-O file NestPatcher can sign)."""
+    try:
+        with open(path, "rb") as handle:
+            head = handle.read(8)
+    except OSError:
+        return None
+    if len(head) < 8:
+        return None
+    if struct.unpack("<I", head[:4])[0] == MH_MAGIC_64:
+        return "thin"
+    if struct.unpack(">I", head[:4])[0] == FAT_MAGIC and 0 < struct.unpack(">I", head[4:8])[0] < 16:
+        return "fat"   # (Java class files share the magic but have a big second number)
+    return None
+
+
+def _round_up(value, step):
+    return (value + step - 1) // step * step
+
+
+def _sign_thin(handle, start, length, ident, info_hash, res_hash):
+    """Sign the 64-bit Mach-O at [start, start+length) of an open r+b file.
+    Returns (new length, cdhash). The old signature (if any) is replaced."""
+    handle.seek(start)
+    header = handle.read(32)
+    magic, _cpu, _sub, filetype, ncmds, sizeofcmds, flags, _res = struct.unpack("<IiiIIIII", header)
+    if magic != MH_MAGIC_64:
+        raise ValueError("not a 64-bit Mach-O program")
+    cmds = bytearray(handle.read(sizeofcmds))
+    linkedit = text = signature = None
+    first_section = length
+    pos = 0
+    for _ in range(ncmds):
+        cmd, size = struct.unpack_from("<II", cmds, pos)
+        if cmd == LC_SEGMENT_64:
+            name = cmds[pos + 8:pos + 24].rstrip(b"\0")
+            if name == b"__LINKEDIT":
+                linkedit = pos
+            elif name == b"__TEXT":
+                text = pos
+            nsects = struct.unpack_from("<I", cmds, pos + 64)[0]
+            for index in range(nsects):
+                offset = struct.unpack_from("<I", cmds, pos + 72 + index * 80 + 48)[0]
+                if offset:
+                    first_section = min(first_section, offset)
+        elif cmd == LC_CODE_SIGNATURE:
+            signature = pos
+        pos += size
+    if linkedit is None or text is None:
+        raise ValueError("no __LINKEDIT/__TEXT segment")
+    le_vmaddr, le_vmsize, le_fileoff, le_filesize = struct.unpack_from("<QQQQ", cmds, linkedit + 24)
+    if signature is not None:
+        sig_off = struct.unpack_from("<I", cmds, signature + 8)[0]
+    else:
+        # Room for one more load command before the first section?
+        if 32 + sizeofcmds + 16 > first_section:
+            raise ValueError("no room in the header for a signature")
+        sig_off = _round_up(le_fileoff + le_filesize, 16)
+        signature = len(cmds)
+        cmds += struct.pack("<IIII", LC_CODE_SIGNATURE, 16, sig_off, 0)
+        ncmds += 1
+        sizeofcmds += 16
+    text_fileoff, text_filesize = struct.unpack_from("<QQ", cmds, text + 40)
+    ident_bytes = ident.encode("utf-8") + b"\0"
+    n_special = 3 if res_hash else 2
+    n_code = (sig_off + CS_PAGE - 1) // CS_PAGE
+    cd_len = 88 + len(ident_bytes) + 32 * (n_special + n_code)
+    requirements = struct.pack(">III", CS_MAGIC_REQUIREMENTS, 12, 0)
+    cms = struct.pack(">II", CS_MAGIC_BLOBWRAPPER, 8)
+    super_len = 12 + 8 * 3 + cd_len + len(requirements) + len(cms)
+    datasize = _round_up(super_len, 16)
+    struct.pack_into("<II", cmds, signature + 8, sig_off, datasize)
+    new_filesize = sig_off + datasize - le_fileoff
+    struct.pack_into("<QQQQ", cmds, linkedit + 24, le_vmaddr, max(le_vmsize, _round_up(new_filesize, 0x4000)),
+                     le_fileoff, new_filesize)
+    handle.seek(start)
+    handle.write(struct.pack("<IiiIIIII", magic, _cpu, _sub, filetype, ncmds, sizeofcmds, flags, _res) + bytes(cmds))
+    # Hash every 4 KiB page up to the signature.
+    hashes = []
+    handle.seek(start)
+    remaining = sig_off
+    while remaining > 0:
+        page = handle.read(min(CS_PAGE, remaining))
+        if len(page) < min(CS_PAGE, remaining):
+            page += b"\0" * (min(CS_PAGE, remaining) - len(page))
+        hashes.append(hashlib.sha256(page).digest())
+        remaining -= len(page)
+    special = [b"\0" * 32] * n_special            # slot 1 Info.plist, 2 requirements, 3 resources
+    special[0] = info_hash or b"\0" * 32
+    special[1] = hashlib.sha256(requirements).digest()
+    if res_hash:
+        special[2] = res_hash
+    hash_offset = 88 + len(ident_bytes) + 32 * n_special
+    exec_flags = 1 if filetype == 2 else 0       # MH_EXECUTE: main binary
+    directory = struct.pack(">IIIIIIIIIBBBBIIIIQQQQ", CS_MAGIC_CODEDIRECTORY, cd_len, 0x20400, 0x2,
+                            hash_offset, 88, n_special, n_code, sig_off, 32, 2, 0, 12, 0, 0, 0, 0, 0,
+                            text_fileoff, text_filesize, exec_flags)
+    directory += ident_bytes + b"".join(reversed(special)) + b"".join(hashes)
+    assert len(directory) == cd_len
+    blobs = [(0, directory), (2, requirements), (0x10000, cms)]
+    offset = 12 + 8 * len(blobs)
+    index = b""
+    for slot, blob in blobs:
+        index += struct.pack(">II", slot, offset)
+        offset += len(blob)
+    superblob = struct.pack(">III", CS_MAGIC_SUPERBLOB, super_len, len(blobs)) + index + b"".join(b for _, b in blobs)
+    handle.seek(start + sig_off)
+    handle.write(superblob + b"\0" * (datasize - super_len))
+    return sig_off + datasize, hashlib.sha256(directory).digest()[:20]
+
+
+def macho_sign(path, ident, info_hash=None, res_hash=None):
+    """Ad-hoc sign a Mach-O file in place (thin or universal). Returns its cdhash."""
+    kind = macho_kind(path)
+    if kind == "thin":
+        with open(path, "r+b") as handle:
+            length = os.fstat(handle.fileno()).st_size
+            new_length, cdhash = _sign_thin(handle, 0, length, ident, info_hash, res_hash)
+            handle.truncate(new_length)
+        return cdhash
+    if kind != "fat":
+        raise ValueError("not a Mach-O file")
+    with open(path, "rb") as handle:
+        count = struct.unpack(">II", handle.read(8))[1]
+        arches = [list(struct.unpack(">iiIII", handle.read(20))) for _ in range(count)]
+        slices = []
+        for arch in arches:
+            handle.seek(arch[2])
+            slices.append(handle.read(arch[3]))
+    cdhash = None
+    work = path + ".nest-slice"
+    signed = []
+    try:
+        for arch, data in zip(arches, slices):
+            with open(work, "w+b") as handle:
+                handle.write(data)
+                new_length, slice_hash = _sign_thin(handle, 0, len(data), ident, info_hash, res_hash)
+                handle.truncate(new_length)
+                handle.seek(0)
+                signed.append(handle.read())
+            cdhash = cdhash or slice_hash
+    finally:
+        if os.path.exists(work):
+            os.remove(work)
+    offset = arches[0][2]
+    with open(path, "wb") as handle:
+        layout = []
+        for arch, data in zip(arches, signed):
+            offset = _round_up(offset, 1 << arch[4])
+            layout.append((arch, offset, data))
+            offset += len(data)
+        handle.write(struct.pack(">II", FAT_MAGIC, count))
+        for arch, where, data in layout:
+            handle.write(struct.pack(">iiIII", arch[0], arch[1], where, len(data), arch[4]))
+        for _arch, where, data in layout:
+            handle.seek(where)
+            handle.write(data)
+    return cdhash
+
+
+class StagedTree:
+    """Files for an export, kept as numbered files in a work folder so symlinks
+    and file modes survive on Windows and Android storage too."""
+
+    def __init__(self, work):
+        self.work = work
+        self.items = {}        # rel -> ("file", mode, path) / ("link", mode, target) / ("dir", mode, None)
+        self.count = 0
+
+    def add_dir(self, rel, mode=0o40755):
+        self.items[rel.rstrip("/")] = ("dir", mode, None)
+
+    def add_link(self, rel, target):
+        self.items[rel] = ("link", stat.S_IFLNK | 0o755, target)
+
+    def add_file(self, rel, mode, data=None, reader=None):
+        self.count += 1
+        path = os.path.join(self.work, str(self.count))
+        with open(path, "wb") as handle:
+            if reader is not None:
+                shutil.copyfileobj(reader, handle, 1 << 20)
+            else:
+                handle.write(data)
+        self.items[rel] = ("file", stat.S_IFREG | (mode & 0o7777 or 0o644), path)
+        return path
+
+    def read(self, rel):
+        kind, _mode, where = self.items[rel]
+        with open(where, "rb") as handle:
+            return handle.read()
+
+    def dirs(self):
+        found = {rel for rel, item in self.items.items() if item[0] == "dir"}
+        for rel in self.items:
+            parts = rel.split("/")
+            for size in range(1, len(parts)):
+                found.add("/".join(parts[:size]))
+        return found
+
+    def resolve(self, rel):
+        """Follow symlinks inside the tree (e.g. Versions/Current -> A)."""
+        parts = rel.split("/")
+        done = []
+        hops = 0
+        while parts:
+            done.append(parts.pop(0))
+            item = self.items.get("/".join(done))
+            if item and item[0] == "link":
+                hops += 1
+                if hops > 40:
+                    raise ValueError("symlink loop at " + rel)
+                target = item[2]
+                base = done[:-1] if not target.startswith("/") else []
+                parts = [p for p in "/".join(base + [target]).split("/") if p and p != "."] + parts
+                cleaned = []
+                for part in parts:
+                    if part == "..":
+                        cleaned.pop()
+                    else:
+                        cleaned.append(part)
+                parts, done = cleaned, []
+        return "/".join(done)
+
+    def write_zip(self, out_zip, prefix):
+        dirs = self.dirs()
+        for rel in sorted(dirs):
+            out_zip.writestr(zip_entry(prefix + rel + "/", stat.S_IFDIR | 0o755), b"")
+        for rel in sorted(self.items):
+            kind, mode, where = self.items[rel]
+            if kind == "link":
+                out_zip.writestr(zip_entry(prefix + rel, mode), where.encode())
+            elif kind == "file":
+                with open(where, "rb") as source, out_zip.open(zip_entry(prefix + rel, mode), "w", force_zip64=True) as dest:
+                    shutil.copyfileobj(source, dest, 1 << 20)
+
+
+def _bundle_base(tree, bundle):
+    """The folder a bundle's signature lives in: Foo.app/Contents or Foo.framework/Versions/A."""
+    if bundle.endswith(".framework"):
+        current = bundle + "/Versions/Current"
+        if current in tree.items:
+            return tree.resolve(current)
+        return bundle
+    return bundle + "/Contents"
+
+
+def _bundle_info(tree, bundle, base):
+    plist = base + ("/Resources/Info.plist" if bundle.endswith(".framework") else "/Info.plist")
+    if plist not in tree.items or tree.items[plist][0] != "file":
+        return None, {}
+    data = tree.read(plist)
+    try:
+        return data, plistlib.loads(data)
+    except Exception:
+        return data, {}
+
+
+def sign_tree(tree, app):
+    """Ad-hoc sign the .app at `app` inside the staged tree, nested code first.
+    Returns the number of programs and libraries signed."""
+    dirs = tree.dirs()
+    bundles = sorted((d for d in dirs if (d == app or d.startswith(app + "/"))
+                      and (d.endswith(".app") or d.endswith(".framework"))),
+                     key=lambda d: (-_bundle_base(tree, d).count("/"), d))
+    cdhashes = {}
+    signed = [0]
+    signed_files = set()
+
+    def sign_loose(rel):
+        kind, _mode, where = tree.items[rel]
+        if rel in signed_files or not macho_kind(where):
+            return cdhashes.get(rel)
+        name = rel.rsplit("/", 1)[-1].split(".")[0] or rel.rsplit("/", 1)[-1]
+        cdhashes[rel] = macho_sign(where, name)
+        signed_files.add(rel)
+        signed[0] += 1
+        return cdhashes[rel]
+
+    for bundle in bundles:
+        base = _bundle_base(tree, bundle)
+        info_data, info = _bundle_info(tree, bundle, base)
+        executable = info.get("CFBundleExecutable") or bundle.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        main = base + ("/" if bundle.endswith(".framework") else "/MacOS/") + executable
+        inner = [b for b in bundles if b != bundle and b.startswith(base + "/")]
+
+        def inside_inner(rel):
+            return any(rel == b or rel.startswith(b + "/") for b in inner)
+
+        files, files2 = {}, {}
+        members = sorted(rel for rel in tree.items if rel.startswith(base + "/"))
+        for rel in members:                    # loose programs and libraries first
+            if tree.items[rel][0] == "file" and rel != main and not inside_inner(rel) \
+                    and "/_CodeSignature/" not in rel:
+                sign_loose(rel)
+        for rel in members:
+            sub = rel[len(base) + 1:]
+            kind, _mode, where = tree.items[rel]
+            if kind == "dir" or rel == main or inside_inner(rel) or sub.startswith("_CodeSignature/"):
+                continue
+            rule2 = _rule_for(RULES2, sub) or {}
+            if rule2.get("omit"):
+                continue
+            if kind == "link":
+                files2[sub] = {"symlink": where}
+                continue
+            if rule2.get("nested") and rel in cdhashes:
+                files2[sub] = {"cdhash": cdhashes[rel], "requirement": 'cdhash H"' + cdhashes[rel].hex() + '"'}
+                continue
+            with open(where, "rb") as handle:
+                data = handle.read()
+            sha1, sha256 = hashlib.sha1(data).digest(), hashlib.sha256(data).digest()
+            entry = {"hash": sha1, "hash2": sha256}
+            if rule2.get("optional"):
+                entry["optional"] = True
+            files2[sub] = entry
+            rule1 = _rule_for(RULES, sub)
+            if rule1 is not None and not rule1.get("omit"):
+                files[sub] = {"hash": sha1, "optional": True} if rule1.get("optional") else sha1
+        for nested in inner:                   # each nested bundle, sealed by its cdhash
+            if any(nested != other and nested.startswith(other + "/") for other in inner):
+                continue
+            sub = nested[len(base) + 1:]
+            if nested in cdhashes:
+                files2[sub] = {"cdhash": cdhashes[nested],
+                               "requirement": 'cdhash H"' + cdhashes[nested].hex() + '"'}
+        resources = plistlib.dumps({"files": files, "files2": files2, "rules": RULES, "rules2": RULES2},
+                                   fmt=plistlib.FMT_XML)
+        tree.add_file(base + "/_CodeSignature/CodeResources", 0o644, data=resources)
+        if main not in tree.items or tree.items[main][0] != "file":
+            raise ValueError("missing program " + main)
+        ident = info.get("CFBundleIdentifier") or executable
+        cdhashes[bundle] = macho_sign(tree.items[main][2], ident,
+                                      hashlib.sha256(info_data).digest() if info_data else None,
+                                      hashlib.sha256(resources).digest())
+        cdhashes[main] = cdhashes[bundle]
+        signed_files.add(main)
+        signed[0] += 1
+    return signed[0]
 
 
 # ---------- Linux AppImage ----------
