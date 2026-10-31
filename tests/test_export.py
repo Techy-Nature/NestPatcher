@@ -92,7 +92,7 @@ def main():
         app = smoke_test.build(root, "nestmods")
         with open(os.path.join(app, "package.json"), "w", encoding="utf-8") as handle:
             handle.write('{"name": "tits", "main": "electron-main.js"}\n')
-        with open(os.path.join(app, "electron-main.js"), "w", encoding="utf-8") as handle:
+        with open(os.path.join(app, "electron-main.js"), "w", encoding="utf-8", newline="\n") as handle:
             handle.write(GAME_MAIN)
         game = os.path.join(root, "game")
         # A Windows-style game folder whose .exe names its Electron version.
