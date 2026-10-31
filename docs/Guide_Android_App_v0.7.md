@@ -55,7 +55,7 @@ Step 3 changes to match the patcher you picked. It says which kind of patcher it
 |---|---|
 | Android (default) | Your **TITS-Modding folder**. Inside it: `extracted/apk/assets/www` (the unpacked game) and `mods` (`enabled.txt` plus your mods). |
 | Linux / Windows command-line, GUI | A **Game folder**: the folder with `index.html` in it, or a folder above it, such as an extracted APK. A **Mods folder**: it holds `enabled.txt` and your mods. On a PC this is `nestmods`. |
-| Mac | **TiTS.app or the Windows game folder** (the one with `TiTS.exe`) and a **Mods folder**. With the Windows game it patches it, then makes a Mac `TiTS.app` zip in `NestExports` inside your mods folder. Copy that zip to the Mac and follow `HOW-TO-OPEN.txt` inside. |
+| Mac | **TiTS.app or the Windows game folder** (the one with `TiTS.exe`) and a **Mods folder**. With the Windows game it patches it, then makes a Mac `TiTS.app` zip in `NestExports` inside your mods folder. It is already signed: copy that zip to the Mac, unzip it, and double-click `Open TiTS.command`. |
 | Your own .py | Whatever the script lists in `NEST_NEEDS` (see below). If it lists nothing, one **Working folder**. |
 
 1. The boxes start from `/storage/emulated/0/git.gay-repos/TITS-Modding`, the same folder Termux calls `~/storage/shared/git.gay-repos/TITS-Modding`.

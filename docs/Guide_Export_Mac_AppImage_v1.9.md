@@ -123,21 +123,31 @@ If nothing happens, run it from a terminal to see why:
 
 **If you made it on a Mac (GUI):** it's already unpacked and signed in `NestExports/TiTS_v..._NestPatched_macOS-.../TiTS.app`. Drag it to **Applications** and double-click it.
 
-**If you made it on Windows or Linux:**
+**If you made it on Windows, Linux or Android:** NestPatcher has already signed the app (built-in ad-hoc signing, the same kind `codesign --sign -` makes). No Terminal needed:
 
 1. Copy the zip to the Mac (USB stick, AirDrop, cloud drive...).
 2. Double-click the zip on the Mac to unzip it. **Unzip on the Mac, not on Windows**: Windows loses the links inside the app and it won't open.
-3. Open **Terminal** (Applications > Utilities > Terminal).
-4. Type `cd ` (with a space), drag the unzipped folder into the Terminal window, and press **Enter**.
-5. Type these two lines, pressing **Enter** after each:
-   ```bash
-   xattr -cr TiTS.app
-   codesign --force --deep --sign - TiTS.app
-   ```
-   If `codesign` is missing, run `xcode-select --install` once, then try again.
-6. Double-click **TiTS.app**. If macOS still says it can't check it, right-click it > **Open** > **Open**.
+3. In the unzipped folder, double-click **Open TiTS.command**. It clears the "downloaded from the internet" flag on TiTS.app and opens the game.
+4. Next time, just double-click **TiTS.app**. You can move it to **Applications**. The opener also finds it there.
 
-Why step 5: NestPatcher changed the game files, so the app no longer matches the signature it came with. Those two lines remove the "downloaded from the internet" flag and give it a fresh local signature. The same note is inside the zip as `HOW-TO-OPEN.txt`.
+**The first time only**, macOS may say it can't check "Open TiTS.command". That happens to every file that was downloaded and isn't signed with a paid Apple Developer ID:
+
+- **macOS 15 (Sequoia) or newer:** click **Done**, open **System Settings > Privacy & Security**, scroll down, click **Open Anyway** next to "Open TiTS.command", and confirm.
+- **Older macOS:** right-click the file, choose **Open**, then **Open** again.
+
+Copying the zip with a USB stick skips that message, because the file isn't marked as downloaded.
+
+<details><summary>Rather use Terminal?</summary>
+
+`cd` into the unzipped folder, then:
+
+```bash
+xattr -cr TiTS.app
+open TiTS.app
+```
+</details>
+
+The same steps are in the zip as `HOW-TO-OPEN.txt`.
 
 ---
 

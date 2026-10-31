@@ -167,7 +167,7 @@ Every time you change your mods, run step 3 again: it re-patches the Windows fol
 
 On an Intel Mac you get an x64 app; on Apple Silicon (M1–M4) an arm64 app. Add `--arch x64` or `--arch arm64` to choose yourself. `--no-export` patches the Windows folder without making the app.
 
-**From the Android app:** pick the Mac patcher, choose the Windows game folder as "TiTS.app or the Windows game folder", and press **Patch the game**. The zip lands in `NestExports` inside your mods folder. Copy it to the Mac, unzip it there, and follow `HOW-TO-OPEN.txt` inside (two Terminal lines).
+**From the Android app:** pick the Mac patcher, choose the Windows game folder as "TiTS.app or the Windows game folder", and press **Patch the game**. The zip lands in `NestExports` inside your mods folder. It's already signed. Copy it to the Mac, unzip it there, and double-click **Open TiTS.command** (the first time, macOS may ask you to allow it: see `HOW-TO-OPEN.txt`).
 
 More about how this works: [Guide_Export_Mac_AppImage_v1.9.md](Guide_Export_Mac_AppImage_v1.9.md).
 
