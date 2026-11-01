@@ -1,6 +1,6 @@
 # TN Mod Pack Changelog
 
-Latest: 2.7
+Latest: 2.8
 
 <!--
   How this file works (this comment is not shown in the game):
@@ -12,6 +12,12 @@ Latest: 2.7
   - You can use **bold**, *italics*, ~~strike~~, `code` and [links](https://example.com).
   - Bump "Latest:" when you release; players on an older build see "Modv#.# is available".
 -->
+
+## Modv2.8 — Wiki button in the Codex (2026-11-01)
+
+- **Codex Wiki Button:** New. The Codex sidebar has a **Wiki** button under the Codex header. It opens the TiTS wiki. While you read an entry, like Gabilani, a **Look up: Gabilani** button searches the wiki for it. It opens in the Wiki Browser over the game. Without the Wiki Browser, Android opens it in your web browser and desktop opens a small wiki window. It has its own switch in Android Mods. File: `TN_CodexWiki_v2.8.js`.
+- **Wiki Browser:** Other mods can now open it on a search or a page, which the Codex button uses. Now `WikiBrowser_v2.8.js`.
+- **Changelog:** Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`.
 
 ## Modv2.7 — TiTS 0.9.168 (2026-11-01)
 

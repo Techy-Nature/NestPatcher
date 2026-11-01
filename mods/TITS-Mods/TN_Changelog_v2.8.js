@@ -1,5 +1,5 @@
 /*
- * TN_Changelog_v2.7.js — in-game changelog for the TN mod pack (TiTS Android build)
+ * TN_Changelog_v2.8.js — in-game changelog for the TN mod pack (TiTS Android build)
  * ---------------------------------------------------------------------------
  * Adds a "Changelog" button to the Info section of the main menu sidebar (the same
  * section as Wiki), showing the installed mod version as Modv#.# and what changed.
@@ -29,7 +29,7 @@
  * ~~strikethrough~~, `code` and [links](https://...). Line breaks are kept.
  * Raw HTML is shown as plain text, never run.
  *
- * INSTALL: this file must be listed in mods/enabled.txt (after WikiBrowser_v2.4.js is
+ * INSTALL: this file must be listed in mods/enabled.txt (after WikiBrowser_v2.8.js is
  * fine; load order doesn't matter). If it isn't listed, the patcher skips it and
  * the Changelog button never appears in the Info section.
  */
@@ -40,7 +40,7 @@
   // ===========================================================================
   //  EDIT HERE
   // ===========================================================================
-  var MOD_VERSION = "2.7";   // the version of THIS build (shown as Modv2.7)
+  var MOD_VERSION = "2.8";   // the version of THIS build (shown as Modv2.8)
 
   // Optional: a hosted Markdown (or JSON) changelog, e.g.
   //   "https://raw.githubusercontent.com/<you>/<repo>/main/changelog.md"
@@ -49,6 +49,16 @@
   var REMOTE_URL = "https://raw.githubusercontent.com/Techy-Nature/NestPatcher/main/changelog.md";
 
   var CHANGELOG = [
+    {
+      version: "2.8",
+      date: "2026-11-01",
+      title: "Wiki button in the Codex",
+      changes: [
+        { mod: "Codex Wiki Button", text: "New: the Codex sidebar has a **Wiki** button under the Codex header. It opens the TiTS wiki, and while you read an entry (like Gabilani) a **Look up: Gabilani** button searches the wiki for it. It opens in the Wiki Browser over the game; without the Wiki Browser it opens in your browser, or in a small wiki window. Works on Android and desktop, and has its own switch in Android Mods. File: `TN_CodexWiki_v2.8.js`." },
+        { mod: "Wiki Browser", text: "Other mods can now open it on a search or a page (the Codex button uses this). Now `WikiBrowser_v2.8.js`." },
+        { mod: "Changelog", text: "Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`." }
+      ]
+    },
     {
       version: "2.7",
       date: "2026-11-01",

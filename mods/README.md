@@ -1,11 +1,11 @@
-# TN mod pack (Modv2.7)
+# TN mod pack (Modv2.8)
 
 Neston's mods for **Trials in Tainted Space 0.9.168**, ready to use with NestPatcher 1.4 (PC), the Android patcher 1.3, GUI 0.5 or the Android app 0.3, or newer. Older patchers can't read the `@@name@@` wildcards in `TN_TattooParlor_v2.6.mod` and `TN_HoloChastity_v2.6.mod`.
 
 | Folder | What's in it |
 |---|---|
 | [`TITS-Mods/`](TITS-Mods/) | Every mod in the pack, plus `enabled.txt` (the load list). Copy everything in this folder into your `nestmods` folder. |
-| [`guides/`](guides/) | Install guides and notes. Start with [`INSTALL-Modv2.7.md`](guides/INSTALL-Modv2.7.md). |
+| [`guides/`](guides/) | Install guides and notes. Start with [`INSTALL-Modv2.8.md`](guides/INSTALL-Modv2.8.md) (new: Wiki button in the Codex), and [`INSTALL-Modv2.7.md`](guides/INSTALL-Modv2.7.md) if you are coming from TiTS 0.9.167. |
 | [`tools/`](tools/) | `taur_gate_scan.js`, which writes `TN_taur-naga_gates.mod` for the Taur/Naga Scene Bypass mod. Only needed after a game update. |
 
 The notes for every version are in [`changelog.md`](../changelog.md) at the top of the repo. That's also the file the in-game Changelog downloads.
