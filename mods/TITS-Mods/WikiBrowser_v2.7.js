@@ -7,7 +7,7 @@
      window.tnInfo.addButton({ id, label, title, order, onClick })
      window.tnInfo.refresh()   // redraw after a label changes
    (Wiki is order 10; lower numbers appear first.)
-   Revision 4 (Modv2.8): other mods can open the wiki on a search or a page:
+   Revision 4 (Modv2.7): other mods can open the wiki on a search or a page:
      window.TnWikiBrowser()              // wiki home
      window.TnWikiBrowser('Gabilani')    // search (goes straight to the page on an exact match)
      window.TnWikiBrowser('https://wiki.smutosaur.us/TiTS/...')   // that page
@@ -288,7 +288,7 @@
         openWiki(targetUrl(what));
         return true;
     };
-    window.TnWikiBrowser.version = '2.8';
+    window.TnWikiBrowser.version = '2.7';
     window.tnWikiEnabled = function () { return enabled(); };
 
     // Redraw the Info section whenever the game draws the main menu.

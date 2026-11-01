@@ -64,7 +64,7 @@ Using the same `@@name@@` twice in one needle means the same function both times
 
 ## The TN mods
 
-The newest TN mod pack (Modv2.8, for TiTS 0.9.168) is in [`mods/`](mods/): the mods and `enabled.txt` are in [`mods/TITS-Mods/`](mods/TITS-Mods/), and the install guides are in [`mods/guides/`](mods/guides/). See [`mods/README.md`](mods/README.md) for a quick install.
+The newest TN mod pack (Modv2.7, for TiTS 0.9.168) is in [`mods/`](mods/): the mods and `enabled.txt` are in [`mods/TITS-Mods/`](mods/TITS-Mods/), and the install guides are in [`mods/guides/`](mods/guides/). See [`mods/README.md`](mods/README.md) for a quick install.
 
 ## For developers
 

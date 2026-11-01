@@ -1,5 +1,5 @@
 /*
- * TN_CodexWiki_v2.8.js — a Wiki button in the in-game Codex (TN mod pack, Modv2.8)
+ * TN_CodexWiki_v2.7.js — a Wiki button in the in-game Codex (TN mod pack, Modv2.7)
  * ---------------------------------------------------------------------------
  * Adds a "Wiki" button to the Codex's left sidebar, right under the "Codex" header.
  *
@@ -11,7 +11,7 @@
  *    the empty slot of the Codex's bottom menu instead (next to Appearance).
  *
  * Where it opens:
- *  - With the Wiki Browser mod (WikiBrowser_v2.8.js) it opens in that overlay, over the
+ *  - With the Wiki Browser mod (WikiBrowser_v2.7.js) it opens in that overlay, over the
  *    game, with Back / Forward / Search / Close. (WikiBrowser_v2.5.js works too, but it
  *    can only open the main page.)
  *  - Without it, or with the Wiki Browser switched off in Android Mods, the Android app
@@ -30,7 +30,7 @@
   if (window.__tnCodexWikiLoaded) return;
   window.__tnCodexWikiLoaded = true;
 
-  var VERSION = "2.8";
+  var VERSION = "2.7";
   var MOD_ID = "tn-codex-wiki";
   var MOD_NAME = "Codex Wiki Button";
   var MOD_DESCRIPTION = "Adds a Wiki button to the Codex sidebar. It opens the TiTS wiki, or looks up the Codex entry you're reading.";
@@ -103,7 +103,7 @@
     if (wikiBrowserReady()) {
       var opened;
       try {
-        // v2.8+ takes a search word; v2.5 ignores it and opens the main page.
+        // v2.7+ takes a search word; v2.5 ignores it and opens the main page.
         opened = window.TnWikiBrowser(query || undefined);
       } catch (err) {
         debug("ERROR from Wiki Browser: " + err);

@@ -1,6 +1,6 @@
 # TN Mod Pack Changelog
 
-Latest: 2.8
+Latest: 2.7
 
 <!--
   How this file works (this comment is not shown in the game):
@@ -13,21 +13,17 @@ Latest: 2.8
   - Bump "Latest:" when you release; players on an older build see "Modv#.# is available".
 -->
 
-## Modv2.8 — Wiki button in the Codex (2026-11-01)
-
-- **Codex Wiki Button:** New. The Codex sidebar has a **Wiki** button under the Codex header. It opens the TiTS wiki. While you read an entry, like Gabilani, a **Look up: Gabilani** button searches the wiki for it. It opens in the Wiki Browser over the game. Without the Wiki Browser, Android opens it in your web browser and desktop opens a small wiki window. It has its own switch in Android Mods. File: `TN_CodexWiki_v2.8.js`.
-- **Wiki Browser:** Other mods can now open it on a search or a page, which the Codex button uses. Now `WikiBrowser_v2.8.js`.
-- **Changelog:** Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`.
-
-## Modv2.7 — TiTS 0.9.168 (2026-11-01)
+## Modv2.7 — TiTS 0.9.168 and a Codex wiki button (2026-11-01)
 
 The pack now works on TiTS 0.9.168 (508 of 508 patches). Delete the `backup` folder in your mods folder before the first patch on the new game, because it holds 0.9.167 copies.
 
 - **Stella D'Amore:** Updated for 0.9.168, which renamed her scene functions. Now `Stella_v2.7.mod`.
 - **Steph Irson:** Updated for 0.9.168. Now `StephIrson_v2.7.mod`.
 - **Zheniya:** Updated for 0.9.168. Now `Zheniya_v2.7.mod`.
+- **Codex Wiki Button:** New. The Codex sidebar has a **Wiki** button under the Codex header. It opens the TiTS wiki. While you read an entry, like Gabilani, a **Look up: Gabilani** button searches the wiki for it. It opens in the Wiki Browser over the game. Without the Wiki Browser, Android opens it in your web browser and desktop opens a small wiki window. It has its own switch in Android Mods. File: `TN_CodexWiki_v2.7.js`.
+- **Wiki Browser:** Other mods can now open it on a search or a page, which the Codex button uses. Now `WikiBrowser_v2.7.js`.
 - **Changelog:** Shows Modv2.7 as installed. Now `TN_Changelog_v2.7.js`.
-- **All other mods:** Work on 0.9.168 as they are. These three new files don't work on 0.9.167.
+- **All other mods:** Work on 0.9.168 as they are. The three new `.mod` files don't work on 0.9.167.
 
 ## Modv2.6 — Tattoos and chastity on PC (2026-10-31)
 
