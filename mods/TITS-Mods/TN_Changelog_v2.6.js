@@ -1,5 +1,5 @@
 /*
- * TN_Changelog_v2.5.js — in-game changelog for the TN mod pack (TiTS Android build)
+ * TN_Changelog_v2.6.js — in-game changelog for the TN mod pack (TiTS Android build)
  * ---------------------------------------------------------------------------
  * Adds a "Changelog" button to the Info section of the main menu sidebar (the same
  * section as Wiki), showing the installed mod version as Modv#.# and what changed.
@@ -40,7 +40,7 @@
   // ===========================================================================
   //  EDIT HERE
   // ===========================================================================
-  var MOD_VERSION = "2.5";   // the version of THIS build (shown as Modv2.5)
+  var MOD_VERSION = "2.6";   // the version of THIS build (shown as Modv2.6)
 
   // Optional: a hosted Markdown (or JSON) changelog, e.g.
   //   "https://raw.githubusercontent.com/<you>/<repo>/main/changelog.md"
@@ -49,6 +49,16 @@
   var REMOTE_URL = "https://raw.githubusercontent.com/Techy-Nature/NestPatcher/main/changelog.md";
 
   var CHANGELOG = [
+    {
+      version: "2.6",
+      date: "2026-10-31",
+      title: "Tattoos and chastity on PC",
+      changes: [
+        { mod: "Treetop Tattoo Clarity", text: "Now patches the Windows, Linux and Mac game too. Before, two of its patches only matched the Android game, so patching on PC stopped with MISS." },
+        { mod: "Holo-Lock Chastity", text: "Same fix: it now patches the PC game as well as Android." },
+        { mod: "Changelog", text: "Shows Modv2.6 as installed (it still said Modv2.5)." }
+      ]
+    },
     {
       version: "2.5",
       date: "2026-10-31",
