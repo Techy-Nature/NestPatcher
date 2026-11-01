@@ -37,12 +37,12 @@ window.tnStephAuto = function () {
     author("Savin");
     stephHeader(window.tnStephBust());
     window.tnStephSay([
-        "The Merchant Deck is shoulder to shoulder, the lift coughing out another load of station traffic. You step right, out of the doors, and walk straight into a wall of khaki and sun-browned skin.",
-        "She bounces off your chest, buttons straining, and one of them gives up. A khaki ranger’s cutoff, short shorts, and a pair of breasts that have no business being on a wildlife host.",
+        "The Merchant Deck is shoulder to shoulder, the lift coughing out another load of station traffic. You step out of the doors, turn right, and walk straight into a wall of khaki and sun-browned skin.",
+        "She bounces off your chest, buttons straining, and one of them gives up. Khaki ranger shirt, cutoff short shorts, and a pair of breasts that have no business on a wildlife host.",
         flags.STEPH_WATCHED ? "You know the face. Half the galaxy does. Steph Irson, off the viewscreen and standing in the foot traffic." : "She looks like she walked out of a nature special and got lost between the shops.",
         "<i>“Oi,”</i> she drawls, New Brisbane vowels stretched long and rough under a bubbly slip. Her tail winks its one eye. <i>“So, like, who’re you then?”</i>",
         "<i>“Steele. [pc.name] Steele.”</i>",
-        "She nods like she is doing you a favor by introducing the most recognizable host on the extranet. <i>“Stephanie Irson. So, um, what can I do for ya, " + pc.mf("Mr.", "Ms.") + " Steele?”</i> Another button pops when she folds her arms under her rack.",
+        "She nods as if she’s doing you a favor, introducing herself when she’s the most recognizable host on the extranet. <i>“Stephanie Irson. So, um, what can I do for ya, " + pc.mf("Mr.", "Ms.") + " Steele?”</i> Another button pops when she folds her arms under her rack.",
         "<i>“I’m just, like, frustrated, is all,”</i> she goes on, before you can answer. <i>“Tryin’ to put together a demo reel for a new network. Wankers I’m workin’ for right now are, like, just the worst ever. They don’t want a wildlife show. They want sex, sex, sex, and then the new CEO pulls the episodes anyway. So I’m stuck on Tavros between ships, watchin’ tourists, waitin’ on a berth that isn’t full of their notes.”</i>",
         "The lift opens behind her and spills another crowd past the two of you. She looks back at you, waiting on what you want."
     ]);
@@ -79,12 +79,12 @@ window.tnStephWork = function () {
     clearOutput();
     author("Savin");
     stephHeader(window.tnStephBust());
-    output("\n\nYou nod at the station around you instead of a cavern camp. <i>“What’s so bad about them?”</i>");
-    output("\n\n<i>“I don’t even know what Network wants anymore!”</i> Steph throws a hand up and nearly loses another button. <i>“Half the time I feel like they’re just sending me to go get fucked by every critter with a cock - and half the ones without - but then the stupid, mean new CEO pulls so many of the episodes I send her. The best ones, too, the cunt. I have to work three times as hard just to make my weekly shows!”</i>");
+    output("\n\nYou think back to her rant about the network. <i>“What’s so bad about them?”</i>");
+    output("\n\n<i>“I don’t even know what Network wants anymore!”</i> Steph throws a hand up and nearly loses another button. <i>“Half the time I feel like they’re just sending me to go get fucked by every critter with a cock—and half the ones without—but then the stupid, mean new CEO pulls so many of the episodes I send her. The best ones, too, the cunt. I have to work three times as hard just to make my weekly shows!”</i>");
     output("\n\n<i>“So you’re trying to switch networks?”</i>");
-    output("\n\n<i>“Eh, kind of. I’m puttin’ together a demo tape. Gonna shop it around a little. Between you and me, I’m uh, thinking about sending it to a couple of X-rated networks, ya know?”</i> She looks almost embarrassed, then grins. <i>“Ever since New Texas I’ve just felt hornier and hornier. A dirty channel would let me do whatever I want. What director’s gonna turn away something like THAT?”</i>");
+    output("\n\n<i>“Eh, kind of. I’m puttin’ together a demo tape. Gonna shop it around a little. Between you and me, I’m, uh, thinkin’ about sending it to a couple of X-rated networks, ya know?”</i> She looks almost embarrassed, then grins. <i>“Ever since New Texas I’ve just felt hornier and hornier. A dirty channel would let me do whatever I want. What director’s gonna turn away something like THAT?”</i>");
     clearMenu();
-    addButton(0, "Pornstar", window.tnStephPorn, "Pornstar", "Encourage her to take the X-rated networks.");
+    addButton(0, "Pornstar", window.tnStephPorn, "Pornstar", "Encourage her to go with the X-rated networks.");
     addButton(1, "New Network", window.tnStephNetwork, "New Network", "Tell her to find a network that will let her do the show properly.");
     addButton(2, "Stay", window.tnStephStay, "Stay", "Tell her to stick with the show the way it is.");
     addButton(14, "Back", window.tnStephMenu, "Back", "Drop it.");
@@ -106,7 +106,7 @@ window.tnStephNetwork = function () {
     clearOutput();
     author("Savin");
     stephHeader(window.tnStephBust());
-    output("\n\n<i>“Maybe you ought to try a new, safe for work network,”</i> you suggest. <i>“They can’t all be that abusive.”</i>");
+    output("\n\n<i>“Maybe you ought to try a new, safe-for-work network,”</i> you suggest. <i>“They can’t all be that abusive.”</i>");
     output("\n\nSteph sighs, ears drooping. <i>“Yeah, but it’s hard to find a network that’s gonna let me do what I wanna do. I don’t only wanna be a nature gal anymore. I’m really startin’ to love that mix of business and pleasure, ya know? The first couple times was pretty rough, but now... I dunno, it’s exciting!”</i>");
     output("\n\nShe is still shopping the tape. She just wants somebody who won’t cut the good parts and won’t get her killed for a rating.");
     flags.STEPH_WORK_CHOICE = GLOBAL.STEPH_WORK_NEWNETWORK;
@@ -142,7 +142,7 @@ window.tnStephMutations = function () {
     clearOutput();
     author("Savin");
     stephHeader(window.tnStephBust());
-    output("\n\nYou gesture at the ears, then at the cock-tipped tail trying to hide behind her calf. On a station promenade she looks like the exhibit.");
+    output("\n\nYou gesture at the ears, then at the cock-tipped tail trying to hide behind her calf. Out here on a station deck, she looks more like the exhibit than the host.");
     output("\n\n<i>“Occupational hazard,”</i> she chirps, cheerful about it. <i>“Naleen gave me the ears. Didn’t mean to walk into a mating ball, but that’s the show, isn’t it? Tail’s from a vine on a later shoot. Grows a bit when I’m, um, interested. Rest of it depends which planet the network threw me at.”</i> She plants her hands on her hips. <i>“I used to hate it. Now it’s just me. You get used to bein’ the thing you’re documentin’.”</i>");
     clearMenu();
     addButton(0, "Next", window.tnStephMenu);
@@ -153,7 +153,7 @@ window.tnStephRecruit = function () {
     author("Savin");
     stephHeader(window.tnStephBust());
     window.tnStephSay([
-        "You glance down at Steph Irson, Galactic Huntress, who's eyeing you with a mixture of amusement and curiosity. Her blonde hair has a few stray strands to frame her face. Her khaki ranger outfit seems out of place on the Merchant Deck of Tavros Station, but she looks perfectly at home.",
+        "You glance down at Steph Irson, Galactic Huntress, who’s eyeing you with a mix of amusement and curiosity. A few stray strands of blonde hair frame her face. Her khaki ranger outfit seems out of place on the Merchant Deck of Tavros Station, but she looks perfectly at home.",
         "<i>“So what, ya reckon I’m just some silly huntress?”</i> Steph shoots back with a grin, trying to sound tough while the bubbly slip peeks through.",
         "<i>“I’m offering you a berth,”</i> you say. <i>“Instead of hopping the next planet alone, come aboard my ship.”</i>",
         "Steph’s eyes light up. <i>“Oh, that’d be bloody brilliant! I’m sick of those network wankers treatin’ me like some sort of wild animal in a cage. I want to break free and see what the galaxy’s really got to offer.”</i>",
@@ -189,7 +189,7 @@ window.tnStephBlowjob = function () {
     author("Savin");
     stephHeader(window.tnStephBust(), true);
     window.tnStephSay([
-        "You lie back on your bunk while Steph Irson kicks her khaki cutoffs across the floor with a flourish, leaving her in a ranger shirt that already lost its fight with her chest. <i>“Right,”</i> she purrs, grinning. <i>“Ready for the main event?”</i>",
+        "You lie back on your bunk while Steph Irson kicks her khaki cutoffs across the floor with a flourish, leaving her in a ranger shirt that has already lost its fight with her chest. <i>“Right,”</i> she purrs, grinning. <i>“Ready for the main event?”</i>",
         "She saunters over, hips swaying, eyes fixed below your belt. <i>“Been keen to get my hands on that all arvo,”</i> she drawls, and wraps her fingers around [pc.cock], giving it a slow squeeze.",
         "<i>“Gods, Steph,”</i> you groan, twitching in her grip. She leans down until her lips hover just over your tip. <i>“Oh, you’re gonna love this,”</i> she murmurs, and her breath sends a shiver down your spine.",
         "Then she’s kneeling between your legs, mouth wrapped around [pc.cock], sinking down until you bump the back of her throat. Her hands work the base in time with her bobbing head, and she hums around you, eyes closed, like you’re the best thing she’s tasted all week.",
