@@ -7,6 +7,7 @@ Shelly-Custom-Talk-Menu_v2.4.js
 CrewSize_v2.4.js
 Drakongarune_Lessau_v2.4.mod
 ShellyShop.mod
+ShellyCabinReturns_v2.7.mod
 WikiBrowser_v2.7.js
 TN_CodexWiki_v2.7.js
 TN_Changelog_v2.7.js
