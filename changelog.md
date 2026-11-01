@@ -20,8 +20,7 @@ The pack now works on TiTS 0.9.168 (508 of 508 patches). Delete the `backup` fol
 - **Stella D'Amore:** Updated for 0.9.168, which renamed her scene functions. Now `Stella_v2.7.mod`.
 - **Steph Irson:** Updated for 0.9.168. Now `StephIrson_v2.7.mod`.
 - **Zheniya:** Updated for 0.9.168. Now `Zheniya_v2.7.mod`.
-- **Codex Wiki Button:** New. The Codex sidebar has a **Wiki** button under the Codex header. It opens the TiTS wiki. While you read an entry, like Gabilani, a **Look up: Gabilani** button searches the wiki for it. It opens in the Wiki Browser over the game. Without the Wiki Browser, Android opens it in your web browser and desktop opens a small wiki window. It has its own switch in Android Mods. File: `TN_CodexWiki_v2.7.js`.
-- **Wiki Browser:** Other mods can now open it on a search or a page, which the Codex button uses. Now `WikiBrowser_v2.7.js`.
+- **Wiki Browser:** New: the Codex sidebar has a **Wiki** button under the Codex header, as well as the one under Info on the main menu. While you read a Codex entry, like Gabilani, a **Look up: Gabilani** button searches the wiki for it. Works on Android and desktop. The Wiki Browser switch in Android Mods turns both on and off. One file: `WikiBrowser_v2.7.js`, which replaces `WikiBrowser_v2.5.js`.
 - **Changelog:** Shows Modv2.7 as installed. Now `TN_Changelog_v2.7.js`.
 - **All other mods:** Work on 0.9.168 as they are. The three new `.mod` files don't work on 0.9.167.
 

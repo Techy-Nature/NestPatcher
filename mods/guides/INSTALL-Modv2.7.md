@@ -11,9 +11,8 @@ fixing, because the game update renamed some of its internal functions on Tavros
 | `StephIrson_v2.7.mod` | `StephIrson_v2.4.mod` | The Merchant Deck patches pointed at 0.9.167 names (2 MISS). |
 | `Zheniya_v2.7.mod` | `Zheniya.mod` | Her call-girl hall patches pointed at 0.9.167 names (2 MISS). |
 | `TN_Changelog_v2.7.js` | `TN_Changelog_v2.6.js` | Shows Modv2.7 as installed. |
-| `TN_CodexWiki_v2.7.js` | (new) | Wiki button in the Codex sidebar. See below. |
-| `WikiBrowser_v2.7.js` | `WikiBrowser_v2.5.js` | Lets the Codex button search the wiki. |
-| `enabled.txt` | | Uses the six new names. |
+| `WikiBrowser_v2.7.js` | `WikiBrowser_v2.5.js` | Adds Wiki buttons to the Codex. See below. |
+| `enabled.txt` | | Uses the five new names. |
 
 Everything else is unchanged. The `.js` halves (`Stella_v2.5.js`, `StephIrson.js`,
 `Zheniya.js`) didn't need changes.
@@ -31,19 +30,21 @@ loaded.
 - While you read a Codex entry (for example **Gabilani**), a second button,
   **Look up: Gabilani**, searches the wiki for it and goes straight to the page when the
   name matches.
-- It opens in the Wiki Browser over the game. Without the Wiki Browser (or with it off in
-  Android Mods), Android opens the page in your web browser, and desktop opens a small wiki
-  window with **Close** and **Open in browser**. Android Back and Escape close it.
+- It opens in the Wiki Browser over the game, like Info > Wiki does.
+- It's all in one file, `WikiBrowser_v2.7.js`. There's no separate Codex file.
 - If the game isn't showing the sidebar, the button goes in the empty spot of the Codex's
   bottom menu (next to **Appearance**) instead.
-- **Android:** it has its own switch in Options > Android Mods ("Codex Wiki Button").
-  **Desktop:** always on while it's in `enabled.txt`.
+- **Android:** the **Wiki Browser** switch in Options > Android Mods turns the Info and
+  Codex buttons on and off together. **Desktop:** always on while it's in `enabled.txt`.
 
-**Already installed 2.7?** You only need four files: delete `WikiBrowser_v2.5.js`,
-`TN_Changelog_v2.7.js` and `enabled.txt` from your mods folder, copy in
-`TN_CodexWiki_v2.7.js`, `WikiBrowser_v2.7.js`, the new `TN_Changelog_v2.7.js` and the new
-`enabled.txt`, then patch again (no need to delete `backup` a second time). The dry run
-says `508 replacements, 20 runtime files`.
+**Already installed 2.7?** You only need three files:
+
+1. Delete `WikiBrowser_v2.5.js`, `TN_Changelog_v2.7.js`, `enabled.txt`, and
+   `TN_CodexWiki_v2.7.js` if you have it (it's merged into the Wiki Browser now), from your
+   mods folder.
+2. Copy in `WikiBrowser_v2.7.js`, the new `TN_Changelog_v2.7.js` and the new `enabled.txt`.
+3. Dry run, then patch again (no need to delete `backup` a second time). The dry run says
+   `508 replacements, 19 runtime files`.
 
 ## Important: clear the old backups
 
@@ -70,7 +71,7 @@ before the first patch on 0.9.168. NestPatcher makes a fresh one from the new ga
    `Stella_v2.4.mod`, `StephIrson_v2.4.mod`, `Zheniya.mod`, `TN_Changelog_v2.6.js`,
    `WikiBrowser_v2.5.js`, `enabled.txt`. Then copy in `Stella_v2.7.mod`,
    `StephIrson_v2.7.mod`, `Zheniya_v2.7.mod`, `TN_Changelog_v2.7.js`,
-   `TN_CodexWiki_v2.7.js`, `WikiBrowser_v2.7.js` and the new `enabled.txt`.
+   `WikiBrowser_v2.7.js` and the new `enabled.txt`.
    (Or empty the folder, keeping `logs`, and unzip `TN-Mods-Modv2.7.zip` into it.)
 5. **If you had turned mods off** with `#` in your old `enabled.txt`, do that again in the
    new one.
@@ -79,7 +80,7 @@ before the first patch on 0.9.168. NestPatcher makes a fresh one from the new ga
    cd TITS-Patcher
    python NestPatcher_TiTS_Android_v1.5.py --dry-run
    ```
-   The last line should say `DRY RUN: 508 replacements, 20 runtime files; no changes made.`
+   The last line should say `DRY RUN: 508 replacements, 19 runtime files; no changes made.`
 7. **Patch for real:**
    ```
    python NestPatcher_TiTS_Android_v1.5.py
@@ -98,7 +99,7 @@ the new files in, then Test my mods and Patch.
 2. Back up the `nestmods` folder next to NestPatcher.
 3. Delete `nestmods/backup`.
 4. Delete `Stella_v2.4.mod`, `StephIrson_v2.4.mod`, `Zheniya.mod`, `TN_Changelog_v2.6.js`,
-   `WikiBrowser_v2.5.js` and `enabled.txt` from `nestmods`, and copy the seven new files in.
+   `WikiBrowser_v2.5.js` and `enabled.txt` from `nestmods`, and copy the six new files in.
 5. GUI: **Test my mods**, then **Patch the game**. Command line:
    `NestPatcher_Windows_v1.9.bat --dry-run` or `./nestpatcher_linux_v1.9.sh --dry-run`, then
    again without `--dry-run`.
@@ -123,7 +124,7 @@ the new files in, then Test my mods and Patch.
   same id and exports in 0.9.168.
 - Patches whose replacement text calls game functions by name were checked against
   0.9.168. Only the three mods above used names that moved.
-- Codex Wiki button: built against the real 0.9.168 Codex sidebar code and tested on a page
-  that copies it (home, Database list, an entry; Wiki Browser on, off and missing; Android
-  browser hand-off; no sidebar; Android switch off). 508/508 and 20 runtime files with it.
+- Codex Wiki buttons: built against the real 0.9.168 Codex sidebar code and tested on a page
+  that copies it (home, Database list, an entry, a hidden copy of the sidebar, no sidebar,
+  Android switch off). 508/508 and 19 runtime files with it.
 - Not yet tested in the real game.
