@@ -13,7 +13,7 @@ Game version: **TiTS 0.9.168** (Modv2.7). Librakitty's pack was made for 0.9.166
 | Mod menu | **Neston** | `AndroidModMenu_v2.5.js` | Same menu functions as Librakitty's `KittyModMenu.js`, plus on/off switches, a debug log, and moving old saves over. Settings are in Options > Android Mods. **Android only:** since Modv2.4 it switches itself off on desktop. On desktop, `TN_Desktop_Menu_v2.5.js` (Options > TN Mod Settings) gives the same settings pages, without on/off switches. **Don't load `KittyModMenu.js` as well.** |
 | Shelly crew | **Neston** | `ShellyRecruit.mod`, `Shelly-Custom-Talk-Menu_v2.4.js`, `ShellyShop.mod` | Same recruit, plus her own talk menu, shop, cure quest and family. Replaces Librakitty's `ShellyRecruit.mod` + `ShellyRecruit.js`. |
 | Stella | **Neston** | `Stella_v2.7.mod`, `Stella_v2.5.js` | Updated for 0.9.168. Librakitty's version misses on 0.9.167 and 0.9.168. |
-| Steph Irson | **Neston** | `StephIrson_v2.7.mod`, `StephIrson.js` | Steph's scenes are Librakitty's, with the patches fixed for 0.9.168. |
+| Steph Irson | **Neston** | `StephIrson_v2.7.mod`, `StephIrson_v2.7.js` | Steph's scenes are Librakitty's, with the patches fixed for 0.9.168 and her dialogue toned down (far fewer "Oi, mate!" lines). |
 | Overqueen Recruit | **Neston** | `OverqueenRecruit_v2.5.mod` | v2.1: Recruit after every ending, works for taurs. Replaces `OverqueenRecruit.mod`. |
 | Crew Size | **Neston** | `CrewSize_v2.4.js` | Has Librakitty's Bypass crew limit checkbox merged in. |
 | No Dick Limits | **Neston** | `NoDickLimits_v2.4.js` | Newer, with an on/off switch. |

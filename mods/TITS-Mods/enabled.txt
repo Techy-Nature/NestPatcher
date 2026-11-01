@@ -38,7 +38,7 @@ TN_BustGenderFilter_v2.4.js
 TN_taur-naga_text.mod
 TN_CombatHooks.mod
 StephIrson_v2.7.mod
-StephIrson.js
+StephIrson_v2.7.js
 Zheniya_v2.7.mod
 Zheniya.js
 Pregnancy_v2.4.js
