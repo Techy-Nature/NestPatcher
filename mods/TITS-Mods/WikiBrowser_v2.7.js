@@ -12,7 +12,13 @@
      window.TnWikiBrowser('Gabilani')    // search (goes straight to the page on an exact match)
      window.TnWikiBrowser('https://wiki.smutosaur.us/TiTS/...')   // that page
    It returns true when the wiki opened, or false when the Wiki Browser is switched off
-   in Android Mods. window.tnWikiEnabled() says which. The Codex Wiki button uses this. */
+   in Android Mods. window.tnWikiEnabled() says which.
+   Revision 5 (Modv2.7): Wiki buttons in the Codex too (this used to be TN_CodexWiki_v2.7.js,
+   now merged in here, so it's one file). In the Codex's left sidebar, under the "Codex"
+   header: "Wiki" opens the wiki, and while you read an entry (e.g. Gabilani) a
+   "Look up: Gabilani" button searches the wiki for it. If the sidebar isn't shown, the
+   Wiki button goes in the empty slot of the Codex's bottom menu (next to Appearance).
+   The same Android Mods switch (Wiki Browser) turns the Info and Codex buttons on and off. */
 (function () {
     if (window.__tnWikiBrowserLoaded) return;
     window.__tnWikiBrowserLoaded = true;
@@ -21,9 +27,12 @@
     var SEARCH = "https://wiki.smutosaur.us/TiTS/index.php?search=";
     var MOD_ID = 'tn-wiki-browser';
     var MOD_NAME = 'Wiki Browser';
-    var MOD_DESCRIPTION = 'Browse the TiTS wiki from the Info section of the main menu sidebar.';
+    var MOD_DESCRIPTION = 'Browse the TiTS wiki from the Info section of the main menu sidebar, and from the Codex (Wiki and Look up buttons).';
     var MAIN_MENU = 0;            // the game's UI state value for the main menu
     var SECTION_ID = 'tnInfoSection';
+    var CODEX_SECTION_ID = 'tnCodexWikiSection';
+    var CODEX_SCREEN = 7;         // the game's UI state value for the Codex screen
+    var CODEX_SLOT = 3;           // bottom-menu fallback slot; the Codex leaves 3 empty
 
     // The Android Mods switch counts only while that menu is running (Android).
     // On desktop, or without the menu, the Wiki is always on.
@@ -85,6 +94,10 @@
             + "#" + SECTION_ID + " .tnInfoButtons{clear:both;padding-top:0.3em;}"
             + "#" + SECTION_ID + " .optionCategory{cursor:pointer;user-select:none;}"
             + "#" + SECTION_ID + " .optionCategory:active{background:var(--highlightColor,#8D31B0);}"
+            // Codex sidebar buttons
+            + "#" + CODEX_SECTION_ID + "{clear:both;padding-top:0.5em;}"
+            + "#" + CODEX_SECTION_ID + " .optionCategory{cursor:pointer;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}"
+            + "#" + CODEX_SECTION_ID + " .optionCategory:active{background:var(--highlightColor,#8D31B0);}"
             // Floating fallback when the sidebar is hidden
             + "#" + SECTION_ID + ".tnInfoFloating{position:fixed;left:0.8em;top:4.5em;z-index:50;width:11em;padding:0.6em;"
             + "background:var(--foregroundColorB,#2C3649);border-radius:0.4em;box-shadow:0 0.2em 0.4em 0 var(--shadowColor,#202735);}";
@@ -259,6 +272,168 @@
         }
     }
 
+    // ---------------------------------------------------------------------
+    // Wiki buttons in the Codex (left sidebar, under the "Codex" header)
+    // ---------------------------------------------------------------------
+    function visible(el) {
+        try { return !!(el && el.getClientRects().length && el.offsetParent !== null); }
+        catch (err) { return false; }
+    }
+
+    // The sidebar header the game draws on every Codex screen ("Codex", "Codex: Database"...).
+    function codexHeader() {
+        var heads = document.querySelectorAll('.sidebarDetailsContainer > .headerText');
+        for (var i = 0; i < heads.length; i++) {
+            var text = (heads[i].textContent || '').trim();
+            if (/^Codex(?!: Mail)/.test(text) && visible(heads[i])) return heads[i];
+        }
+        return null;
+    }
+
+    function codexShowing() {
+        try { if (window.ui && ui.state && ui.state.mainElement === CODEX_SCREEN) return true; }
+        catch (err) {}
+        return !!codexHeader();
+    }
+
+    function codexEntry() {
+        try { return ui.state.codexEntry ? String(ui.state.codexEntry) : ''; }
+        catch (err) { return ''; }
+    }
+
+    function codexHost() {
+        var head = codexHeader();
+        if (head) return head.parentElement;
+        var boxes = document.querySelectorAll('.leftSideBar .sidebarDetailsContainer');
+        for (var i = 0; i < boxes.length; i++) if (visible(boxes[i])) return boxes[i];
+        return null;
+    }
+
+    function codexButton(id, text, tip, onClick) {
+        var btn = document.createElement('div');
+        btn.className = 'optionCategory';
+        btn.id = id;
+        btn.setAttribute('role', 'button');
+        btn.setAttribute('tabindex', '0');
+        btn.title = tip;
+        var label = document.createElement('span');
+        label.textContent = text;
+        btn.appendChild(label);
+        function run(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            try { onClick(); } catch (err) { debug('ERROR in Codex button: ' + err); }
+        }
+        btn.addEventListener('click', run);
+        btn.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') run(event);
+        });
+        return btn;
+    }
+
+    function buildCodexSection(entry) {
+        var section = document.createElement('div');
+        section.id = CODEX_SECTION_ID;
+        section.setAttribute('data-entry', entry);
+        section.appendChild(codexButton('tnCodexWiki_home', 'Wiki',
+            'Open the Trials in Tainted Space wiki.',
+            function () { openWiki(HOME); }));
+        if (entry) {
+            section.appendChild(codexButton('tnCodexWiki_entry', 'Look up: ' + entry,
+                'Look up “' + entry + '” on the Trials in Tainted Space wiki.',
+                function () { openWiki(targetUrl(entry)); }));
+        }
+        return section;
+    }
+
+    function removeCodexSection() {
+        var old = document.getElementById(CODEX_SECTION_ID);
+        if (old) old.remove();
+    }
+
+    // Right after the header line, so the game's own redraws leave it above the entry list.
+    function placeCodexSection(host, entry) {
+        var headerLine = null;
+        for (var c = host.firstElementChild; c; c = c.nextElementSibling) {
+            if (c.classList && c.classList.contains('headerLine')) { headerLine = c; break; }
+        }
+        var existing = document.getElementById(CODEX_SECTION_ID);
+        if (existing && existing.parentElement === host && existing.getAttribute('data-entry') === entry
+            && (!headerLine || existing.previousElementSibling === headerLine)) return false;
+        if (existing) existing.remove();
+        var section = buildCodexSection(entry);
+        if (headerLine && headerLine.nextSibling) host.insertBefore(section, headerLine.nextSibling);
+        else host.appendChild(section);
+        return true;
+    }
+
+    // Bottom-menu fallback, only when there's no sidebar to use.
+    var codexBottomShowing = false;
+    function addCodexBottomButton(entry) {
+        try {
+            var buttons = ui.state.buttons;
+            if (buttons && buttons[CODEX_SLOT]) return;   // something already uses this slot
+            var body = entry
+                ? 'Look up “' + entry + '” on the Trials in Tainted Space wiki.'
+                : 'Open the Trials in Tainted Space wiki.';
+            ui.addButton(CODEX_SLOT, 'Wiki', function () { openWiki(targetUrl(entry)); }, 'Wiki', body);
+            codexBottomShowing = true;
+        } catch (err) { debug('ERROR adding the Codex menu button: ' + err); }
+    }
+    function removeCodexBottomButton() {
+        if (!codexBottomShowing) return;
+        codexBottomShowing = false;
+        try {
+            var b = ui.state.buttons && ui.state.buttons[CODEX_SLOT];
+            if (b && b.title === 'Wiki' && typeof ui.removeButton === 'function') ui.removeButton(CODEX_SLOT);
+        } catch (err) {}
+    }
+
+    var codexLastKey = null;
+    function syncCodex() {
+        var showing = codexShowing();
+        if (!enabled() || !showing) {
+            removeCodexSection();
+            if (!showing) codexBottomShowing = false;   // the game cleared its own menu
+            else removeCodexBottomButton();
+            codexLastKey = null;
+            return;
+        }
+        ensureStyle();
+        var entry = codexEntry();
+        var host = codexHost();
+        var key;
+        if (host) {
+            removeCodexBottomButton();
+            placeCodexSection(host, entry);
+            key = 'side|' + entry;
+            if (key !== codexLastKey) debug('Codex Wiki button shown' + (entry ? ' (Look up: ' + entry + ')' : ''));
+        } else {
+            removeCodexSection();
+            addCodexBottomButton(entry);
+            key = 'bottom|' + entry;
+            if (key !== codexLastKey) debug('No Codex sidebar; Wiki button added to the Codex menu');
+        }
+        codexLastKey = key;
+    }
+
+    // For troubleshooting: TnWikiBrowser.status() (also written to the debug log).
+    function status() {
+        var head = codexHeader();
+        var st = {
+            enabled: enabled(),
+            mainElement: (window.ui && ui.state) ? ui.state.mainElement : 'no ui',
+            codexShowing: codexShowing(),
+            codexHeader: head ? head.textContent : null,
+            codexHost: !!codexHost(),
+            codexButtons: !!document.getElementById(CODEX_SECTION_ID),
+            codexBottomButton: codexBottomShowing,
+            infoSection: !!document.getElementById(SECTION_ID)
+        };
+        debug('status ' + JSON.stringify(st));
+        return st;
+    }
+
     var scheduled = false;
     function schedule() {
         if (scheduled) return;
@@ -266,6 +441,7 @@
         setTimeout(function () {
             scheduled = false;
             try { syncSection(); } catch (err) { debug('ERROR ' + err); }
+            try { syncCodex(); } catch (err) { debug('ERROR in Codex buttons: ' + err); }
         }, 0);
     }
 
@@ -289,6 +465,7 @@
         return true;
     };
     window.TnWikiBrowser.version = '2.7';
+    window.TnWikiBrowser.status = function () { return status(); };
     window.tnWikiEnabled = function () { return enabled(); };
 
     // Redraw the Info section whenever the game draws the main menu.
@@ -317,6 +494,7 @@
         new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
         setInterval(schedule, 800);
         schedule();
+        setTimeout(function () { debug('Loaded v2.7 (Info and Codex buttons)'); }, 4000);
     }
 
     waitForModMenu();

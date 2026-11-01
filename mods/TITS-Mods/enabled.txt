@@ -8,7 +8,6 @@ CrewSize_v2.4.js
 Drakongarune_Lessau_v2.4.mod
 ShellyShop.mod
 WikiBrowser_v2.7.js
-TN_CodexWiki_v2.7.js
 TN_Changelog_v2.7.js
 NoDickLimits_v2.4.js
 DrakoHornitol_v2.4.mod
