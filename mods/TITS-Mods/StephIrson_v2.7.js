@@ -1,6 +1,6 @@
 /* Steph Irson. First meeting is the tile east of the Merchant Deck lift.
    Talk menu is her Myrellion camp menu, moved onto Tavros Station.
-   Blowjob and doggystyle scenes included.
+   Blowjob, doggystyle, and Snake & Vine (needs a cunt tail) scenes included.
    v2.7 (2026-11-01): dialogue pass. Cut the wall of "Oi, mate!" lines; her New Brisbane
    voice now comes through in word choice (reckon, heaps, arvo, knackered) with only the
    odd "mate", and varied speech tags (drawls, purrs, teases). Sex scenes trimmed of repeated paragraphs and use the game's quote style. */
@@ -181,6 +181,8 @@ window.tnStephSexMenu = function () {
         addDisabledButton(0, "Blowjob", "Blowjob", "You need a penis for this.");
         addDisabledButton(1, "Doggystyle", "Doggystyle", "You need a penis for this.");
     }
+    if (pc.hasTailCunt && pc.hasTailCunt()) addButton(2, "Snake & Vine", window.tnStephTails, "Snake & Vine", "Let your cunt tail and her cockvine tail get acquainted.");
+    else addDisabledButton(2, "Snake & Vine", "Snake & Vine", "You need a cunt tail for this.");
     addButton(14, "Back", window.tnStephMenu, "Back", "Not now.");
 };
 
@@ -239,6 +241,35 @@ window.tnStephDoggy = function () {
         "You hold her close while you both catch your breath."
     ]);
     processTime(30);
+    pc.orgasm();
+    clearMenu();
+    addButton(0, "Next", window.tnStephMenu, "Next", "Back to Steph.");
+};
+
+window.tnStephTails = function () {
+    clearOutput();
+    author("Savin");
+    stephHeader(window.tnStephBust(), true);
+    window.tnStephSay([
+        "Back aboard, Steph barely makes it through your cabin door before she stops dead. Her eyes fix on your [pc.tailCunt], which has slipped out from behind you and is weaving through the air, lips glistening.",
+        "<i>“Hang on. Is that a cunt snake?”</i> She drops into a crouch for a closer look, ears straight up. <i>“Oh, that’s a beauty. Ya don’t see a healthy one that size off Mhen’ga. Look at the sheen on it!”</i> For a second she isn’t a horny ranger at all; she’s the Galactic Huntress, narrating to a camera that isn’t there.",
+        "Behind her, something else has noticed too. Her cockvine tail rises over her shoulder like a curious eel, its swollen tip turning toward your tail. A bead of sap wells at the slit.",
+        "<i>“Oh, no ya don’t,”</i> Steph scolds it, then breaks into a giggle as it strains forward anyway. <i>“Sorry. It’s got a mind of its own. Bit of a one-track mind, honestly.”</i>",
+        "Your [pc.tailCunt] answers before you do. It curls toward her, lips parting, and the two tails circle each other in the middle of the cabin, slow and wary, like a pair of courting critters on one of her old shows.",
+        "Steph stares, enthralled. <i>“Oh, this is <b>so</b> goin’ in the special,”</i> she breathes. <i>“A wild cunt snake and a cockvine, meetin’ in their natural habitat.”</i> She glances at you and lowers her voice to her best documentary hush. <i>“The male approaches with caution...”</i>",
+        "The male does not approach with caution. Her vine lunges, and the head of it slams into your [pc.tailCunt] in one hungry thrust. You both yelp at once: you at the sudden fullness rippling all the way up into your hips, Steph at the hot, wet grip clamping around the most sensitive thing she owns.",
+        "<i>“Oh, fuck,”</i> she gasps, knees buckling. She grabs your shoulder to stay upright. <i>“Oh, that’s... that’s not fair, that’s so tight...”</i>",
+        "You drag her down onto the bunk with you, and neither of you bothers with anything else. There’s no need; the tails are doing the work. Her vine pumps in long, rolling strokes, and your [pc.tailCunt] milks back at it, wringing every inch with muscles you didn’t know you could flex this way.",
+        "Steph ends up sprawled across your chest, face flushed, hips twitching in time with her tail. <i>“Can ya feel that?”</i> she pants. <i>“When it squeezes? Gods. It’s like gettin’ sucked off by a whole ecosystem.”</i>",
+        "You can feel all of it. Every pulse of her vine echoes up your tail and down your spine, and the deeper it pushes, the more your tail clutches at it. The two of them knot together over the bunk, coiling around each other so tight you can’t tell where hers ends and yours begins.",
+        "<i>“Don’t stop, don’t you dare stop,”</i> Steph whimpers, though it’s hard to say which of you or which tail she means. Her vine swells, the ridges along it fattening inside you.",
+        "It goes first. Her tail locks up mid-thrust, and a hot flood of sap pumps into your [pc.tailCunt], so much that it squelches out around the seam. Steph throws her head back and howls, her own climax hitting her a heartbeat behind her tail’s.",
+        "Your tail drinks it down greedily, clenching to keep every drop, and that’s what tips you over. Pleasure rolls back up its length and crashes through you, leaving you shaking under her on the bunk.",
+        "For a long while, the only sound is the two of you panting. The tails don’t untangle. They stay wrapped around each other, the vine twitching every so often, your [pc.tailCunt] giving a lazy, contented squeeze in answer.",
+        "<i>“Well,”</i> Steph mumbles into your chest. <i>“Pretty sure that’s what scientists call a symbiotic relationship.”</i> She lifts her head, grinning and dazed. <i>“Reckon they wanna do that again sometime. Reckon I do too.”</i>",
+        "Your tail gives her vine one more squeeze, as if to agree."
+    ]);
+    processTime(35);
     pc.orgasm();
     clearMenu();
     addButton(0, "Next", window.tnStephMenu, "Next", "Back to Steph.");

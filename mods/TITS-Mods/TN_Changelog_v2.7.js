@@ -57,7 +57,7 @@
         { mod: "All mods", text: "Checked against TiTS 0.9.168: 508 of 508 patches apply. Every other mod works on 0.9.168 as it is." },
         { mod: "Stella D'Amore", text: "Updated for 0.9.168 (the game renamed her scene functions). Now `Stella_v2.7.mod`." },
         { mod: "Steph Irson", text: "Updated for 0.9.168. Now `StephIrson_v2.7.mod`." },
-        { mod: "Steph Irson", text: "Dialogue rewrite: no more \"Oi, mate!\" every other line. Her New Brisbane voice now shows in her word choice and in how she talks (drawls, purrs, teases), and the two sex scenes lost their repeated paragraphs. Now `StephIrson_v2.7.js`; delete the old `StephIrson.js`." },
+        { mod: "Steph Irson", text: "Dialogue rewrite: no more \"Oi, mate!\" every other line. Her New Brisbane voice now shows in her word choice and in how she talks (drawls, purrs, teases), and the two sex scenes lost their repeated paragraphs. New scene: **Snake & Vine** in her Sex menu, for a Steele with a cunt tail to pair with her cockvine tail. Now `StephIrson_v2.7.js`; delete the old `StephIrson.js`." },
         { mod: "Zheniya", text: "Updated for 0.9.168. Now `Zheniya_v2.7.mod`." },
         { mod: "Codex Wiki Button", text: "New: the Codex sidebar has a **Wiki** button under the Codex header. It opens the TiTS wiki, and while you read an entry (like Gabilani) a **Look up: Gabilani** button searches the wiki for it. It opens in the Wiki Browser over the game; without the Wiki Browser it opens in your browser, or in a small wiki window. Works on Android and desktop, and has its own switch in Android Mods. File: `TN_CodexWiki_v2.7.js`." },
         { mod: "Wiki Browser", text: "Other mods can now open it on a search or a page (the Codex button uses this). Now `WikiBrowser_v2.7.js`." },
