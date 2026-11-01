@@ -1,6 +1,7 @@
 /* Steph Irson. First meeting is the tile east of the Merchant Deck lift.
    Talk menu is her Myrellion camp menu, moved onto Tavros Station.
-   Blowjob, doggystyle, and Snake & Vine (needs a cunt tail) scenes included.
+   Blowjob, doggystyle, and Snake & Vine (needs a cunt tail) scenes included,
+   each with taur and naga versions.
    v2.7 (2026-11-01): dialogue pass. Cut the wall of "Oi, mate!" lines; her New Brisbane
    voice now comes through in word choice (reckon, heaps, arvo, knackered) with only the
    odd "mate", and varied speech tags (drawls, purrs, teases). Sex scenes trimmed of repeated paragraphs and use the game's quote style. */
@@ -16,6 +17,21 @@ window.tnStephBust = function () {
 
 window.tnStephSay = function (paragraphs) {
     for (var i = 0; i < paragraphs.length; i++) output("\n\n" + paragraphs[i]);
+};
+
+/* Picks the body type for the sex scenes: "taur", "naga", or "biped". */
+window.tnStephBody = function () {
+    if (typeof pc !== "undefined" && pc.isTaur && pc.isTaur()) return "taur";
+    if (typeof pc !== "undefined" && pc.isNaga && pc.isNaga()) return "naga";
+    return "biped";
+};
+
+/* Swaps in body-specific paragraphs: overrides = { taur: {index: text}, naga: {...} }. */
+window.tnStephBodySay = function (paragraphs, overrides) {
+    var o = (overrides && overrides[window.tnStephBody()]) || {};
+    var out = [];
+    for (var i = 0; i < paragraphs.length; i++) out.push(o.hasOwnProperty(i) ? o[i] : paragraphs[i]);
+    window.tnStephSay(out);
 };
 
 window.tnStephMenu = function () {
@@ -190,7 +206,7 @@ window.tnStephBlowjob = function () {
     clearOutput();
     author("Savin");
     stephHeader(window.tnStephBust(), true);
-    window.tnStephSay([
+    window.tnStephBodySay([
         "You lie back on your bunk while Steph Irson kicks her khaki cutoffs across the floor with a flourish, leaving her in a ranger shirt that has already lost its fight with her chest. <i>“Right,”</i> she purrs, grinning. <i>“Ready for the main event?”</i>",
         "She saunters over, hips swaying, eyes fixed below your belt. <i>“Been keen to get my hands on that all arvo,”</i> she drawls, and wraps her fingers around [pc.cock], giving it a slow squeeze.",
         "<i>“Gods, Steph,”</i> you groan, twitching in her grip. She leans down until her lips hover just over your tip. <i>“Oh, you’re gonna love this,”</i> she murmurs, and her breath sends a shiver down your spine.",
@@ -207,7 +223,24 @@ window.tnStephBlowjob = function () {
         "She pulls back just enough to look you over. <i>“You’re lookin’ a bit knackered, mate.”</i> She ruffles your hair again, softer now. <i>“I’ll give ya a breather. A short one.”</i>",
         "The haze slowly clears from your head. Steph is still smiling down at you, eyes crinkled at the corners, excitement plain on her face, and you feel yourself stirring again in answer.",
         "<i>“Good,”</i> she coos, noticing. <i>“’Cause I’m only just gettin’ started.”</i>"
-    ]);
+    ], {
+        taur: {
+            0: "You stay on your feet. The bunk was never built for a body like yours. Steph kicks her khaki cutoffs across the floor with a flourish, leaving her in a ranger shirt that has already lost its fight with her chest, and looks you over from forelegs to tail like a brand-new species. <i>“Right,”</i> she purrs, grinning. <i>“Ready for the main event?”</i>",
+            1: "She saunters over, hips swaying, then ducks down to peer under your belly. <i>“Been keen to get my hands on that all arvo,”</i> she drawls, slipping beneath you and wrapping her fingers around [pc.cock], giving it a slow squeeze.",
+            3: "Then she’s kneeling on the deck beneath your belly, mouth wrapped around [pc.cock], sinking down until you bump the back of her throat. Her hands work the base in time with her bobbing head, and she hums around you, eyes closed, like you’re the best thing she’s tasted all week. All you can see of her is a pair of twitching ears.",
+            4: "She must feel your flanks tense up, because she pulls off just long enough to pat your belly. <i>“Relax, yeah? Let me show ya how it’s done.”</i> Then she takes you deeper than before, lips nearly reaching your base.",
+            9: "Your legs tremble under you, and you lock your knees to stay upright while she lingers at your tip to catch the last of it. She pulls off slowly, a smug smile spreading across her face. <i>“Not bad, eh? Reckon that’s my best one yet.”</i>",
+            10: "She crawls out from under you and gives your flank a friendly slap. <i>“You’re a good sport, Steele. Reckon we make a pretty good team.”</i> Then she hops up onto the bunk so she can actually reach your face, and brushes her lips against yours in a gentle kiss.",
+            11: "When you part for air, she sits on the edge of the bunk, still glowing. <i>“Y’know,”</i> she muses, <i>“I’m gettin’ heaps better at this blowjob business.”</i> She winks. <i>“Wanna see how good I can get?”</i>"
+        },
+        naga: {
+            0: "You coil up on the cabin floor, since the bunk was never meant for this much tail. Steph kicks her khaki cutoffs across the floor with a flourish, leaving her in a ranger shirt that has already lost its fight with her chest. <i>“Right,”</i> she purrs, eyeing your loops of scales. <i>“Ready for the main event?”</i>",
+            1: "She saunters over, hips swaying, and steps right over your outer coil without a second thought. <i>“Been keen to get my hands on that all arvo,”</i> she drawls, and wraps her fingers around [pc.cock], giving it a slow squeeze.",
+            3: "Then she’s kneeling in the loops of your coils, mouth wrapped around [pc.cock], sinking down until you bump the back of her throat. Her hands work the base in time with her bobbing head, and she hums around you, eyes closed, like you’re the best thing she’s tasted all week. Your tail tightens around her without you meaning it to, and she only hums louder.",
+            4: "She must feel your coils tense up, because she pulls off just long enough to pat the scales by her hip. <i>“Relax, yeah? Let me show ya how it’s done.”</i> Then she takes you deeper than before, lips nearly reaching your base.",
+            9: "You’re left slumped in your own coils, panting, while she lingers at your tip to catch the last of it. She pulls off slowly, a smug smile spreading across her face. <i>“Not bad, eh? Reckon that’s my best one yet.”</i>"
+        }
+    });
     processTime(25);
     pc.orgasm();
     clearMenu();
@@ -218,7 +251,7 @@ window.tnStephDoggy = function () {
     clearOutput();
     author("Savin");
     stephHeader(window.tnStephBust(), true);
-    window.tnStephSay([
+    window.tnStephBodySay([
         "You sit back on your bunk as Steph Irson drops down beside you, wriggling out of her khaki shorts as she goes. Her blonde hair bounces with every move, and her ranger shirt is losing its fight with her chest.",
         "<i>“C’mere, you,”</i> she teases with a sly grin, and starts tugging your gear open. She leans in close, breath warm on your chest, eyes sparkling. <i>“Not bad for someone who sits in a cockpit all day.”</i>",
         "You laugh. <i>“I’m feeling pretty good myself,”</i> you reply, running a hand down her bare side.",
@@ -239,7 +272,28 @@ window.tnStephDoggy = function () {
         "You collapse together in a sweaty, panting heap. The tension drains out of her bit by bit until she’s boneless against you.",
         "Steph twists around to look up at you, cheeks flushed. <i>“Well,”</i> she sighs happily, <i>“that’s goin’ in the highlight reel.”</i> She nuzzles into your chest.",
         "You hold her close while you both catch your breath."
-    ]);
+    ], {
+        taur: {
+            0: "Steph drops onto your bunk and wriggles out of her khaki shorts as she goes, while you stand beside it; there’s no sitting on a mattress with a body like yours. Her blonde hair bounces with every move, and her ranger shirt is losing its fight with her chest.",
+            1: "<i>“C’mere, you,”</i> she teases with a sly grin, kneeling up on the bunk to reach you, and starts tugging your gear open. She leans in close, breath warm on your chest, eyes sparkling. <i>“Not bad for someone who sits in a cockpit all day. Or, uh, stands in one.”</i>",
+            5: "<i>“Ya look like ya could use a hand gettin’ comfy,”</i> she rumbles low in her throat, reaching down under your barrel to palm [pc.cock]. You throb against her hand.",
+            8: "You harden in her grip, hooves shifting on the deck as you push into her hand. <i>“Gotta say, I like the way you move,”</i> she hums, and leans down to press a kiss to your base.",
+            9: "Then she pulls back with a mischievous glint, turns around, and bends over the end of the bunk, feet planted on the deck and rear up in the air. She looks back over her shoulder, tail swaying out of the way. <i>“Well? Don’t keep a girl waitin’.”</i>",
+            10: "You don’t. You rear up and bring your forelegs down on the bunk on either side of her, your body blotting out the light as you settle over her. She’s tiny under you and already soaked, and she lets out a breathless giggle when [pc.cock] finds her entrance.",
+            12: "<i>“Oh, bloody hell, yes!”</i> She shoves back against you hard enough that even your hind legs have to shift, and then you’re both moving, your weight driving her into the mattress in a rhythm that’s more enthusiasm than finesse.",
+            14: "<i>“Harder, mate. C’mon!”</i> You oblige, bucking into her until the bunk frame creaks, and she answers with a happy, wordless cry.",
+            17: "You ease back off her, legs shaking, and fold down onto the deck beside the bunk. Steph slides off the mattress after you and flops against your side, boneless.",
+            18: "She twists around to look up at you, cheeks flushed. <i>“Well,”</i> she sighs happily, <i>“that’s goin’ in the highlight reel.”</i> She nuzzles into your flank."
+        },
+        naga: {
+            0: "You coil up beside your bunk as Steph drops onto it, wriggling out of her khaki shorts as she goes. Her blonde hair bounces with every move, and her ranger shirt is losing its fight with her chest.",
+            8: "You harden in her grip, your coils rippling as you push up into her hand. <i>“Gotta say, I like the way you move,”</i> she hums, and presses a kiss to your base.",
+            10: "You don’t. You slide up behind her, loop a coil around her legs to hold her right where she is, grab her hips, and guide [pc.cock] to her entrance. She’s already soaked, and she lets out a breathless giggle when your tip presses against her.",
+            12: "<i>“Oh, bloody hell, yes!”</i> She shoves back against you hard enough to rock you back on your coils, and then you’re both moving, finding a rhythm that’s more enthusiasm than finesse.",
+            14: "<i>“Harder, mate. C’mon!”</i> You oblige, coils squeezing her thighs as you thrust, and she answers with a happy, wordless cry.",
+            17: "You sink down together into a heap of scales and sweaty skin. Your coils settle loosely around her, and the tension drains out of her bit by bit until she’s boneless in them."
+        }
+    });
     processTime(30);
     pc.orgasm();
     clearMenu();
@@ -250,7 +304,7 @@ window.tnStephTails = function () {
     clearOutput();
     author("Savin");
     stephHeader(window.tnStephBust(), true);
-    window.tnStephSay([
+    window.tnStephBodySay([
         "Back aboard, Steph barely makes it through your cabin door before she stops dead. Her eyes fix on your [pc.tailCunt], which has slipped out from behind you and is weaving through the air, lips glistening.",
         "<i>“Hang on. Is that a cunt snake?”</i> She drops into a crouch for a closer look, ears straight up. <i>“Oh, that’s a beauty. Ya don’t see a healthy one that size off Mhen’ga. Look at the sheen on it!”</i> For a second she isn’t a horny ranger at all; she’s the Galactic Huntress, narrating to a camera that isn’t there.",
         "Behind her, something else has noticed too. Her cockvine tail rises over her shoulder like a curious eel, its swollen tip turning toward your tail. A bead of sap wells at the slit.",
@@ -261,14 +315,26 @@ window.tnStephTails = function () {
         "<i>“Oh, fuck,”</i> she gasps, knees buckling. She grabs your shoulder to stay upright. <i>“Oh, that’s... that’s not fair, that’s so tight...”</i>",
         "You drag her down onto the bunk with you, and neither of you bothers with anything else. There’s no need; the tails are doing the work. Her vine pumps in long, rolling strokes, and your [pc.tailCunt] milks back at it, wringing every inch with muscles you didn’t know you could flex this way.",
         "Steph ends up sprawled across your chest, face flushed, hips twitching in time with her tail. <i>“Can ya feel that?”</i> she pants. <i>“When it squeezes? Gods. It’s like gettin’ sucked off by a whole ecosystem.”</i>",
-        "You can feel all of it. Every pulse of her vine echoes up your tail and down your spine, and the deeper it pushes, the more your tail clutches at it. The two of them knot together over the bunk, coiling around each other so tight you can’t tell where hers ends and yours begins.",
+        "You can feel all of it. Every pulse of her vine echoes up your tail and down your spine, and the deeper it pushes, the more your tail clutches at it. The two of them knot together between you, coiling around each other so tight you can’t tell where hers ends and yours begins.",
         "<i>“Don’t stop, don’t you dare stop,”</i> Steph whimpers, though it’s hard to say which of you or which tail she means. Her vine swells, the ridges along it fattening inside you.",
         "It goes first. Her tail locks up mid-thrust, and a hot flood of sap pumps into your [pc.tailCunt], so much that it squelches out around the seam. Steph throws her head back and howls, her own climax hitting her a heartbeat behind her tail’s.",
         "Your tail drinks it down greedily, clenching to keep every drop, and that’s what tips you over. Pleasure rolls back up its length and crashes through you, leaving you shaking under her on the bunk.",
         "For a long while, the only sound is the two of you panting. The tails don’t untangle. They stay wrapped around each other, the vine twitching every so often, your [pc.tailCunt] giving a lazy, contented squeeze in answer.",
         "<i>“Well,”</i> Steph mumbles into your chest. <i>“Pretty sure that’s what scientists call a symbiotic relationship.”</i> She lifts her head, grinning and dazed. <i>“Reckon they wanna do that again sometime. Reckon I do too.”</i>",
         "Your tail gives her vine one more squeeze, as if to agree."
-    ]);
+    ], {
+        taur: {
+            8: "You fold your legs and sink down onto the cabin floor, pulling her with you, and neither of you bothers with anything else. There’s no need; the tails are doing the work. Her vine pumps in long, rolling strokes, and your [pc.tailCunt] milks back at it, wringing every inch with muscles you didn’t know you could flex this way.",
+            9: "Steph ends up sprawled against your side, arms wrapped around your waist and face flushed, hips twitching in time with her tail. <i>“Can ya feel that?”</i> she pants. <i>“When it squeezes? Gods. It’s like gettin’ sucked off by a whole ecosystem.”</i>",
+            13: "Your tail drinks it down greedily, clenching to keep every drop, and that’s what tips you over. Pleasure rolls up its length and crashes through your whole long body, every leg twitching beneath you.",
+            15: "<i>“Well,”</i> Steph mumbles into your side. <i>“Pretty sure that’s what scientists call a symbiotic relationship.”</i> She lifts her head, grinning and dazed. <i>“Reckon they wanna do that again sometime. Reckon I do too.”</i>"
+        },
+        naga: {
+            8: "You sink down into your coils and pull her in with you, and neither of you bothers with anything else. There’s no need; the tails are doing the work. Her vine pumps in long, rolling strokes, and your [pc.tailCunt] milks back at it, wringing every inch with muscles you didn’t know you could flex this way.",
+            9: "Steph ends up sprawled across your coils, face flushed, hips twitching in time with her tail. <i>“Can ya feel that?”</i> she pants. <i>“When it squeezes? Gods. It’s like gettin’ sucked off by a whole ecosystem.”</i> She pats the scales under her. <i>“And I’m lyin’ on the rest of ya. This is the best seat in the house.”</i>",
+            13: "Your tail drinks it down greedily, clenching to keep every drop, and that’s what tips you over. Pleasure rolls back up its length and crashes through you, your coils tightening around her until you’re both shaking."
+        }
+    });
     processTime(35);
     pc.orgasm();
     clearMenu();
