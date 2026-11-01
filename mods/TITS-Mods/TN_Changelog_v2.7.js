@@ -29,7 +29,7 @@
  * ~~strikethrough~~, `code` and [links](https://...). Line breaks are kept.
  * Raw HTML is shown as plain text, never run.
  *
- * INSTALL: this file must be listed in mods/enabled.txt (after WikiBrowser_v2.4.js is
+ * INSTALL: this file must be listed in mods/enabled.txt (after WikiBrowser_v2.7.js is
  * fine; load order doesn't matter). If it isn't listed, the patcher skips it and
  * the Changelog button never appears in the Info section.
  */
@@ -58,6 +58,8 @@
         { mod: "Stella D'Amore", text: "Updated for 0.9.168 (the game renamed her scene functions). Now `Stella_v2.7.mod`." },
         { mod: "Steph Irson", text: "Updated for 0.9.168. Now `StephIrson_v2.7.mod`." },
         { mod: "Zheniya", text: "Updated for 0.9.168. Now `Zheniya_v2.7.mod`." },
+        { mod: "Codex Wiki Button", text: "New: the Codex sidebar has a **Wiki** button under the Codex header. It opens the TiTS wiki, and while you read an entry (like Gabilani) a **Look up: Gabilani** button searches the wiki for it. It opens in the Wiki Browser over the game; without the Wiki Browser it opens in your browser, or in a small wiki window. Works on Android and desktop, and has its own switch in Android Mods. File: `TN_CodexWiki_v2.7.js`." },
+        { mod: "Wiki Browser", text: "Other mods can now open it on a search or a page (the Codex button uses this). Now `WikiBrowser_v2.7.js`." },
         { mod: "Changelog", text: "Shows Modv2.7 as installed. Now `TN_Changelog_v2.7.js`." }
       ]
     },

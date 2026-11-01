@@ -6,7 +6,13 @@
    Revision 3: other mods can add their own buttons to the Info section:
      window.tnInfo.addButton({ id, label, title, order, onClick })
      window.tnInfo.refresh()   // redraw after a label changes
-   (Wiki is order 10; lower numbers appear first.) */
+   (Wiki is order 10; lower numbers appear first.)
+   Revision 4 (Modv2.7): other mods can open the wiki on a search or a page:
+     window.TnWikiBrowser()              // wiki home
+     window.TnWikiBrowser('Gabilani')    // search (goes straight to the page on an exact match)
+     window.TnWikiBrowser('https://wiki.smutosaur.us/TiTS/...')   // that page
+   It returns true when the wiki opened, or false when the Wiki Browser is switched off
+   in Android Mods. window.tnWikiEnabled() says which. The Codex Wiki button uses this. */
 (function () {
     if (window.__tnWikiBrowserLoaded) return;
     window.__tnWikiBrowserLoaded = true;
@@ -100,7 +106,7 @@
             + '<button type="button" data-wiki="go">Search</button>'
             + '<button type="button" data-wiki="close">Close</button>'
             + '</div>'
-            + '<iframe id="tnWikiFrame" data-wiki="frame" src="' + url + '"></iframe>';
+            + '<iframe id="tnWikiFrame" data-wiki="frame" src="' + String(url).replace(/"/g, '%22') + '"></iframe>';
         document.body.appendChild(root);
         var frame = root.querySelector("[data-wiki=frame]");
         var query = root.querySelector("[data-wiki=query]");
@@ -270,7 +276,20 @@
     function enableUI() {
         schedule();
     }
-    window.TnWikiBrowser = function () { if (enabled()) openWiki(HOME); };
+    // Turns a search word or a wiki link into the page to show.
+    function targetUrl(what) {
+        var text = String(what == null ? '' : what).trim();
+        if (!text) return HOME;
+        if (/^https?:\/\//i.test(text)) return text;
+        return SEARCH + encodeURIComponent(text);
+    }
+    window.TnWikiBrowser = function (what) {
+        if (!enabled()) return false;
+        openWiki(targetUrl(what));
+        return true;
+    };
+    window.TnWikiBrowser.version = '2.7';
+    window.tnWikiEnabled = function () { return enabled(); };
 
     // Redraw the Info section whenever the game draws the main menu.
     function hook(tries) {

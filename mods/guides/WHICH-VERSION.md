@@ -17,7 +17,7 @@ Game version: **TiTS 0.9.168** (Modv2.7). Librakitty's pack was made for 0.9.166
 | Overqueen Recruit | **Neston** | `OverqueenRecruit_v2.5.mod` | v2.1: Recruit after every ending, works for taurs. Replaces `OverqueenRecruit.mod`. |
 | Crew Size | **Neston** | `CrewSize_v2.4.js` | Has Librakitty's Bypass crew limit checkbox merged in. |
 | No Dick Limits | **Neston** | `NoDickLimits_v2.4.js` | Newer, with an on/off switch. |
-| Wiki Browser | **Neston** | `WikiBrowser_v2.5.js` | Newer. It lives in the sidebar's Info section, not on the main menu. |
+| Wiki Browser | **Neston** | `WikiBrowser_v2.7.js`, `TN_CodexWiki_v2.7.js` | Newer. It lives in the sidebar's Info section, not on the main menu, and the Codex has a Wiki button that opens it. |
 | Zheniya | **Librakitty's, via Neston's pack** | `Zheniya_v2.7.mod`, `Zheniya.js` | Librakitty's mod with TN names, patches fixed for 0.9.168. |
 | Pregnancy | **Librakitty's, fixed in Neston's pack** | `Pregnancy_v2.4.js` | Librakitty's original never found the game's pregnancy system, so the bars stayed at 0% and Pause did nothing. Fixed. |
 | Editor | **Librakitty's, via Neston's pack** | `TitsEditor.js` | Main-menu Editor button, with a Debug Mode checkbox under Game. |
