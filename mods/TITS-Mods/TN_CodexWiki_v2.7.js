@@ -216,9 +216,34 @@
   // ---------------------------------------------------------------------------
   //  The sidebar buttons
   // ---------------------------------------------------------------------------
-  function codexShowing() {
-    try { return !!(window.ui && ui.state && ui.state.mainElement === CODEX_SCREEN); }
+  function visible(el) {
+    try { return !!(el && el.getClientRects().length && el.offsetParent !== null); }
     catch (err) { return false; }
+  }
+
+  // The sidebar header the game draws on every Codex screen ("Codex", "Codex: Database"...).
+  function codexHeader() {
+    var heads = document.querySelectorAll(".sidebarDetailsContainer > .headerText");
+    for (var i = 0; i < heads.length; i++) {
+      var text = (heads[i].textContent || "").trim();
+      if (/^Codex(?!: Mail)/.test(text) && visible(heads[i])) return heads[i];
+    }
+    return null;
+  }
+
+  function codexShowing() {
+    try { if (window.ui && ui.state && ui.state.mainElement === CODEX_SCREEN) return true; }
+    catch (err) {}
+    return !!codexHeader();   // backup check straight from the screen
+  }
+
+  // Where the buttons go: the visible sidebar box that holds the Codex header.
+  function findHost() {
+    var head = codexHeader();
+    if (head) return head.parentElement;
+    var boxes = document.querySelectorAll(".leftSideBar .sidebarDetailsContainer, .sidebarDetailsContainer");
+    for (var i = 0; i < boxes.length; i++) if (visible(boxes[i])) return boxes[i];
+    return null;
   }
 
   function currentEntry() {
@@ -271,7 +296,10 @@
   // Put the section right under the "Codex" header, above the entry list or stats.
   function placeSection(host, entry) {
     var existing = document.getElementById(SECTION_ID);
-    var headerLine = host.querySelector(":scope > .headerLine.head");
+    var headerLine = null;
+    for (var c = host.firstElementChild; c; c = c.nextElementSibling) {
+      if (c.classList && c.classList.contains("headerLine")) { headerLine = c; break; }
+    }
     var wantAfter = headerLine || null;
     if (existing && existing.parentElement === host && existing.getAttribute("data-entry") === entry) {
       var prev = existing.previousElementSibling;
@@ -323,7 +351,7 @@
     }
     ensureStyle();
     var entry = currentEntry();
-    var host = document.querySelector(".leftSideBar .sidebarDetailsContainer");
+    var host = findHost();
     if (host) {
       removeBottomButton();
       placeSection(host, entry);
@@ -355,9 +383,26 @@
     schedule();
   }
 
-  window.TnCodexWiki = { version: VERSION, open: openWiki, enabled: enabled, refresh: schedule };
+  // For troubleshooting: run TnCodexWiki.status() in the console / debug log.
+  function status() {
+    var s = {
+      version: VERSION,
+      enabled: enabled(),
+      mainElement: (window.ui && ui.state) ? ui.state.mainElement : "no ui",
+      codexShowing: codexShowing(),
+      header: codexHeader() ? codexHeader().textContent : null,
+      host: !!findHost(),
+      buttonsShown: !!document.getElementById(SECTION_ID),
+      bottomButton: bottomButtonShowing
+    };
+    debug("status " + JSON.stringify(s));
+    return s;
+  }
+
+  window.TnCodexWiki = { version: VERSION, open: openWiki, enabled: enabled, refresh: schedule, status: status };
 
   waitForModMenu();
+  setTimeout(function () { debug("Loaded v" + VERSION); }, 4000);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
   else start();
 })();
