@@ -1,17 +1,18 @@
 Name: Shelly cabin returns
 Author: Kitty
-# Updated: the egg reward is function Cb (followed by _b) in 0.9.166 and 0.9.167.
+# Updated for TiTS 0.9.168 (2026-11-01): the egg reward is function _b (followed by zb).
+#   It was Cb (followed by _b) in 0.9.166 and 0.9.167.
 
 
 Replace [content_tavros.js]:
-function Cb(){var e=[];
+function _b(){var e=[];
 With:
-function Cb(){var tnReturn=arguments.length>1&&typeof arguments[1]==="function"?arguments[1]:mainGameMenu,e=[];
+function _b(){var tnReturn=arguments.length>1&&typeof arguments[1]==="function"?arguments[1]:mainGameMenu,e=[];
 
 Replace [content_tavros.js]:
-itemCollect(mainGameMenu,[e[rand(e.length)]]):(clearMenu(),addButton(0,"Next",mainGameMenu))}function _b
+itemCollect(mainGameMenu,[e[rand(e.length)]]):(clearMenu(),addButton(0,"Next",mainGameMenu))}function zb
 With:
-itemCollect(tnReturn,[e[rand(e.length)]]):(clearMenu(),addButton(0,"Next",tnReturn))}function _b
+itemCollect(tnReturn,[e[rand(e.length)]]):(clearMenu(),addButton(0,"Next",tnReturn))}function zb
 
 Replace [content_tavros.js]:
 window.oviliumEggReward()}function a(){

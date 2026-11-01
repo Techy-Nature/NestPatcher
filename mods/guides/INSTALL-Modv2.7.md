@@ -1,6 +1,6 @@
 # Modv2.7: TiTS 0.9.168
 
-The pack now works on **TiTS 0.9.168**. Almost every mod already did. Only three needed
+The pack now works on **TiTS 0.9.168**. Almost every mod already did. Only four needed
 fixing, because the game update renamed some of its internal functions on Tavros.
 
 ## What changed
@@ -10,10 +10,11 @@ fixing, because the game update renamed some of its internal functions on Tavros
 | `Stella_v2.7.mod` | `Stella_v2.4.mod` | Her beach and menu patches pointed at 0.9.167 names (2 MISS). |
 | `StephIrson_v2.7.mod` | `StephIrson_v2.4.mod` | The Merchant Deck patches pointed at 0.9.167 names (2 MISS). |
 | `Zheniya_v2.7.mod` | `Zheniya.mod` | Her call-girl hall patches pointed at 0.9.167 names (2 MISS). |
+| `ShellyCabinReturns_v2.7.mod` | `ShellyCabinReturns.mod` | Shelly's egg reward is now function `_b` (was `Cb`), 2 MISS. Now listed in `enabled.txt`. |
 | `TN_Changelog_v2.7.js` | `TN_Changelog_v2.6.js` | Shows Modv2.7 as installed. |
 | `TN_CodexWiki_v2.7.js` | (new) | Wiki button in the Codex sidebar. See below. |
 | `WikiBrowser_v2.7.js` | `WikiBrowser_v2.5.js` | Lets the Codex button search the wiki. |
-| `enabled.txt` | | Uses the six new names. |
+| `enabled.txt` | | Uses the seven new names. |
 
 Everything else is unchanged. The `.js` halves (`Stella_v2.5.js`, `StephIrson.js`,
 `Zheniya.js`) didn't need changes.
@@ -39,11 +40,15 @@ loaded.
 - **Android:** it has its own switch in Options > Android Mods ("Codex Wiki Button").
   **Desktop:** always on while it's in `enabled.txt`.
 
-**Already installed 2.7?** You only need four files: delete `WikiBrowser_v2.5.js`,
+**Already installed 2.7 and got MISS on ShellyCabinReturns?** Delete `ShellyCabinReturns.mod`
+and `enabled.txt`, copy in `ShellyCabinReturns_v2.7.mod` and the new `enabled.txt`, then patch
+again. The dry run says `516 replacements, 20 runtime files`.
+
+**Already installed 2.7 before the Codex button?** You only need four files: delete `WikiBrowser_v2.5.js`,
 `TN_Changelog_v2.7.js` and `enabled.txt` from your mods folder, copy in
 `TN_CodexWiki_v2.7.js`, `WikiBrowser_v2.7.js`, the new `TN_Changelog_v2.7.js` and the new
 `enabled.txt`, then patch again (no need to delete `backup` a second time). The dry run
-says `508 replacements, 20 runtime files`.
+says `516 replacements, 20 runtime files`.
 
 ## Important: clear the old backups
 
@@ -67,8 +72,9 @@ before the first patch on 0.9.168. NestPatcher makes a fresh one from the new ga
    rm -rf mods/backup
    ```
 4. **Swap in the new files.** Delete these from `mods`:
-   `Stella_v2.4.mod`, `StephIrson_v2.4.mod`, `Zheniya.mod`, `TN_Changelog_v2.6.js`,
-   `WikiBrowser_v2.5.js`, `enabled.txt`. Then copy in `Stella_v2.7.mod`,
+   `Stella_v2.4.mod`, `StephIrson_v2.4.mod`, `Zheniya.mod`, `ShellyCabinReturns.mod`,
+   `TN_Changelog_v2.6.js`, `WikiBrowser_v2.5.js`, `enabled.txt`. Then copy in `Stella_v2.7.mod`,
+   `ShellyCabinReturns_v2.7.mod`,
    `StephIrson_v2.7.mod`, `Zheniya_v2.7.mod`, `TN_Changelog_v2.7.js`,
    `TN_CodexWiki_v2.7.js`, `WikiBrowser_v2.7.js` and the new `enabled.txt`.
    (Or empty the folder, keeping `logs`, and unzip `TN-Mods-Modv2.7.zip` into it.)
@@ -79,7 +85,7 @@ before the first patch on 0.9.168. NestPatcher makes a fresh one from the new ga
    cd TITS-Patcher
    python NestPatcher_TiTS_Android_v1.5.py --dry-run
    ```
-   The last line should say `DRY RUN: 508 replacements, 20 runtime files; no changes made.`
+   The last line should say `DRY RUN: 516 replacements, 20 runtime files; no changes made.`
 7. **Patch for real:**
    ```
    python NestPatcher_TiTS_Android_v1.5.py
@@ -97,15 +103,16 @@ the new files in, then Test my mods and Patch.
 1. Install the 0.9.168 game.
 2. Back up the `nestmods` folder next to NestPatcher.
 3. Delete `nestmods/backup`.
-4. Delete `Stella_v2.4.mod`, `StephIrson_v2.4.mod`, `Zheniya.mod`, `TN_Changelog_v2.6.js`,
-   `WikiBrowser_v2.5.js` and `enabled.txt` from `nestmods`, and copy the seven new files in.
+4. Delete `Stella_v2.4.mod`, `StephIrson_v2.4.mod`, `Zheniya.mod`, `ShellyCabinReturns.mod`,
+   `TN_Changelog_v2.6.js`, `WikiBrowser_v2.5.js` and `enabled.txt` from `nestmods`, and copy
+   the eight new files in.
 5. GUI: **Test my mods**, then **Patch the game**. Command line:
    `NestPatcher_Windows_v1.9.bat --dry-run` or `./nestpatcher_linux_v1.9.sh --dry-run`, then
    again without `--dry-run`.
 
 ## If something goes wrong
 
-- **MISS on Stella, Steph or Zheniya:** you still have the old `.mod` file, or the game is
+- **MISS on Stella, Steph, Zheniya or ShellyCabinReturns:** you still have the old `.mod` file, or the game is
   still 0.9.167. Check that `enabled.txt` lists the `_v2.7` names.
 - **STOP about two versions of one mod:** an old and a new copy are both in `enabled.txt`.
   Remove the old line.
@@ -122,8 +129,11 @@ the new files in, then Test my mods and Patch.
 - Every webpack module the mods use (Pregnancy, Shelly Shop, items, crew, perks) has the
   same id and exports in 0.9.168.
 - Patches whose replacement text calls game functions by name were checked against
-  0.9.168. Only the three mods above used names that moved.
+  0.9.168. Only the mods above used names that moved.
 - Codex Wiki button: built against the real 0.9.168 Codex sidebar code and tested on a page
   that copies it (home, Database list, an entry; Wiki Browser on, off and missing; Android
   browser hand-off; no sidebar; Android switch off). 508/508 and 20 runtime files with it.
+- ShellyCabinReturns (wasn't in `enabled.txt` before, so the first check missed it): 2 MISS
+  on 0.9.168, fixed and added to `enabled.txt`. Full pack: 516 of 516 on Linux 1.9 and
+  Android 1.5.
 - Not yet tested in the real game.
