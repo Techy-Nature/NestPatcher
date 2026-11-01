@@ -45,3 +45,4 @@ Pregnancy_v2.4.js
 TitsEditor.js
 TN_Virine_v2.4.mod
 TN_HoloChastity_v2.6.mod
+TN_Holoboard_v2.7.mod

@@ -22,6 +22,7 @@ The pack now works on TiTS 0.9.168 (508 of 508 patches). Delete the `backup` fol
 - **Zheniya:** Updated for 0.9.168. Now `Zheniya_v2.7.mod`.
 - **Codex Wiki Button:** New. The Codex sidebar has a **Wiki** button under the Codex header. It opens the TiTS wiki. While you read an entry, like Gabilani, a **Look up: Gabilani** button searches the wiki for it. It opens in the Wiki Browser over the game. Without the Wiki Browser, Android opens it in your web browser and desktop opens a small wiki window. It has its own switch in Android Mods. File: `TN_CodexWiki_v2.7.js`.
 - **Wiki Browser:** Other mods can now open it on a search or a page, which the Codex button uses. Now `WikiBrowser_v2.7.js`.
+- **Anno's Holoboard:** Back in the pack. Its file had gone missing, so it was rebuilt for 0.9.168 as `TN_Holoboard_v2.7.mod`. It's in Anno's shop (Tarkus outpost or crew) and in Options > Cheats > Items (search "holo"). Anno shows it off the next time you talk to her, even if you met her long ago.
 - **Changelog:** Shows Modv2.7 as installed. Now `TN_Changelog_v2.7.js`.
 - **All other mods:** Work on 0.9.168 as they are. The three new `.mod` files don't work on 0.9.167.
 
