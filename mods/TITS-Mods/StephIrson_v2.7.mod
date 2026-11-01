@@ -1,6 +1,6 @@
 Name: Steph Irson on Tavros
 Author: Kitty
-# Needles updated for TiTS 0.9.168 (2026-11-01: ED->ND, Bj->Ej, vj->Ij); needs StephIrson.js.
+# Needles updated for TiTS 0.9.168 (2026-11-01: ED->ND, Bj->Ej, vj->Ij); needs StephIrson_v2.7.js.
 # First meeting is automatic on MERCHANT'S THOROUGHFARE2, the tile east of the Merchant Deck lift. Sex scenes are added when the scene writer finishes.
 
 Replace [content_tavros.js]:

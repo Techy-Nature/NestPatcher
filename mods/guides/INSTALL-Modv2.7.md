@@ -15,8 +15,11 @@ fixing, because the game update renamed some of its internal functions on Tavros
 | `WikiBrowser_v2.7.js` | `WikiBrowser_v2.5.js` | Lets the Codex button search the wiki. |
 | `enabled.txt` | | Uses the six new names. |
 
-Everything else is unchanged. The `.js` halves (`Stella_v2.5.js`, `StephIrson.js`,
-`Zheniya.js`) didn't need changes.
+`StephIrson.js` is now `StephIrson_v2.7.js`: her dialogue was rewritten so she isn't saying
+"Oi, mate!" every other line. Delete the old `StephIrson.js` when you copy the new one in.
+
+Everything else is unchanged. The other `.js` halves (`Stella_v2.5.js`, `Zheniya.js`)
+didn't need changes.
 
 **The new `.mod` files only work on 0.9.168.** On 0.9.167 they MISS, so update the game
 first.
