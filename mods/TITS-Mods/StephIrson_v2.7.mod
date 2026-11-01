@@ -1,17 +1,17 @@
 Name: Steph Irson on Tavros
 Author: Kitty
-# Needles updated for TiTS 0.9.167 (2026-10-30); needs StephIrson.js.
+# Needles updated for TiTS 0.9.168 (2026-11-01: ED->ND, Bj->Ej, vj->Ij); needs StephIrson.js.
 # First meeting is automatic on MERCHANT'S THOROUGHFARE2, the tile east of the Merchant Deck lift. Sex scenes are added when the scene writer finishes.
 
 Replace [content_tavros.js]:
-v.runOnEnter=function(){return output(textify(ED||(ED=(0,Gt.Z)(["The busy merchant’s deck sprawls out before you.
+v.runOnEnter=function(){return output(textify(ND||(ND=(0,Gt.Z)(["The busy merchant’s deck sprawls out before you.
 With:
-v.runOnEnter=function(){if((!window.tnStephEnabled||window.tnStephEnabled())&&window.tnStephAuto&&window.tnStephAuto())return!0;return output(textify(ED||(ED=(0,Gt.Z)(["The busy merchant’s deck sprawls out before you.
+v.runOnEnter=function(){if((!window.tnStephEnabled||window.tnStephEnabled())&&window.tnStephAuto&&window.tnStephAuto())return!0;return output(textify(ND||(ND=(0,Gt.Z)(["The busy merchant’s deck sprawls out before you.
 
 Replace [content_tavros.js]:
-))),!!Bj()||tavrosMerchantEncounters()},o.addRoom(v);var I=new vj.du;I.index="SHEAR BEAUTY"
+))),!!Ej()||tavrosMerchantEncounters()},o.addRoom(v);var I=new Ij.du;I.index="SHEAR BEAUTY"
 With:
-))),!!Bj()||tavrosMerchantEncounters(),(!window.tnStephEnabled||window.tnStephEnabled())&&window.tnStephDeckButton&&window.tnStephDeckButton()},o.addRoom(v);var I=new vj.du;I.index="SHEAR BEAUTY"
+))),!!Ej()||tavrosMerchantEncounters(),(!window.tnStephEnabled||window.tnStephEnabled())&&window.tnStephDeckButton&&window.tnStephDeckButton()},o.addRoom(v);var I=new Ij.du;I.index="SHEAR BEAUTY"
 
 Add Javascript:
 (function () {

@@ -1,5 +1,5 @@
 /*
- * TN_Changelog_v2.6.js — in-game changelog for the TN mod pack (TiTS Android build)
+ * TN_Changelog_v2.7.js — in-game changelog for the TN mod pack (TiTS Android build)
  * ---------------------------------------------------------------------------
  * Adds a "Changelog" button to the Info section of the main menu sidebar (the same
  * section as Wiki), showing the installed mod version as Modv#.# and what changed.
@@ -40,7 +40,7 @@
   // ===========================================================================
   //  EDIT HERE
   // ===========================================================================
-  var MOD_VERSION = "2.6";   // the version of THIS build (shown as Modv2.6)
+  var MOD_VERSION = "2.7";   // the version of THIS build (shown as Modv2.7)
 
   // Optional: a hosted Markdown (or JSON) changelog, e.g.
   //   "https://raw.githubusercontent.com/<you>/<repo>/main/changelog.md"
@@ -49,6 +49,18 @@
   var REMOTE_URL = "https://raw.githubusercontent.com/Techy-Nature/NestPatcher/main/changelog.md";
 
   var CHANGELOG = [
+    {
+      version: "2.7",
+      date: "2026-11-01",
+      title: "TiTS 0.9.168",
+      changes: [
+        { mod: "All mods", text: "Checked against TiTS 0.9.168: 508 of 508 patches apply. Every other mod works on 0.9.168 as it is." },
+        { mod: "Stella D'Amore", text: "Updated for 0.9.168 (the game renamed her scene functions). Now `Stella_v2.7.mod`." },
+        { mod: "Steph Irson", text: "Updated for 0.9.168. Now `StephIrson_v2.7.mod`." },
+        { mod: "Zheniya", text: "Updated for 0.9.168. Now `Zheniya_v2.7.mod`." },
+        { mod: "Changelog", text: "Shows Modv2.7 as installed. Now `TN_Changelog_v2.7.js`." }
+      ]
+    },
     {
       version: "2.6",
       date: "2026-10-31",
