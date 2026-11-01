@@ -1,6 +1,6 @@
 # TN Mod Pack Changelog
 
-Latest: 2.6
+Latest: 2.7
 
 <!--
   How this file works (this comment is not shown in the game):
@@ -12,6 +12,16 @@ Latest: 2.6
   - You can use **bold**, *italics*, ~~strike~~, `code` and [links](https://example.com).
   - Bump "Latest:" when you release; players on an older build see "Modv#.# is available".
 -->
+
+## Modv2.7 — TiTS 0.9.168 (2026-11-01)
+
+The pack now works on TiTS 0.9.168 (508 of 508 patches). Delete the `backup` folder in your mods folder before the first patch on the new game, because it holds 0.9.167 copies.
+
+- **Stella D'Amore:** Updated for 0.9.168, which renamed her scene functions. Now `Stella_v2.7.mod`.
+- **Steph Irson:** Updated for 0.9.168. Now `StephIrson_v2.7.mod`.
+- **Zheniya:** Updated for 0.9.168. Now `Zheniya_v2.7.mod`.
+- **Changelog:** Shows Modv2.7 as installed. Now `TN_Changelog_v2.7.js`.
+- **All other mods:** Work on 0.9.168 as they are. These three new files don't work on 0.9.167.
 
 ## Modv2.6 — Tattoos and chastity on PC (2026-10-31)
 
