@@ -575,7 +575,7 @@ Add Javascript:
         install();
         if (!window.tnDaneCrewWatch) window.tnDaneCrewWatch = setInterval(function () {
             install();
-            try { if (window.__tnDaneSparStash && window.CombatManager && !window.CombatManager.combatContainer) T.sparRestore(); } catch (err) {}
+            try { if ((window.__tnDaneSparStash || flags.TN_DANE_SPAR_TAKEN === 1) && window.CombatManager && !window.CombatManager.combatContainer) T.sparRestore(); } catch (err) {}
         }, 1000);
     }
     T.boot = boot;
@@ -1031,18 +1031,34 @@ Add Javascript:
         nextTo(window.tnDaneCrewMenu, "Back to Dane.");
     }
 
+    /* Weapons are put away with the game's own take/give calls (0.9.168 Inventory),
+       so they sit in the save's hidden equipment slots and come back even after a reload. */
     T.sparRestore = function () {
         var s = window.__tnDaneSparStash;
         window.__tnDaneSpar = false;
-        if (!s) return;
         window.__tnDaneSparStash = null;
+        if (typeof flags !== "undefined" && flags.TN_DANE_SPAR_TAKEN === 1) {
+            flags.TN_DANE_SPAR_TAKEN = 0;
+            try {
+                pc.inventory.giveMeleeWeapon();
+                pc.inventory.giveRangedWeapon();
+            } catch (err) { console.warn("[TN] Dane spar: weapon restore failed", err); }
+        }
+        if (!s) return;
         try {
-            pc.inventory.meleeWeapon = s.m;
-            pc.inventory.rangedWeapon = s.r;
             pc.HPRaw = Math.max(Number(pc.HPRaw) || 0, s.hp);
             pc.shieldsRaw = Math.max(Number(pc.shieldsRaw) || 0, s.sh);
         } catch (err) { console.warn("[TN] Dane spar: restore failed", err); }
     };
+    function sparTakeWeapons() {
+        var inv = pc.inventory, te = inv.transientEquipment || {};
+        if (typeof inv.takeMeleeWeapon !== "function" || typeof inv.giveMeleeWeapon !== "function") return false;
+        if (te.meleeWeapon || te.rangedWeapon) return false;
+        inv.takeMeleeWeapon();
+        inv.takeRangedWeapon();
+        flags.TN_DANE_SPAR_TAKEN = 1;
+        return true;
+    }
 
     function sparAI(allies, hostiles) {
         var o = this.selectTarget(hostiles);
@@ -1076,22 +1092,9 @@ Add Javascript:
 
     T.sparStart = function (bet) {
         var req = window.__tnDaneReq, CM = window.CombatManager;
-        var DaneClass, Rock;
-        try {
-            DaneClass = req(61397).g;
-            Rock = req(54014).yq.RegisteredClasses.Rock;
-        } catch (err) { console.warn("[TN] Dane spar: setup failed", err); sparFail(); return; }
-        if (!DaneClass || !Rock || !CM) { sparFail(); return; }
-        function fists() {
-            var f = new Rock();
-            f.shortName = "Fists";
-            f.longName = "fists";
-            f.description = "your fists";
-            f.attackVerb = "punch";
-            f.attackNoun = "punch";
-            try { f.baseDamage.kinetic.damageValue = 3; } catch (err) {}
-            return f;
-        }
+        var DaneClass;
+        try { DaneClass = req(61397).g; } catch (err) { console.warn("[TN] Dane spar: setup failed", err); sparFail(); return; }
+        if (!DaneClass || !CM) { sparFail(); return; }
         var e;
         try {
             e = new DaneClass();
@@ -1102,8 +1105,7 @@ Add Javascript:
             e.aimRaw = Math.round(6 * k);
             e.intelligenceRaw = Math.round(11 * k);
             e.willpowerRaw = Math.round(9 * k);
-            e.inventory.meleeWeapon = fists();
-            e.inventory.rangedWeapon = new Rock();
+            if (e.inventory.takeMeleeWeapon) { e.inventory.takeMeleeWeapon(); e.inventory.takeRangedWeapon(); }
             try { if (e.inventory.storage) e.inventory.storage.length = 0; } catch (err) {}
             e.credits = 0;
             e.XP = function () { return 0; };
@@ -1113,10 +1115,9 @@ Add Javascript:
             e.HPRaw = e.HPMax();
         } catch (err) { console.warn("[TN] Dane spar: Dane setup failed", err); sparFail(); return; }
 
-        window.__tnDaneSparStash = { m: pc.inventory.meleeWeapon, r: pc.inventory.rangedWeapon, hp: Number(pc.HPRaw) || 1, sh: Number(pc.shieldsRaw) || 0, bet: !!bet };
+        try { if (!sparTakeWeapons()) { sparFail(); return; } } catch (err) { console.warn("[TN] Dane spar: could not put weapons away", err); T.sparRestore(); sparFail(); return; }
+        window.__tnDaneSparStash = { hp: Number(pc.HPRaw) || 1, sh: Number(pc.shieldsRaw) || 0, bet: !!bet };
         window.__tnDaneSpar = true;
-        pc.inventory.meleeWeapon = fists();
-        pc.inventory.rangedWeapon = new Rock();
 
         CM.newGroundCombat();
         CM.setFriendlyActors(pc);
