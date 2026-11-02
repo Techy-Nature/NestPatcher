@@ -52,3 +52,4 @@ TN_SexGalleryScenes_v2.8.js
 TN_SexGallery_v2.8.js
 TN_QuadBatPop_v2.8.mod
 TN_QuadDracoPop_v2.8.mod
+TN_Holoboard_v2.8.mod

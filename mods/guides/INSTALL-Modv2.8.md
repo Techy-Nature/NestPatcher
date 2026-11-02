@@ -157,6 +157,27 @@ Using them:
 - Eating a different pop later swaps your wings to that type (Quad-Wing Pop for avian, Quad-Bat Pop
   for bat, Quad-Draco Pop for dragon).
 
+## Added later in Modv2.8: Anno's Holoboard is back
+
+The holoboard from Modv1.4 had dropped out of the pack: its file was missing, so Anno never
+stocked it and the cheat menu never listed it. It's rebuilt for TiTS 0.9.168.
+
+1. Copy `TN_Holoboard_v2.8.mod` into your mods folder.
+2. Add it to `enabled.txt` (the pack's `enabled.txt` already has it).
+3. Run **Test my mods**, then **Patch the game**. It doesn't patch game files (it adds the item at
+   startup), so the number of replacements doesn't change.
+
+Using it:
+
+- **Where:** Anno's shop, at the Steele Tech outpost on Tarkus or on your ship once she's crew. It
+  costs what Shekka charges for a pink hoverboard. It's also in Cheats > Items (search "holo").
+- **Anno's showcase:** the next time you talk to Anno, she shows it off, even if you met her long
+  ago. It plays once per save; the mod menu has a button to see it again.
+- **It's a real hoverboard:** everything that checks for the pink hoverboard counts it.
+- **Holopaint:** Inventory > Anno's Holoboard > Interact to recolor it, or turn the projector off
+  for bare steel.
+- **Toggle:** Options > Android Mods > **Anno's Holoboard**. Off = not stocked and no showcase.
+
 ## Fixed in Modv2.8: Wiki button in the Codex
 
 The Codex **Wiki** button from 2.7 never showed, because it was a separate file
