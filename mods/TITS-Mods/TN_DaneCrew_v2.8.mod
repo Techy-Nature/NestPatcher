@@ -16,6 +16,8 @@ Author: Neston
 #   - Hand So comm (when she pilots the Sonata): at your pilot's chair, and in Codex -> Extra.
 #   - While Saendra has the Sonata on loan she works days (8:00-17:59): her Anon's bar button is
 #     greyed out with a tooltip, and her "How's Work" talk has new text about her jobs and the loan.
+#   - Once the loan is repaid, How's Work becomes "Treasure?" (her friend quest won, Pete saved) or
+#     "Plans?". After that talk she's out noon-6 PM and can turn up at other bars (roaming, like Erra).
 # Toggle: Options -> Android Mods -> "Dane Crew". Off = he leaves the ship; flags stay in your save.
 # Design: dane-recruit/DANE-CREW-DESIGN-DRAFT.md. In-game author: Neston.
 
@@ -48,6 +50,21 @@ Replace [content_tavros.js]:
 function @@qv@@(){clearOutput(),author("Savin"),@@cv@@(),output("<i>“So, how’s work,”</i> you ask
 With:
 function @@qv@@(){if(window.tnSaenWorkTalk&&window.tnSaenWorkTalk(@@cv@@))return;clearOutput(),author("Savin"),@@cv@@(),output("<i>“So, how’s work,”</i> you ask
+
+Replace [content_tavros.js]:
+clearMenu(),addButton(0,"How’s Work",@@qv@@),addButton(1,"Hobbies",
+With:
+clearMenu(),addButton(0,window.tnSaenWorkLabel?window.tnSaenWorkLabel():"How’s Work",@@qv@@),addButton(1,"Hobbies",
+
+Replace [main.js]:
+void 0===flags.ERRA_HEARTBROKEN&&t.push("erraBarText"),
+With:
+window.tnSaenRoamOk&&window.tnSaenRoamOk(o)&&t.push("tnSaenRoam","tnSaenRoam"),void 0===flags.ERRA_HEARTBROKEN&&t.push("erraBarText"),
+
+Replace [main.js]:
+mariaBarBonus:window.mariaBarBonus}[flags.BAR_NPC]
+With:
+mariaBarBonus:window.mariaBarBonus,tnSaenRoam:window.tnSaenRoamBar}[flags.BAR_NPC]
 
 Replace [main.js]:
 "Fly","You need to find a plasma conduit.")),@@cc@@(@@a@@,@@e@@)&&@@a@@++}if(@@e@@&@@r@@.cV.Exit)
@@ -384,26 +401,69 @@ Add Javascript:
         addButton(slot, "The Sonata", function () { T.saendraSonata(back); }, "The Sonata", "Ask Saen how Dane’s ship is treating her.");
     };
 
-    /* While the Sonata is on loan (path 2), Saen flies day jobs in it: 8:00 to 17:59 game time. */
-    var SAEN_WORK_START = 8, SAEN_WORK_END = 18;
+    /* ---------- Saendra's days ----------
+       Path 2 (Sonata on loan): she flies jobs 8:00-17:59 and is away from Anon's bar.
+       Path 3 (loan repaid, Phoenix flying): How's Work becomes "Treasure?" (her friend quest won,
+       Pete the mechanic saved: SAENDRA_XPACK1_STATUS >= 9) or "Plans?" (not). After that talk she
+       roams: away from Anon's 12:00-17:59 and can turn up at other bars in the roaming bar rotation. */
+    var SAEN_WORK_START = 8, SAEN_WORK_END = 18, SAEN_ROAM_START = 12, SAEN_ROAM_END = 18;
     function saenHour() { var h = Number(typeof hours !== "undefined" ? hours : window.hours); return isNaN(h) ? 12 : h; }
-    function saenOnLoan() { if (!on() || typeof flags === "undefined") return false; loanTick(); return flags.TN_SONATA_PATH === 2; }
+    function saenOk() { return on() && typeof flags !== "undefined" && flags.SAENDRA_DISABLED === undefined; }
+    function saenOnLoan() { if (!saenOk()) return false; loanTick(); return flags.TN_SONATA_PATH === 2; }
+    function saenFree() { if (!saenOk()) return false; loanTick(); return flags.TN_SONATA_PATH === 3; }
+    function saenQuestWon() { return Number(flags.SAENDRA_XPACK1_STATUS) >= 9; }
+    function saenRoaming() { return saenFree() && flags.TN_SAEN_ROAM === 1; }
+    function inHours(a, b) { var h = saenHour(); return h >= a && h < b; }
+    function saenAffection(n) {
+        /* same as the game's own Saendra affection bump: capped at SAENDRA_MAX_AFFECTION (69 until raised) */
+        try {
+            if (flags.SAENDRA_MAX_AFFECTION === undefined) flags.SAENDRA_MAX_AFFECTION = 69;
+            var a = (Number(flags["SAENDRA AFFECTION"]) || 0) + n;
+            flags["SAENDRA AFFECTION"] = Math.min(a, flags.SAENDRA_MAX_AFFECTION);
+        } catch (err) {}
+    }
+    function saenShow(showBusts) {
+        try {
+            if (typeof showBusts === "function") showBusts();
+            else if (typeof saendra !== "undefined" && saendra.showAll) saendra.showAll();
+            else { showBust("SAENDRA"); showName("SAENDRA"); }
+        } catch (err) {}
+    }
+
+    /* Anon's bar: true when she isn't in her booth right now. */
     window.tnSaenWorking = function () {
-        if (!saenOnLoan()) return false;
-        var h = saenHour();
-        return h >= SAEN_WORK_START && h < SAEN_WORK_END;
+        if (saenOnLoan()) return inHours(SAEN_WORK_START, SAEN_WORK_END);
+        if (saenRoaming()) return inHours(SAEN_ROAM_START, SAEN_ROAM_END);
+        return false;
     };
     T.saenWorking = window.tnSaenWorking;
     window.tnSaenBarAway = function (slot) {
+        if (saenRoaming()) {
+            output("\n\nSaendra’s usual booth is empty. A waitress wiping down the table catches you looking. " + q("Saen? Took off around noon in that ship of hers, grinning like she’d already stolen something. She’s usually back for dinner."));
+            addDisabledButton(slot, "Saendra", "Saendra", "Saen is out in the Phoenix chasing fortune and fun in the afternoons. She might turn up in another bar out on the rim. Back here after 6 PM.");
+            return;
+        }
         output("\n\nSaendra’s usual booth is empty, a half-finished drink abandoned on the table. A waitress catches you looking and shrugs. " + q("Saen? She’s out on a job in that borrowed ship of hers. Usually rolls back in here around dinnertime."));
         addDisabledButton(slot, "Saendra", "Saendra", "Saen is out flying jobs in the Starlight Sonata during the day. Come back in the evening, after 6 PM.");
     };
-    /* "How’s Work" while she has the Sonata on loan. Returns true when it handled the talk. */
+
+    /* Label for her first talk button (canon "How’s Work"). */
+    window.tnSaenWorkLabel = function () {
+        if (saenFree()) return saenQuestWon() ? "Treasure?" : "Plans?";
+        return "How’s Work";
+    };
+
+    /* Her first talk. Returns true when the mod handled it, false to run the game's own. */
     window.tnSaenWorkTalk = function (showBusts) {
-        if (!saenOnLoan()) return false;
+        if (saenOnLoan()) return loanWorkTalk(showBusts);
+        if (saenFree()) { if (saenQuestWon()) treasureTalk(showBusts); else plansTalk(showBusts); return true; }
+        return false;
+    };
+
+    function loanWorkTalk(showBusts) {
         clearOutput();
         author("Neston");
-        try { if (typeof showBusts === "function") showBusts(); else { showBust("SAENDRA"); showName("SAENDRA"); } } catch (err) {}
+        saenShow(showBusts);
         var paid = Number(flags.TN_SONATA_LOAN_PAID) || 0, left = Math.max(0, LOAN_TOTAL - paid);
         var lines = [
             q("So, how’s work?") + " you ask.",
@@ -414,14 +474,122 @@ Add Javascript:
         if ((Number(flags["SAENDRA AFFECTION"]) || 0) >= 70) lines.push("Her tails curl around your [pc.leg] under the table. " + q("And yeah, I still call. Even from the cockpit."));
         say(lines);
         processTime(5);
-        try {
-            /* same as the game's own Saendra affection bump: +5, capped at SAENDRA_MAX_AFFECTION (69 until raised) */
-            if (flags.SAENDRA_MAX_AFFECTION === undefined) flags.SAENDRA_MAX_AFFECTION = 69;
-            var a = (Number(flags["SAENDRA AFFECTION"]) || 0) + 5;
-            flags["SAENDRA AFFECTION"] = Math.min(a, flags.SAENDRA_MAX_AFFECTION);
-        } catch (err) {}
+        saenAffection(5);
         removeButton(0);
         return true;
+    };
+
+    function freeTalkEnd(first) {
+        processTime(first ? 10 : 4);
+        saenAffection(first ? 10 : 3);
+        if (first) flags.TN_SAEN_ROAM = 1;
+        removeButton(0);
+    }
+    function treasureTalk(showBusts) {
+        clearOutput();
+        author("Neston");
+        saenShow(showBusts);
+        var first = flags.TN_SAEN_ROAM !== 1;
+        if (!first) {
+            say([
+                q("Any luck with the treasure?") + " you ask.",
+                "Saen waggles a chrome hand. " + q("Found a map that was actually a menu, and a menu that was actually a map,") + " she drawls. " + q("Ate well, at least. I’m getting closer, hero. I can smell it.")
+            ]);
+            freeTalkEnd(false);
+            return;
+        }
+        say([
+            q("So,") + " you ask, leaning on the table. " + q("Treasure?"),
+            "Saen goes very still. Then a slow, wolfish grin spreads across her freckled face, and both her tails start to wag. " + q("You remember that, huh?"),
+            "She knocks back half her drink and sets it down with a clack. " + q("Yeah. Treasure. The real kind. It’s why I left home, way back. My family had everything planned out for me, a nice safe life with a nice safe ending. And I took one look at the stars and said nope.") + " She laughs, low and a little rueful. " + q("Packed a bag, stole a ride, and went looking for the big score. Every pirate’s got one. Mine’s still out there."),
+            "Valeria’s avatar pops up on her wrist, arms folded. " + q("And now we have a working ship, a paid-off loan, and a mechanic who is alive and speaking to us. So she has no excuses left.") + " The little hologram softens. " + q("Which is a good thing. For once."),
+            q("Pete’s back on his feet, the Phoenix is flying, and nobody’s breathing down my neck for credits,") + " Saen murmurs, almost to herself. " + q("Hero... none of that happens without you. You pulled me off that pirate ship, you went in after Pete, you got Dane to trust me with his baby. I owe you more than I can ever pay back."),
+            "Before you can wave it off, she’s around the table and squeezing you in a fierce, tail-wrapped hug that smells of engine grease and cheap whiskey. " + q("Thank you. Seriously. Thank you, thank you, <b>thank you</b>.") + " She finally lets go, cheeks pink, and drops back into her seat. " + q("So! Afternoons, I’m out hunting. Leads, rumors, old star charts, bar-room gossip. If you catch me out on the rim, the first round’s on me."),
+            "<b>(Saendra now goes out from noon to 6 PM. You might run into her in other bars around the rim.)</b>"
+        ]);
+        freeTalkEnd(true);
+    }
+    function plansTalk(showBusts) {
+        clearOutput();
+        author("Neston");
+        saenShow(showBusts);
+        var first = flags.TN_SAEN_ROAM !== 1;
+        if (!first) {
+            say([
+                q("Any new plans?") + " you ask.",
+                "Saen shrugs, the very picture of innocence. " + q("Plans? Me? I go where the wind blows, hero. Today it blew toward a card game with some very trusting merchants.") + " She jingles a credit chit at you. " + q("Wind was good to me.")
+            ]);
+            freeTalkEnd(false);
+            return;
+        }
+        say([
+            q("So the Phoenix is flying again and the loan’s done,") + " you say. " + q("Plans?"),
+            "Saen leans back and props her boots on the table, a lazy grin tugging at her lips. " + q("Plans,") + " she purrs, tasting the word like it’s a fine whiskey. " + q("Y’know, I don’t think I’ve had a single day without somebody owning a piece of me since the pirates jumped us. Dock fees. Repair bills. Loans.") + " She waves a chrome hand. " + q("And now? Nothing. Nobody."),
+            q("So... maybe I go have some fun. Maybe I chase a rumor or two. Big fortune out there for a girl with a fast ship and loose morals.") + " She winks. " + q("I’m a pirate, hero. Plans are for people who want to get caught."),
+            "Valeria flickers up on her wrist with a long-suffering sigh. " + q("Translation: she has no idea, and she is thrilled about it."),
+            "Saen laughs, then reaches across the table and grabs your hand in both of hers, suddenly serious. " + q("Hey. Real talk for a sec. None of this happens without you. The Phoenix, the loan, Dane trusting me with his ship... you went to bat for me every time. Thank you. I mean it. Thank you so damn much.") + " She gives your hand a squeeze, tails thumping happily against the booth. " + q("Afternoons, I’ll be out there making trouble. Find me on the rim sometime and I’ll buy you a drink."),
+            "<b>(Saendra now goes out from noon to 6 PM. You might run into her in other bars around the rim.)</b>"
+        ]);
+        freeTalkEnd(true);
+    }
+
+    /* ---------- Saendra in the roaming bar rotation (like Erra) ---------- */
+    window.tnSaenRoamOk = function (room) {
+        if (!saenRoaming()) return false;
+        if (room === "ANON'S BAR AND BOARD") return false;
+        return inHours(SAEN_ROAM_START, SAEN_ROAM_END);
+    };
+    var SAEN_DAY = [
+        "she spent the morning haggling with a fence over a crate of ‘slightly used’ shield emitters",
+        "she chased a rumor about a derelict treasure barge for three systems and found a very angry family of space-goats",
+        "she won a star chart in a card game and is pretty sure at least half of it is real",
+        "she got into a bar fight, won it, and was bought a drink by the loser",
+        "she outran a customs cutter just for the fun of it and is still riding the high"
+    ];
+    window.tnSaenRoamBar = function (slot) {
+        if (!window.tnSaenRoamOk(typeof getCurrentLocation === "function" ? getCurrentLocation() : "")) return;
+        output("\n\nA familiar flash of fiery red hair catches your eye. Saendra’s sprawled in a corner booth, boots up on the table and twin tails swishing, nursing a drink like she owns the place.");
+        addButton(slot, "Saendra", T.saenRoamMeet, "Saendra", "Saen’s out on the rim this afternoon. Say hi.");
+    };
+    T.saenRoamMeet = function () {
+        clearOutput();
+        author("Neston");
+        saenShow();
+        say([
+            "You slide into the booth across from her. Saen’s face lights up. " + q("Well, look who it is! Fancy meeting you out here, hero.") + " She flags down a server with one chrome hand. " + q("Told you the first round’s on me."),
+            "Between sips she tells you that " + rnd(SAEN_DAY) + ". " + q("Best part of being free,") + " she drawls, grinning. " + q("Every day’s a new disaster.")
+        ]);
+        processTime(10);
+        saenAffection(2);
+        T.saenRoamButtons();
+    };
+    T.saenRoamButtons = function () {
+        clearMenu();
+        addButton(0, "Another Story", T.saenRoamStory, "Another Story", "Ask what else she’s been up to.");
+        addButton(1, "Drink", T.saenRoamDrink, "Drink", "Have another round together.");
+        addButton(14, "Leave", mainGameMenu, "Leave", "Let her get back to her afternoon.");
+    };
+    T.saenRoamStory = function () {
+        clearOutput();
+        author("Neston");
+        saenShow();
+        say([q("What else?") + " you ask.", "Saen taps her chin, then leans in conspiratorially. " + q("Okay, so,") + " she murmurs, and tells you that " + rnd(SAEN_DAY) + ". Valeria pipes up from her wrist to correct three of the details, and Saen flicks the hologram on the nose."]);
+        processTime(10);
+        T.saenRoamButtons();
+        removeButton(0);
+    };
+    T.saenRoamDrink = function () {
+        clearOutput();
+        author("Neston");
+        saenShow();
+        say([
+            "You order another round and clink glasses. Saen drinks like it’s a competition, which, with her, it probably is. By the bottom of the glass her tails have found their way around your [pc.leg] under the table.",
+            q("Gotta get moving soon,") + " she sighs, not moving at all. " + q("Fortune waits for no woman. But it can wait a little.")
+        ]);
+        processTime(20);
+        saenAffection(3);
+        T.saenRoamButtons();
+        removeButton(1);
     };
 
     T.saendraSonata = function (back) {

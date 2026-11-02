@@ -38,6 +38,9 @@ the Rec Deck casino on Zheng Shi.
 - **Saendra at work:** while she has the Sonata on loan, she flies jobs during the day (8 AM to
   6 PM game time). Her button in Anon's bar is greyed out then, with a tooltip saying when to come
   back, and her **How's Work** talk is about the jobs and paying Dane back.
+- **After the loan is paid off:** How's Work becomes **Treasure?** if you won her friend quest and
+  saved Pete the mechanic, or **Plans?** if not. After that talk she's out from noon to 6 PM, and
+  you can run into her in other bars around the rim (she joins the roaming bar crowd, like Erra).
 - **On the ship:** Talk, Sex (he's always on top), Spar (no weapons; bet yourselves, and with
   Grav-Cuffs in your pack he bottoms if you win), Appearance, and Leave Ship (he goes back to the
   bar, and coming back is free).
@@ -56,7 +59,7 @@ You don't need to delete `backup` this time; the game didn't change.
 2. Copy in `TN_taur-naga_text_v2.8.mod`, `TN_Changelog_v2.8.js`, `TN_DaneCrew_v2.8.mod` and the new `enabled.txt`.
    (Or empty the folder, keeping `logs` and `backup`, and copy in all of `TITS-Mods/`.)
 3. If you had turned mods off with `#` in your old `enabled.txt`, do that again in the new one.
-4. Run **Test my mods** (dry run). It should finish with no MISS (553 replacements with the
+4. Run **Test my mods** (dry run). It should finish with no MISS (556 replacements with the
    pack's own `enabled.txt`).
 5. **Patch the game.**
 
@@ -71,7 +74,7 @@ A new mod, so the pack version stays 2.8 (a new pack version comes every 10 new 
 1. Copy `TN_FeruzeCrew_v2.8.mod` and `TN_FeruzeCrew_v2.8.js` into your mods folder.
 2. Add both names to `enabled.txt` (the pack's `enabled.txt` already has them at the end).
 3. Run **Test my mods**. With the pack's `enabled.txt` it should finish with no MISS
-   (553 replacements, with Dane Crew included).
+   (556 replacements, with Dane Crew included).
 4. **Patch the game.**
 
 Where to find her: finish the Farrow quest on Dhaal (the one where you rescue your cousin
