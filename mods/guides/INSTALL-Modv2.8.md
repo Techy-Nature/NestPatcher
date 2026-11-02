@@ -127,3 +127,32 @@ working for scenes that didn't change.
 5. If it runs out of memory on `main.js`, run `node --max-old-space-size=3072 sex_scene_scan_v2.8.js`.
 
 Your saves keep their progress: scenes keep the same ID as long as their text doesn't change.
+
+## Added later in Modv2.8: Quad-Bat Pop and Quad-Draco Pop
+
+Two new mods, sister treats to the Quad-Wing Pop. That makes five new mods in 2.8 (Dane Crew,
+Feruze Crew, Sex Scene Gallery and these two), so the pack version stays 2.8.
+
+1. Copy `TN_QuadBatPop_v2.8.mod` and `TN_QuadDracoPop_v2.8.mod` into your mods folder.
+2. Add both names to `enabled.txt` (the pack's `enabled.txt` already has them at the end).
+3. Run **Test my mods**, then **Patch the game**. They don't patch game files (they add the items
+   at startup), so the number of replacements doesn't change.
+
+Using them:
+
+- **Where:** Jade on Tavros sells both, next to Amber Seed and the Quad-Wing Pop, for 1200 credits
+  each. They're also in Cheats > Items.
+- **Quad-Bat Pop:** always leaves you with two pairs of large bat wings. No wings: you grow four.
+  Small or large bat wings: they grow to full size and a second pair grows in under them. Other
+  wings, back tentacles or a shark fin: they become bat wings (four, or more if you already had
+  more). Old bat wings keep their look (furred stays furred); new ones match your skin tone.
+- **Quad-Draco Pop:** the same, with large draconic wings. Small draconic, frostwyrm and gryvain
+  wings count as dragon wings: they become large draconic wings and keep their look. New ones
+  match your scale color.
+- **Taurs and nagas:** the text after the change describes what four wings can lift for your body
+  shape (hooves off the ground for taurs, coils off the floor for nagas).
+- Eating one when you already have four or more of that wing type does nothing (it's just candy).
+- **Toggles:** Options > Android Mods > **Quad-Bat Pop** / **Quad-Draco Pop**. Off = not stocked and
+  the lollipop does nothing. Wings you already grew stay.
+- Eating a different pop later swaps your wings to that type (Quad-Wing Pop for avian, Quad-Bat Pop
+  for bat, Quad-Draco Pop for dragon).
