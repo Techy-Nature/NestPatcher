@@ -1,0 +1,677 @@
+/* TN Sex Scene Gallery v2.8 (Techy-Nest, 2026-11-02)
+   A gallery of every sex scene in the game, with a summary of each one, that fills in as you
+   play, plus four achievements for filling it:
+     25%  Sex Hound
+     50%  The Law of Sexual Exchange
+     75%  Nymphomaniac
+     100% Sexy Salacious Steele
+   Open it from the Info section of the main menu sidebar (Sex Gallery), from the mod menu
+   (Android Mods or TN Mod Settings), or with window.TnSexGallery.open().
+
+   Needs TN_SexGalleryScenes_v2.8.js (the scene list). The scene list is made by
+   mods/tools/sex_scene_scan_v2.8.js, which reads the game files with acorn.js. Run it again
+   after a game update.
+
+   How "seen" works: whenever someone in a scene orgasms, the mod checks the text printed on
+   that page against the scene list and marks the matching scene as seen. Progress is kept in
+   the save (flags.TN_SEXGAL_SEEN and flags.TN_SEXGAL_ACH, both plain text), so every save has
+   its own gallery and achievements. Scenes seen before the mod was installed are not known.
+   Debug: window.TnSexGallery.status() */
+(function () {
+    "use strict";
+    if (window.__tnSexGalleryLoaded) return;
+    window.__tnSexGalleryLoaded = true;
+
+    var MOD_ID = "tn-sex-gallery";
+    var VERSION = "2.8";
+    var SEEN_FLAG = "TN_SEXGAL_SEEN";
+    var ACH_FLAG = "TN_SEXGAL_ACH";
+    var SETTINGS_KEY = "tnSexGallery.settings";
+    var PAGE = 60;
+
+    var ACHIEVEMENTS = [
+        { id: "sexhound", pct: 25, name: "Sex Hound", text: "See 25% of the game’s sex scenes." },
+        { id: "exchange", pct: 50, name: "The Law of Sexual Exchange", text: "See 50% of the game’s sex scenes." },
+        { id: "nympho", pct: 75, name: "Nymphomaniac", text: "See 75% of the game’s sex scenes." },
+        { id: "steele", pct: 100, name: "Sexy Salacious Steele", text: "See every sex scene in the game." }
+    ];
+
+    // ------------------------------------------------------------------ helpers
+    function modOn() {
+        try {
+            return (window.tnModMenuActive !== true || typeof window.isTnModEnabled !== "function") || window.isTnModEnabled(MOD_ID);
+        } catch (err) { return true; }
+    }
+    function debug(msg) {
+        try { if (window.tnModMenuActive === true && typeof window.tnDebugLog === "function") window.tnDebugLog("[Sex Gallery] " + msg); } catch (err) {}
+    }
+    function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c];
+        });
+    }
+    function inGame() {
+        try { return typeof flags !== "undefined" && flags && typeof pc !== "undefined" && pc && !!pc.short; } catch (err) { return false; }
+    }
+
+    var settings = { toasts: true, newSceneToasts: true, spoilers: false, size: 1 };
+    try {
+        var raw = window.localStorage && localStorage.getItem(SETTINGS_KEY);
+        if (raw) { var got = JSON.parse(raw); for (var k in got) if (Object.prototype.hasOwnProperty.call(settings, k)) settings[k] = got[k]; }
+    } catch (err) {}
+    function saveSettings() {
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (err) {}
+    }
+
+    // ------------------------------------------------------------------ scene list
+    var catalog = null;   // { scenes, byId, index }
+    function loadCatalog() {
+        var data = window.TN_SEX_GALLERY_SCENES;
+        if (!data || !data.scenes) { catalog = null; return null; }
+        if (catalog && catalog.data === data) return catalog;
+        var byId = {};
+        var index = new Map();   // first 10 characters of a fingerprint -> [{ i, fp }]
+        for (var i = 0; i < data.scenes.length; i++) {
+            var s = data.scenes[i];
+            byId[s.id] = s;
+            for (var j = 0; j < s.fp.length; j++) {
+                var key = s.fp[j].slice(0, 10);
+                var list = index.get(key);
+                if (!list) { list = []; index.set(key, list); }
+                list.push({ i: i, fp: s.fp[j] });
+            }
+        }
+        catalog = { data: data, scenes: data.scenes, byId: byId, index: index };
+        debug("scene list loaded: " + data.scenes.length + " scenes (TiTS " + (data.game || "?") + ")");
+        return catalog;
+    }
+    window.tnSexGalleryReload = function () { catalog = null; loadCatalog(); };
+
+    // ------------------------------------------------------------------ per-save progress
+    function readSeen() {
+        var out = {};
+        if (!inGame()) return out;
+        var raw = flags[SEEN_FLAG];
+        if (typeof raw !== "string" || !raw) return out;
+        var parts = raw.split(",");
+        for (var i = 0; i < parts.length; i++) {
+            var p = parts[i].split(":");
+            if (p[0]) out[p[0]] = parseInt(p[1], 10) || 1;
+        }
+        return out;
+    }
+    function writeSeen(seen) {
+        if (!inGame()) return;
+        var parts = [];
+        for (var id in seen) if (Object.prototype.hasOwnProperty.call(seen, id)) parts.push(id + ":" + seen[id]);
+        flags[SEEN_FLAG] = parts.join(",");
+    }
+    function readAch() {
+        var out = {};
+        if (!inGame()) return out;
+        var raw = flags[ACH_FLAG];
+        if (typeof raw !== "string" || !raw) return out;
+        var parts = raw.split(",");
+        for (var i = 0; i < parts.length; i++) {
+            var p = parts[i].split(":");
+            if (p[0]) out[p[0]] = parseInt(p[1], 10) || 0;
+        }
+        return out;
+    }
+    function writeAch(ach) {
+        if (!inGame()) return;
+        var parts = [];
+        for (var id in ach) if (Object.prototype.hasOwnProperty.call(ach, id)) parts.push(id + ":" + ach[id]);
+        flags[ACH_FLAG] = parts.join(",");
+    }
+    function progress() {
+        var cat = loadCatalog();
+        var seen = readSeen();
+        var total = cat ? cat.scenes.length : 0;
+        var n = 0;
+        if (cat) for (var id in seen) if (cat.byId[id]) n++;
+        return { seen: n, total: total, pct: total ? (n * 100 / total) : 0, map: seen };
+    }
+
+    function checkAchievements(quiet) {
+        if (!inGame()) return [];
+        var p = progress();
+        if (!p.total) return [];
+        var ach = readAch();
+        var fresh = [];
+        for (var i = 0; i < ACHIEVEMENTS.length; i++) {
+            var a = ACHIEVEMENTS[i];
+            var need = Math.ceil(p.total * a.pct / 100);
+            if (!ach[a.id] && p.seen >= need) {
+                ach[a.id] = (typeof days !== "undefined" ? days : 0) || 1;
+                fresh.push(a);
+            }
+        }
+        if (fresh.length) {
+            writeAch(ach);
+            if (!quiet && settings.toasts) for (var j = 0; j < fresh.length; j++) toastAchievement(fresh[j]);
+            debug("achievement: " + fresh.map(function (x) { return x.name; }).join(", "));
+        }
+        return fresh;
+    }
+
+    // ------------------------------------------------------------------ recognising scenes
+    var buf = [];
+    var bufLen = 0;
+    var pending = false;
+    var lastMatch = null;
+    var stats = { orgasms: 0, checks: 0, matches: 0 };
+
+    function bufferText(t) {
+        if (typeof t !== "string" || !t) return;
+        buf.push(t);
+        bufLen += t.length;
+        if (bufLen > 300000) { buf = buf.slice(-200); bufLen = buf.join("").length; }
+    }
+    function resetBuffer() { buf = []; bufLen = 0; }
+
+    function findScene(text) {
+        var cat = loadCatalog();
+        if (!cat || !text) return null;
+        var hits = {};
+        var best = -1, bestN = 0;
+        for (var i = 0; i + 10 <= text.length; i++) {
+            var list = cat.index.get(text.substr(i, 10));
+            if (!list) continue;
+            for (var j = 0; j < list.length; j++) {
+                var h = list[j];
+                if (text.startsWith(h.fp, i)) {
+                    var key = h.i + "|" + h.fp;
+                    if (hits[key]) continue;
+                    hits[key] = 1;
+                    hits[h.i] = (hits[h.i] || 0) + 1;
+                    if (hits[h.i] > bestN) { bestN = hits[h.i]; best = h.i; }
+                }
+            }
+        }
+        return best >= 0 ? cat.scenes[best] : null;
+    }
+
+    function checkNow() {
+        if (!pending) return;
+        pending = false;
+        if (!modOn() || !inGame()) return;
+        stats.checks++;
+        var scene = null;
+        try { scene = findScene(buf.join("")); } catch (err) { debug("match failed: " + err); }
+        if (!scene) { debug("orgasm with no known scene on this page"); return; }
+        stats.matches++;
+        var seen = readSeen();
+        var first = !seen[scene.id];
+        seen[scene.id] = (seen[scene.id] || 0) + 1;
+        writeSeen(seen);
+        lastMatch = { id: scene.id, title: scene.title, npc: scene.npc, first: first };
+        debug((first ? "NEW " : "again ") + scene.id + " " + (scene.npc || "?") + ": " + scene.title);
+        if (first) {
+            if (settings.newSceneToasts) {
+                var p = progress();
+                toast("New in your gallery", (scene.npc ? scene.npc + ": " : "") + scene.title, p.seen + " / " + p.total + " scenes (" + p.pct.toFixed(1) + "%)", false);
+            }
+            checkAchievements(false);
+        }
+        refreshButton();
+    }
+
+    function noteOrgasm() {
+        stats.orgasms++;
+        if (pending) return;
+        pending = true;
+        // the scene function finishes printing first, then we look
+        setTimeout(checkNow, 0);
+    }
+
+    function wrapOutput() {
+        var o = window.output;
+        if (typeof o !== "function" || o.__tnSexGallery) return !!o;
+        var w = function (text) {
+            try { bufferText(text); } catch (err) {}
+            return o.apply(this, arguments);
+        };
+        w.__tnSexGallery = true;
+        w.__tnOriginal = o;
+        window.output = w;
+        return true;
+    }
+    function wrapClear() {
+        var c = window.clearOutput;
+        if (typeof c !== "function" || c.__tnSexGallery) return !!c;
+        var w = function () {
+            try { if (pending) checkNow(); } catch (err) {}
+            resetBuffer();
+            return c.apply(this, arguments);
+        };
+        w.__tnSexGallery = true;
+        w.__tnOriginal = c;
+        window.clearOutput = w;
+        return true;
+    }
+    var orgasmWrapped = false;
+    function wrapOrgasm() {
+        if (orgasmWrapped) return true;
+        if (typeof pc === "undefined" || !pc) return false;
+        // the top-most class that defines orgasm (the base Creature); NPC classes call up to it
+        var proto = Object.getPrototypeOf(pc), owner = null;
+        while (proto && proto !== Object.prototype) {
+            if (Object.prototype.hasOwnProperty.call(proto, "orgasm") && typeof proto.orgasm === "function") owner = proto;
+            proto = Object.getPrototypeOf(proto);
+        }
+        if (!owner) return false;
+        if (owner.orgasm.__tnSexGallery) { orgasmWrapped = true; return true; }
+        var orig = owner.orgasm;
+        var w = function () {
+            try { noteOrgasm(); } catch (err) {}
+            return orig.apply(this, arguments);
+        };
+        w.__tnSexGallery = true;
+        w.__tnOriginal = orig;
+        try {
+            owner.orgasm = w;
+        } catch (err) {
+            try { Object.defineProperty(owner, "orgasm", { value: w, writable: true, configurable: true, enumerable: false }); }
+            catch (err2) { return false; }
+        }
+        // classes that override orgasm without calling up to the base
+        orgasmWrapped = true;
+        debug("watching orgasms");
+        return true;
+    }
+    function wrapOwn(obj) {
+        // a creature class with its own orgasm that never reaches the base: wrap it too
+        try {
+            var p = Object.getPrototypeOf(obj);
+            if (p && Object.prototype.hasOwnProperty.call(p, "orgasm") && !p.orgasm.__tnSexGallery) {
+                var orig = p.orgasm;
+                var w = function () {
+                    try { noteOrgasm(); } catch (err) {}
+                    return orig.apply(this, arguments);
+                };
+                w.__tnSexGallery = true;
+                p.orgasm = w;
+            }
+        } catch (err) {}
+    }
+    function wrapAll() {
+        wrapOutput();
+        wrapClear();
+        wrapOrgasm();
+        try {
+            if (orgasmWrapped && typeof chars !== "undefined" && chars && !wrapAll.charsDone) {
+                for (var id in chars) if (chars[id] && typeof chars[id].orgasm === "function") wrapOwn(chars[id]);
+                wrapAll.charsDone = true;
+            }
+        } catch (err) {}
+    }
+
+    // ------------------------------------------------------------------ styles
+    function ensureStyle() {
+        if (document.getElementById("tnSexGalStyle")) return;
+        var css = ""
+            + "#tnSexGal{position:fixed;inset:0;z-index:99998;display:flex;flex-direction:column;background:#121218;color:#e9e6f2;font-family:Lato,'Segoe UI',sans-serif;font-size:calc(15px * var(--tnsg-size,1));}"
+            + "#tnSexGal *{box-sizing:border-box;}"
+            + "#tnSexGal .sg-top{flex:0 0 auto;padding:.7em .9em .6em;background:#1b1a24;border-bottom:1px solid #2e2b3d;box-shadow:0 .2em .5em rgba(0,0,0,.45);}"
+            + "#tnSexGal .sg-row{display:flex;flex-wrap:wrap;align-items:center;gap:.45em;}"
+            + "#tnSexGal h2{margin:0;font-size:1.3em;flex:1 1 auto;color:#f3d6ff;letter-spacing:.02em;}"
+            + "#tnSexGal button,#tnSexGal select,#tnSexGal input{font:inherit;color:#e9e6f2;background:#26243a;border:1px solid #3b3756;border-radius:.4em;min-height:2.4em;padding:0 .8em;}"
+            + "#tnSexGal button{cursor:pointer;font-weight:bold;}"
+            + "#tnSexGal button:hover,#tnSexGal button:focus-visible{background:#6d2f8f;border-color:#a35ad0;outline:none;}"
+            + "#tnSexGal input{flex:1 1 12em;min-width:0;}"
+            + "#tnSexGal input:focus,#tnSexGal select:focus{border-color:#00d9d4;outline:none;}"
+            + "#tnSexGal .sg-bar{height:.8em;border-radius:.4em;background:#2a2838;overflow:hidden;margin:.55em 0 .35em;}"
+            + "#tnSexGal .sg-bar>div{height:100%;background:linear-gradient(90deg,#8d31b0,#e0569b);}"
+            + "#tnSexGal .sg-count{font-size:.92em;color:#bdb6d3;}"
+            + "#tnSexGal .sg-ach{display:flex;flex-wrap:wrap;gap:.4em;margin:.45em 0 .55em;}"
+            + "@media (max-width:560px){#tnSexGal .sg-badge{flex:1 1 40%;font-size:.8em;padding:.35em .5em;}#tnSexGal h2{font-size:1.1em;}}"
+            + "#tnSexGal .sg-badge{flex:1 1 10em;padding:.45em .6em;border-radius:.45em;background:#1f1d2c;border:1px solid #34304a;color:#8a84a3;font-size:.9em;}"
+            + "#tnSexGal .sg-badge b{display:block;font-size:1.02em;}"
+            + "#tnSexGal .sg-badge.on{background:#2e1838;border-color:#c07be0;color:#f2dcff;}"
+            + "#tnSexGal .sg-badge.on b:before{content:'★ ';color:#ffcf5a;}"
+            + "#tnSexGal .sg-list{flex:1 1 auto;overflow-y:auto;padding:.7em .9em 2em;scrollbar-width:auto;scrollbar-color:#5b4f7a #15141c;}"
+            + "#tnSexGal .sg-list::-webkit-scrollbar{width:14px;}#tnSexGal .sg-list::-webkit-scrollbar-thumb{background:#5b4f7a;border-radius:7px;}#tnSexGal .sg-list::-webkit-scrollbar-track{background:#15141c;}"
+            + "#tnSexGal .sg-group{margin:1em 0 .4em;font-weight:bold;color:#d7b8ff;font-size:1.05em;border-bottom:1px solid #2e2b3d;padding-bottom:.2em;}"
+            + "#tnSexGal .sg-card{background:#1c1b26;border:1px solid #2e2b3d;border-left:.3em solid #8d31b0;border-radius:.45em;padding:.6em .75em;margin:.45em 0;}"
+            + "#tnSexGal .sg-card.locked{border-left-color:#3d3a50;opacity:.82;}"
+            + "#tnSexGal .sg-title{font-weight:bold;font-size:1.05em;color:#fff;}"
+            + "#tnSexGal .sg-card.locked .sg-title{color:#b9b4cc;}"
+            + "#tnSexGal .sg-meta{font-size:.86em;color:#9e98b6;margin:.15em 0 .3em;}"
+            + "#tnSexGal .sg-tags{display:flex;flex-wrap:wrap;gap:.3em;margin:.25em 0;}"
+            + "#tnSexGal .sg-tag{font-size:.78em;padding:.1em .5em;border-radius:1em;background:#2c2840;color:#cfc4ee;}"
+            + "#tnSexGal .sg-sum{line-height:1.45;color:#dedaea;}"
+            + "#tnSexGal .sg-open{line-height:1.45;color:#a9a3c0;font-style:italic;margin-top:.3em;font-size:.94em;}"
+            + "#tnSexGal .sg-hidden{color:#7d7894;font-style:italic;}"
+            + "#tnSexGal .sg-reveal{min-height:2em !important;padding:0 .6em !important;font-size:.85em;margin-top:.3em;}"
+            + "#tnSexGal .sg-seen{float:right;font-size:.8em;color:#e5a6ff;}"
+            + "#tnSexGal .sg-note{color:#bdb6d3;padding:1em .2em;line-height:1.5;}"
+            + "#tnSexGal .sg-more{display:block;margin:1em auto;}"
+            + ".tnSexToastBox{position:fixed;right:1em;bottom:1em;z-index:99999;display:flex;flex-direction:column;gap:.5em;max-width:min(24em,calc(100vw - 2em));pointer-events:none;}"
+            + ".tnSexToast{pointer-events:auto;background:#1c1a27;color:#efe9fb;border:1px solid #6d4a8a;border-left:.35em solid #c07be0;border-radius:.5em;padding:.6em .8em;box-shadow:0 .3em .9em rgba(0,0,0,.55);font-family:Lato,'Segoe UI',sans-serif;font-size:14px;animation:tnSexIn .25s ease-out;}"
+            + ".tnSexToast.ach{border-left-color:#ffcf5a;border-color:#a8853a;background:#241c12;}"
+            + ".tnSexToast .t1{font-size:.8em;text-transform:uppercase;letter-spacing:.06em;color:#c9a6e6;}"
+            + ".tnSexToast.ach .t1{color:#ffcf5a;}"
+            + ".tnSexToast .t2{font-weight:bold;font-size:1.05em;margin:.1em 0;}"
+            + ".tnSexToast .t3{font-size:.88em;color:#bcb4d2;}"
+            + "@keyframes tnSexIn{from{opacity:0;transform:translateY(.6em);}to{opacity:1;transform:none;}}";
+        var style = document.createElement("style");
+        style.id = "tnSexGalStyle";
+        style.textContent = css;
+        document.head.appendChild(style);
+    }
+
+    // ------------------------------------------------------------------ toasts
+    function toastBox() {
+        var box = document.querySelector(".tnSexToastBox");
+        if (!box) {
+            box = document.createElement("div");
+            box.className = "tnSexToastBox";
+            document.body.appendChild(box);
+        }
+        return box;
+    }
+    function toast(head, title, sub, isAch) {
+        try {
+            ensureStyle();
+            var el = document.createElement("div");
+            el.className = "tnSexToast" + (isAch ? " ach" : "");
+            el.innerHTML = '<div class="t1">' + esc(head) + '</div><div class="t2">' + esc(title) + '</div>' + (sub ? '<div class="t3">' + esc(sub) + '</div>' : "");
+            el.onclick = function () { el.remove(); };
+            var box = toastBox();
+            box.appendChild(el);
+            // never more than three at once; achievements stay longest
+            while (box.children.length > 3) {
+                var drop = null;
+                for (var i = 0; i < box.children.length; i++) if (!/\bach\b/.test(box.children[i].className)) { drop = box.children[i]; break; }
+                (drop || box.firstChild).remove();
+            }
+            setTimeout(function () { if (el.parentNode) el.remove(); }, isAch ? 9000 : 4500);
+        } catch (err) {}
+    }
+    function toastAchievement(a) {
+        toast("Achievement unlocked", a.name, a.text, true);
+    }
+
+    // ------------------------------------------------------------------ gallery window
+    var view = { q: "", place: "", show: "all", shown: PAGE, revealed: {} };
+    var keyHandler = null, backHandler = null;
+
+    function closeGallery() {
+        var root = document.getElementById("tnSexGal");
+        if (root) root.remove();
+        if (keyHandler) document.removeEventListener("keydown", keyHandler, true);
+        if (backHandler) document.removeEventListener("backbutton", backHandler, true);
+        keyHandler = backHandler = null;
+    }
+
+    function filtered(cat, seen) {
+        var q = view.q.trim().toLowerCase();
+        var out = [];
+        for (var i = 0; i < cat.scenes.length; i++) {
+            var s = cat.scenes[i];
+            var isSeen = !!seen[s.id];
+            if (view.show === "seen" && !isSeen) continue;
+            if (view.show === "unseen" && isSeen) continue;
+            if (view.place && s.place !== view.place) continue;
+            if (q) {
+                var hay = (s.npc + " " + s.title + " " + s.place + " " + s.author + " " + s.tags.join(" ") + " " + (isSeen || settings.spoilers ? s.summary : "")).toLowerCase();
+                if (hay.indexOf(q) < 0) continue;
+            }
+            out.push(s);
+        }
+        return out;
+    }
+
+    function cardHtml(s, seenCount) {
+        var open = !!seenCount || settings.spoilers || view.revealed[s.id];
+        var html = '<div class="sg-card' + (seenCount ? "" : " locked") + '">';
+        if (seenCount) html += '<span class="sg-seen">Seen ' + seenCount + (seenCount === 1 ? " time" : " times") + "</span>";
+        else html += '<span class="sg-seen" style="color:#7d7894">Not seen yet</span>';
+        html += '<div class="sg-title">' + esc(s.title) + "</div>";
+        var meta = [s.npc || "Unknown partner", s.place];
+        if (s.author) meta.push("by " + s.author);
+        html += '<div class="sg-meta">' + esc(meta.join(" · ")) + "</div>";
+        if (s.tags && s.tags.length) {
+            html += '<div class="sg-tags">';
+            for (var i = 0; i < s.tags.length; i++) html += '<span class="sg-tag">' + esc(s.tags[i]) + "</span>";
+            html += "</div>";
+        }
+        if (open) {
+            html += '<div class="sg-sum">' + esc(s.summary) + "</div>";
+            if (s.opening) {
+                var o = String(s.opening);
+                html += '<div class="sg-open">Starts: ' + (/^[“"]/.test(o) ? esc(o) : "“" + esc(o) + "”") + "</div>";
+            }
+        } else {
+            html += '<div class="sg-hidden">Summary hidden until you see this scene.</div>';
+            html += '<button type="button" class="sg-reveal" data-sg="reveal" data-id="' + esc(s.id) + '">Show summary</button>';
+        }
+        return html + "</div>";
+    }
+
+    function renderList(root) {
+        var list = root.querySelector(".sg-list");
+        var cat = loadCatalog();
+        if (!cat) {
+            list.innerHTML = '<div class="sg-note">The scene list is missing. Put <b>TN_SexGalleryScenes_v' + VERSION + '.js</b> in your mods folder, add it to <b>enabled.txt</b>, and patch again.</div>';
+            return;
+        }
+        var seen = readSeen();
+        var rows = filtered(cat, seen);
+        var html = "";
+        if (!inGame()) html += '<div class="sg-note">No save is loaded, so nothing is marked as seen. Load a save to see its gallery.</div>';
+        if (!rows.length) html += '<div class="sg-note">No scenes match.</div>';
+        var lastGroup = null;
+        var upto = Math.min(rows.length, view.shown);
+        for (var i = 0; i < upto; i++) {
+            var s = rows[i];
+            var group = s.place + " — " + (s.npc || "Other scenes");
+            if (group !== lastGroup) { html += '<div class="sg-group">' + esc(group) + "</div>"; lastGroup = group; }
+            html += cardHtml(s, seen[s.id] || 0);
+        }
+        if (rows.length > upto) html += '<button type="button" class="sg-more" data-sg="more">Show more (' + (rows.length - upto) + " left)</button>";
+        html += '<div class="sg-note" style="font-size:.85em">Scene list: ' + cat.scenes.length + " scenes from TiTS " + esc(cat.data.game || "?") +
+            ". Some scenes rule each other out, so 100% takes more than one playthrough’s worth of choices. Summaries are made by the scanner from each scene’s button, tooltip and text.</div>";
+        list.innerHTML = html;
+    }
+
+    function renderTop(root) {
+        var p = progress();
+        var ach = readAch();
+        root.querySelector(".sg-bar>div").style.width = Math.min(100, p.pct).toFixed(2) + "%";
+        root.querySelector(".sg-count").textContent = (inGame() ? p.seen + " of " + p.total + " scenes seen (" + p.pct.toFixed(1) + "%)" : p.total + " scenes in the game");
+        var html = "";
+        for (var i = 0; i < ACHIEVEMENTS.length; i++) {
+            var a = ACHIEVEMENTS[i];
+            var need = Math.ceil(p.total * a.pct / 100);
+            html += '<div class="sg-badge' + (ach[a.id] ? " on" : "") + '" title="' + esc(a.text) + '"><b>' + esc(a.name) + "</b>" +
+                (ach[a.id] ? "Unlocked" + (ach[a.id] > 1 ? " on day " + ach[a.id] : "") : a.pct + "%: " + Math.min(p.seen, need) + " / " + need) + "</div>";
+        }
+        root.querySelector(".sg-ach").innerHTML = html;
+    }
+
+    function openGallery() {
+        if (!modOn()) return false;
+        wrapAll();
+        ensureStyle();
+        closeGallery();
+        checkAchievements(true);
+        var cat = loadCatalog();
+        var root = document.createElement("div");
+        root.id = "tnSexGal";
+        root.setAttribute("role", "dialog");
+        root.setAttribute("aria-label", "Sex scene gallery");
+        root.style.setProperty("--tnsg-size", String(settings.size || 1));
+        var places = [];
+        if (cat) {
+            var seenP = {};
+            for (var i = 0; i < cat.scenes.length; i++) if (!seenP[cat.scenes[i].place]) { seenP[cat.scenes[i].place] = 1; places.push(cat.scenes[i].place); }
+            places.sort();
+        }
+        var opts = '<option value="">Everywhere</option>';
+        for (var j = 0; j < places.length; j++) opts += '<option value="' + esc(places[j]) + '"' + (view.place === places[j] ? " selected" : "") + ">" + esc(places[j]) + "</option>";
+        root.innerHTML = ''
+            + '<div class="sg-top">'
+            + '<div class="sg-row"><h2>Sex Scene Gallery</h2>'
+            + '<button type="button" data-sg="smaller" title="Smaller text">A-</button>'
+            + '<button type="button" data-sg="bigger" title="Bigger text">A+</button>'
+            + '<button type="button" data-sg="close">Close</button></div>'
+            + '<div class="sg-bar"><div style="width:0"></div></div>'
+            + '<div class="sg-count"></div>'
+            + '<div class="sg-ach"></div>'
+            + '<div class="sg-row">'
+            + '<input type="search" data-sg="q" placeholder="Search by name, place, act..." value="' + esc(view.q) + '">'
+            + '<select data-sg="place" aria-label="Place">' + opts + "</select>"
+            + '<select data-sg="show" aria-label="Show">'
+            + '<option value="all"' + (view.show === "all" ? " selected" : "") + ">All scenes</option>"
+            + '<option value="seen"' + (view.show === "seen" ? " selected" : "") + ">Seen</option>"
+            + '<option value="unseen"' + (view.show === "unseen" ? " selected" : "") + ">Not seen yet</option>"
+            + "</select></div>"
+            + "</div>"
+            + '<div class="sg-list"></div>';
+        document.body.appendChild(root);
+        renderTop(root);
+        renderList(root);
+
+        var timer = null;
+        root.querySelector("[data-sg=q]").addEventListener("input", function (ev) {
+            view.q = ev.target.value;
+            view.shown = PAGE;
+            clearTimeout(timer);
+            timer = setTimeout(function () { renderList(root); }, 200);
+        });
+        root.querySelector("[data-sg=place]").addEventListener("change", function (ev) { view.place = ev.target.value; view.shown = PAGE; renderList(root); });
+        root.querySelector("[data-sg=show]").addEventListener("change", function (ev) { view.show = ev.target.value; view.shown = PAGE; renderList(root); });
+        root.addEventListener("click", function (ev) {
+            var t = ev.target.closest ? ev.target.closest("[data-sg]") : null;
+            if (!t) return;
+            var act = t.getAttribute("data-sg");
+            if (act === "close") closeGallery();
+            else if (act === "more") { view.shown += PAGE; var y = root.querySelector(".sg-list").scrollTop; renderList(root); root.querySelector(".sg-list").scrollTop = y; }
+            else if (act === "reveal") { view.revealed[t.getAttribute("data-id")] = true; var y2 = root.querySelector(".sg-list").scrollTop; renderList(root); root.querySelector(".sg-list").scrollTop = y2; }
+            else if (act === "bigger" || act === "smaller") {
+                var size = (settings.size || 1) + (act === "bigger" ? 0.1 : -0.1);
+                settings.size = Math.max(0.8, Math.min(1.8, Math.round(size * 10) / 10));
+                saveSettings();
+                root.style.setProperty("--tnsg-size", String(settings.size));
+            }
+        });
+        keyHandler = function (ev) { if (ev.key === "Escape") { ev.stopPropagation(); ev.preventDefault(); closeGallery(); } };
+        backHandler = function (ev) { ev.stopImmediatePropagation(); ev.preventDefault(); closeGallery(); };
+        document.addEventListener("keydown", keyHandler, true);
+        document.addEventListener("backbutton", backHandler, true);
+        return true;
+    }
+
+    // ------------------------------------------------------------------ menu buttons
+    var BUTTON = {
+        id: "sex-gallery",
+        order: 30,
+        title: "Every sex scene in the game, and the ones you’ve seen in this save.",
+        label: function () {
+            if (!inGame()) return "Sex Gallery";
+            var p = progress();
+            return "Sex Gallery <span style=\"opacity:.8;font-weight:normal\">(" + p.pct.toFixed(0) + "%)</span>";
+        },
+        onClick: function () { openGallery(); }
+    };
+    var buttonAdded = false;
+    function addButton() {
+        if (buttonAdded || !modOn()) return;
+        if (window.tnInfo && typeof window.tnInfo.addButton === "function") {
+            window.tnInfo.addButton(BUTTON);
+            buttonAdded = true;
+        } else if (!addButton.queued) {
+            // the Wiki Browser owns the Info section and hasn't loaded yet: queue it
+            window.tnInfo = window.tnInfo || {};
+            (window.tnInfo.pending = window.tnInfo.pending || []).push(BUTTON);
+            addButton.queued = true;
+            buttonAdded = true;
+        }
+    }
+    function refreshButton() {
+        try { if (window.tnInfo && typeof window.tnInfo.refresh === "function") window.tnInfo.refresh(); } catch (err) {}
+    }
+
+    function menuHtml() {
+        var p = progress();
+        var html = "A gallery of every sex scene in the game, with a summary of each, that fills in as you play. " +
+            "Open it from <b>Info &gt; Sex Gallery</b> in the main menu sidebar, or with the button below.\n\n" +
+            (inGame() ? "This save: <b>" + p.seen + " of " + p.total + "</b> scenes (" + p.pct.toFixed(1) + "%)." : "Scenes in the list: <b>" + p.total + "</b>. Load a save to see its progress.") +
+            "\n\nAchievement pop-ups: <b>" + (settings.toasts ? "On" : "Off") + "</b>" +
+            "\nNew scene pop-ups: <b>" + (settings.newSceneToasts ? "On" : "Off") + "</b>" +
+            "\nShow summaries of scenes you haven't seen: <b>" + (settings.spoilers ? "On" : "Off") + "</b>";
+        html += '<button type="button" data-mod-act="open">Open the gallery</button>';
+        html += '<button type="button" data-mod-act="toasts">' + (settings.toasts ? "Turn off" : "Turn on") + " achievement pop-ups</button>";
+        html += '<button type="button" data-mod-act="newtoasts">' + (settings.newSceneToasts ? "Turn off" : "Turn on") + " new scene pop-ups</button>";
+        html += '<button type="button" data-mod-act="spoilers">' + (settings.spoilers ? "Hide" : "Show") + " unseen summaries</button>";
+        return html;
+    }
+    function onMenuAct(act) {
+        act = String(act || "");
+        if (act === "open") { setTimeout(openGallery, 0); return false; }
+        if (act === "toasts") settings.toasts = !settings.toasts;
+        else if (act === "newtoasts") settings.newSceneToasts = !settings.newSceneToasts;
+        else if (act === "spoilers") settings.spoilers = !settings.spoilers;
+        else return false;
+        saveSettings();
+        return true;
+    }
+    var registered = false;
+    function registerMenu() {
+        if (registered) return;
+        if (window.tnModMenuActive !== true || typeof window.registerModMenu !== "function") return;
+        window.registerModMenu({
+            id: MOD_ID,
+            name: "Sex Scene Gallery",
+            author: "Techy-Nest",
+            description: "A gallery of every sex scene with summaries, and achievements for filling it.",
+            supportsToggle: true,
+            getHtml: menuHtml,
+            onAct: onMenuAct,
+            onEnabledChange: function (next) { if (!next) closeGallery(); return true; }
+        });
+        registered = true;
+    }
+
+    // ------------------------------------------------------------------ start
+    window.TnSexGallery = {
+        version: VERSION,
+        achievements: ACHIEVEMENTS.slice(),
+        open: openGallery,
+        close: closeGallery,
+        progress: function () { var p = progress(); return { seen: p.seen, total: p.total, pct: p.pct }; },
+        findScene: function (text) { return findScene(String(text || "")); },
+        status: function () {
+            var cat = loadCatalog();
+            return {
+                version: VERSION, enabled: modOn(), scenes: cat ? cat.scenes.length : 0, game: cat ? cat.data.game : "",
+                watching: { output: !!(window.output && window.output.__tnSexGallery), clearOutput: !!(window.clearOutput && window.clearOutput.__tnSexGallery), orgasm: orgasmWrapped },
+                counts: stats, lastMatch: lastMatch, progress: this.progress()
+            };
+        },
+        // for testing: mark a scene by id as seen in this save
+        markSeen: function (id) {
+            var cat = loadCatalog();
+            if (!cat || !cat.byId[id] || !inGame()) return false;
+            var seen = readSeen();
+            seen[id] = (seen[id] || 0) + 1;
+            writeSeen(seen);
+            checkAchievements(false);
+            refreshButton();
+            return true;
+        }
+    };
+
+    var ticks = 0;
+    function tick() {
+        ticks++;
+        try { wrapAll(); } catch (err) {}
+        try { addButton(); } catch (err) {}
+        try { registerMenu(); } catch (err) {}
+        // keep checking: the game can replace output/clearOutput while it starts up
+        setTimeout(tick, ticks < 60 ? 500 : 3000);
+    }
+    tick();
+})();
