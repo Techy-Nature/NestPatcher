@@ -19,8 +19,9 @@ Author: Neston
 #   - Once the loan is repaid, How's Work becomes "Treasure?" (her friend quest finished: Pete saved and the datapad talk done) or
 #     "Plans?". After that talk she's out noon-6 PM and can turn up at other bars (roaming, like Erra).
 #     Each afternoon she docks the Phoenix on one rim world; the game's Hangar list shows it there
-#     (and on Tavros when she's home, plus the Sonata). Her rim-bar menu has Talk (Futafication is
-#     Tavros-only) and Sex (her own sex menu, aboard the Phoenix).
+#     (and on Tavros when she's home, plus the Sonata). Her rim-bar menu has Talk (her talk menu)
+#     and Sex (her own sex menu, aboard the Phoenix).
+#     Off Tavros, Futafication only shows if you carry Dicksprout or Throbb; she takes it on the Phoenix.
 # Toggle: Options -> Android Mods -> "Dane Crew". Off = he leaves the ship; flags stay in your save.
 # Design: dane-recruit/DANE-CREW-DESIGN-DRAFT.md. In-game author: Neston.
 
@@ -656,8 +657,74 @@ Add Javascript:
     /* Her canon talk menu, opened from a rim bar: Futafication is Tavros-only, Back returns here. */
     window.tnSaenTalkFix = function () {
         if (onTavros() || !window.__tnSaenRoamMeet) return;
-        addDisabledButton(7, "Futafication", "Futafication", "Better to bring that up back on Tavros, near the Dark Chrysalis.");
+        /* Off Tavros there's no Dark Chrysalis: Futafication only shows if you brought a dose. */
+        var dose = futaDose();
+        var noCockYet = !(typeof saendra !== "undefined" && saendra.hasCock && saendra.hasCock());
+        var notStarted = !flags["SAENDRA GONNA GO GET A COCK"];
+        if (dose && noCockYet && notStarted) addButton(7, "Futafication", T.saenRimFuta, "Futafication", "You’ve got a dose of " + dose + " in your pack. Bring up the idea of Saendra growing a dick.");
+        else removeButton(7);
         addButton(14, "Back", T.saenRoamBack, "Back", "Back to the booth.");
+    };
+    function futaDose() {
+        try {
+            if (pc.inventory.hasItem("Dicksprout")) return "Dicksprout";
+            if (pc.inventory.hasItem("Throbb")) return "Throbb";
+        } catch (err) {}
+        return null;
+    }
+    T.futaDose = futaDose;
+    T.saenRimFuta = function () {
+        var dose = futaDose();
+        clearOutput();
+        author("Neston");
+        saenShow();
+        if (!dose) { output("You pat your pack, but whatever you were going to offer her isn’t there anymore."); clearMenu(); addButton(0, "Next", T.saenRoamBack); return; }
+        var aff = Number(flags["SAENDRA AFFECTION"]) || 0;
+        var lines = [
+            "A bit hesitantly, you set a " + (dose === "Throbb" ? "Throbb injector" : "box of Dicksprout") + " on the table between you. " + q("So, uh, Saen... ever thought about trying one of these?"),
+            "She stares at it, then at you, one fluffy ear twitching. " + q("Lemme guess. You want me sporting a big, thick cock.") + " A wolfish grin creeps across her face. " + q("You came prepared, huh, hero?")
+        ];
+        if (aff <= 49) {
+            lines.push("You try to push the idea, but she slides the " + dose + " back across the table with one silver finger. " + q("Nice try. I like you, [pc.name], but I’m not messing up my body just for you. Put that away and buy me a drink instead."));
+            say(lines);
+            processTime(2);
+            saenAffection(-5);
+            clearMenu();
+            addButton(0, "Next", T.saenRoamBack);
+            return;
+        }
+        if (dose === "Throbb") lines.push("Her grin falters a little. " + q("Throbb, though? I’ve heard what that stuff does to people’s heads.") + " She taps the injector, chewing her lip, then shrugs. " + q("Alright. A small dose. But not here, with half the rim watching me go cross-eyed. If I’m gonna lose my mind for a bit, I’m doing it on my own ship."));
+        else lines.push(q("Dicksprout, huh? The gentle stuff.") + " She turns the box over in her hands, reading the label with growing interest. " + q("Reversible, nice and natural... ah, what the hell. You win. But I’m not growing a dick in a bar booth, hero."));
+        lines.push("She scoops up the dose and your hand in one motion and drags you out of the bar. " + q("Phoenix is docked down at the " + saenDaySpot().name + " hangar. Come on, before I chicken out."));
+        say(lines);
+        processTime(10);
+        clearMenu();
+        addButton(0, "Next", function () { T.saenRimFutaShip(dose); });
+    };
+    T.saenRimFutaShip = function (dose) {
+        clearOutput();
+        author("Neston");
+        saenShow();
+        try { pc.inventory.removeItemByClass(dose, 1); } catch (err) { console.warn("[TN] Saendra futa: could not use up the dose", err); }
+        var taur = pc.isTaur && pc.isTaur(), naga = pc.isNaga && pc.isNaga();
+        var kneel = taur ? "fold your legs down at the foot of her bunk, lowering your tauric body until your face is level with her hips" : naga ? "coil your tail across the cabin floor and rise up between her knees" : "kneel at the foot of her bunk";
+        say([
+            "The airlock hisses shut behind you, and Saen leads you straight to her cabin. She strips with quick, nervous hands, vest, shirt, and jeans all hitting the deck, then flops back on the bunk with her legs spread and her tails fluffed up to twice their size. " + q("Okay. Okay. I can do this."),
+            dose === "Throbb"
+                ? "She pops the cap off the injector, presses it to the soft skin just above her [saendra.pussy], and hisses as it fires. " + q("Ooh, that’s cold. That’s... ohhh, that’s </i>warm<i> now.")
+                : "She tears open the box, swallows a dose, and chases it with a swig from the flask on her nightstand. " + q("Tastes like licorice and bad decisions,") + " she drawls, then shivers. " + q("Oh. Oh, it’s working already.")
+        ]);
+        output("\n\nYou " + kneel + " and wait with her. For a long moment nothing happens. Then Saen gasps and arches off the bed as the flesh above her clit swells, a bristly, cat-like cockhead pushing up and out, followed by inch after throbbing inch of shaft. " + q("Fuck, fuck, it feels so good,") + " she whimpers, both hands clutching the sheets. " + q("Hero, please, I need... I need..."));
+        output("\n\nYou don’t need to be told twice. You wrap your lips around her brand-new cock and give her the first blowjob of her life. Saen lasts all of a minute before she grabs your head with both hands and floods your mouth with her very first load, yowling so loud Valeria pops up just to check nobody is dying.");
+        if (dose === "Throbb") output("\n\nThe Throbb keeps her rock hard long after, and for a good while she can’t keep her hands off herself, giggling and stroking between kisses. " + q("Okay, I get it now,") + " she pants. " + q("I get why people get hooked on this stuff. Good thing it was a small dose."));
+        output("\n\nAfterwards she pulls you up into her arms and holds you tight, tails curled around you both. " + q("I don’t know why I was so against this,") + " she murmurs, grinning down at her new cock. " + q("It’s like a huge fucking clit. Thanks, hero. I think.") + " She kisses you. " + q("Definitely thanks."));
+        output("\n\n<b>(Saendra has a cock now.)</b>");
+        try { saendra.createDefaultCock(); } catch (err) { console.warn("[TN] Saendra futa: createDefaultCock failed", err); }
+        flags["SAENDRA GONNA GO GET A COCK"] = 3;
+        try { pc.loadInMouth(saendra); saendra.orgasm(); } catch (err) {}
+        processTime(45);
+        clearMenu();
+        addButton(0, "Next", mainGameMenu);
     };
     T.saenRoamSex = function () {
         window.__tnSaenRoamMeet = false;

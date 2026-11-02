@@ -42,7 +42,8 @@ the Rec Deck casino on Zheng Shi.
   (Pete saved and the pirate datapad talk done), or **Plans?** if not. After that talk she's out
   from noon to 6 PM. Each afternoon she docks the Phoenix on one rim world (Mhen'ga, Tarkus, New
   Texas, Myrellion, Uveto or Canadia) and can turn up in that world's bar, like Erra. There she
-  has Talk (Futafication stays Tavros-only) and Sex (her usual sex menu, aboard the Phoenix).
+  has Talk and Sex (her usual sex menu, aboard the Phoenix). Off Tavros, her Futafication talk only
+  shows if you carry Dicksprout or Throbb, and she takes the dose aboard the Phoenix.
 - **Hangar:** the Phoenix shows in that world's **Hangar** list while she's there, and on Tavros
   when she's home. The Sonata shows in the Tavros Hangar whenever it's docked there.
 - **On the ship:** Talk, Sex (he's always on top), Spar (no weapons; bet yourselves, and with
