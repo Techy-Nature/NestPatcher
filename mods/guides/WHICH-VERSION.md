@@ -4,7 +4,7 @@ Short version: **use Neston's TN pack (Modv2.5) for everything.** It already has
 parts of Librakitty's pack built in. Don't load files from both packs at the same time:
 they share file names and the same mod menu function, and whichever loads last wins.
 
-Game version: **TiTS 0.9.168** (Modv2.7). Librakitty's pack was made for 0.9.166.
+Game version: **TiTS 0.9.168** (Modv2.8). Librakitty's pack was made for 0.9.166.
 
 ## Mod by mod
 
