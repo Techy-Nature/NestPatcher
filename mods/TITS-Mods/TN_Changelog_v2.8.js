@@ -29,7 +29,7 @@
  * ~~strikethrough~~, `code` and [links](https://...). Line breaks are kept.
  * Raw HTML is shown as plain text, never run.
  *
- * INSTALL: this file must be listed in mods/enabled.txt (after WikiBrowser_v2.7.js is
+ * INSTALL: this file must be listed in mods/enabled.txt (after WikiBrowser_v2.8.js is
  * fine; load order doesn't matter). If it isn't listed, the patcher skips it and
  * the Changelog button never appears in the Info section.
  */
@@ -63,6 +63,7 @@
         { mod: "Shelly Cure Quest", text: "Fix: Dr. Lessau on Uveto now accepts Shelly's eggs. **Give Eggs** stayed greyed out even with one of each small egg (brightly-colored, pink, blue and white) in your pack, because the mod looked for them in the wrong place in your inventory. The same fix makes healing poultices and Bianca's medkits show up for Shelly's blood draw. Now `TN_ShellyCureQuest_v2.8.mod`; delete `TN_ShellyCureQuest_v2.4.mod`." },
         { mod: "Shelly Cabin Returns", text: "Fix: patching stopped with two MISS lines for `content_tavros.js`, because TiTS 0.9.168 renamed the Assist egg reward function and the 0.9.168 update for this mod never made it into the pack. With Shelly on your crew, Next after her scenes takes you back to her cabin again. It's now in `enabled.txt`. Now `ShellyCabinReturns_v2.8.mod`; delete the old `ShellyCabinReturns.mod`." },
         { mod: "Anno's Holoboard", text: "Back in the pack. The mod's file had gone missing, so Anno never stocked it and the cheat menu never listed it. It's rebuilt for TiTS 0.9.168 and sold in Anno's shop (the Tarkus outpost, or your ship once she's crew) for what Shekka charges for a pink board. It's also in Options > Cheats > Items (search \"holo\"). Anno shows it off the next time you talk to her, even if you met her long ago. File: `TN_Holoboard_v2.8.mod`." },
+        { mod: "Wiki Browser", text: "Fix: the Codex **Wiki** button (added in 2.7) never showed, because it was a separate file, `TN_CodexWiki_v2.7.js`, that often didn't get loaded. It's now built into the Wiki Browser, so there's one file. **Wiki** sits under the Codex header in the left sidebar, and while you read an entry (like Gabilani) **Look up: Gabilani** searches the wiki for it. The Info > Wiki button on the main menu is still there. One Android Mods switch (Wiki Browser) turns both on and off. Now `WikiBrowser_v2.8.js`; delete `WikiBrowser_v2.7.js` and `TN_CodexWiki_v2.7.js`." },
         { mod: "Changelog", text: "Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`; delete `TN_Changelog_v2.7.js`." }
       ]
     },
