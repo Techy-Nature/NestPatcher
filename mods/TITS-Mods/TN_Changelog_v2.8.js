@@ -55,6 +55,7 @@
       title: "Taurs and nagas in the 0.9.168 scenes",
       changes: [
         { mod: "Taur/Naga Text", text: "Taur and naga wording for scenes added in TiTS 0.9.168: Dulcie the zil baker in Esbeth (all four of her sex scenes), Giallo's Paizuri on New Texas, Mags in Bay 12b on Canadia, and the gray goo bad end on Tarkus. Bipeds see the original text, and all the older wording still applies. Now `TN_taur-naga_text_v2.8.mod`; delete the old `TN_taur-naga_text.mod`." },
+        { mod: "Feruze Crew", text: "New. After the Farrow job on Dhaal, Feruze (your cousin's ex-bodyguard, fired after Dhaal) drinks in the back booth of the Crash Landing, the underground milk bar off the Mean Streets. Talk to her (getting fired, Zheng Shi, Dhaal, suula venom, your kid if you have one), buy a round, hook up on the old station platform, or hire her for a 5000 credit retainer (2500 if you've slept with her). On the ship she has talk, sex and Send Away (she goes back to the bar and rejoins for free). Four sex scenes, each with taur and naga versions: Fuck Her Puss, Scissor, Titfuck and Shark Seat. Files: `TN_FeruzeCrew_v2.8.mod` + `TN_FeruzeCrew_v2.8.js` (both in `enabled.txt`)." },
         { mod: "Changelog", text: "Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`; delete `TN_Changelog_v2.7.js`." }
       ]
     },

@@ -38,3 +38,24 @@ You don't need to delete `backup` this time; the game didn't change.
 Coming from Modv2.6 or older? Follow [`INSTALL-Modv2.7.md`](INSTALL-Modv2.7.md) first (it
 covers the 0.9.168 update and deleting `backup`), but copy in the 2.8 files above instead of
 `TN_Changelog_v2.7.js` and `TN_taur-naga_text.mod`.
+
+## Added later in Modv2.8: Feruze Crew
+
+A new mod, so the pack version stays 2.8 (a new pack version comes every 10 new mods).
+
+1. Copy `TN_FeruzeCrew_v2.8.mod` and `TN_FeruzeCrew_v2.8.js` into your mods folder.
+2. Add both names to `enabled.txt` (the pack's `enabled.txt` already has them at the end).
+3. Run **Test my mods**. With the pack's `enabled.txt` it should finish with no MISS
+   (537 replacements).
+4. **Patch the game.**
+
+Where to find her: finish the Farrow quest on Dhaal (the one where you rescue your cousin
+and get the probe). Then go to the Crash Landing, the underground milk bar off the Mean
+Streets, and look in the Bar Room. Feruze is in the back booth (button **Feruze**).
+- **Talk:** getting fired, Zheng Shi, Dhaal, suula stuff, and your daughter if you have one.
+- **Buy A Round:** 20 credits.
+- **Hook Up:** sex on the old station platform outside. She stays at the bar after.
+- **Hire Her:** 5000 credit retainer, or 2500 if you've slept with her. Needs a free crew slot.
+- On the ship: Talk, Sex and **Send Away** (she goes back to her booth and rejoins for free).
+- Sex scenes: Fuck Her Puss, Scissor, Titfuck, Shark Seat. Each has taur and naga versions.
+- Android Mods has a switch for her. Off = she isn't at the bar (if she's already crew, she stays).
