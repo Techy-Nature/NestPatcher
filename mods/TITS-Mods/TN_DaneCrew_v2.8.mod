@@ -12,7 +12,8 @@ Author: Neston
 #     the bullstud poster and ship boarding lines work. Crew Gunner perk included.
 #   - Crew menu: Talk (10 topics, crew comments), Sex (top-only: Cumdump, Bulkhead Pin, Lap Ride,
 #     Workout, Tail Milk; biped/taur/naga versions), Spar (no weapons, rocks/inventory/abilities/run
-#     greyed out, shields allowed; bet yourselves, and with Grav-Cuffs he bottoms for one), Hand So comm.
+#     greyed out, shields allowed; bet yourselves, and with Grav-Cuffs he bottoms for one).
+#   - Hand So comm (when she pilots the Sonata): at your pilot's chair, and in Codex -> Extra.
 # Toggle: Options -> Android Mods -> "Dane Crew". Off = he leaves the ship; flags stay in your save.
 # Design: dane-recruit/DANE-CREW-DESIGN-DRAFT.md. In-game author: Neston.
 
@@ -35,6 +36,16 @@ Replace [content_tavros.js]:
 in a position to ask about her lack of a wang-doodle.")),addButton(14,"Back",@@saen@@)}
 With:
 in a position to ask about her lack of a wang-doodle.")),window.tnDaneSaendraButton&&window.tnDaneSaendraButton(8,@@saen@@),addButton(14,"Back",@@saen@@)}
+
+Replace [main.js]:
+"Fly","You need to find a plasma conduit.")),@@cc@@(@@a@@,@@e@@)&&@@a@@++}if(@@e@@&@@r@@.cV.Exit)
+With:
+"Fly","You need to find a plasma conduit.")),window.tnHandSoHelm&&window.tnHandSoHelm(@@a@@)&&@@a@@++,@@cc@@(@@a@@,@@e@@)&&@@a@@++}if(@@e@@&@@r@@.cV.Exit)
+
+Replace [main.js]:
+@@l@@.push(@@y@@)}if(output(@@re@@.m.startList()),@@l@@.length<=0)
+With:
+@@l@@.push(@@y@@)}if(window.tnCodexExtraAddons&&window.tnCodexExtraAddons(@@l@@),output(@@re@@.m.startList()),@@l@@.length<=0)
 
 Add Javascript:
 (function () {
@@ -411,7 +422,6 @@ Add Javascript:
         if (flags.TN_DANE_TALK_TRAINING === 1) addButton(2, "Spar", window.tnDaneSpar, "Spar", "Go a few rounds in the cargo hold. No weapons.");
         else addDisabledButton(2, "Spar", "Spar", "Ask him about his training first.");
         addButton(3, "Appearance", T.appearance, "Appearance", "Take a good look at him.");
-        if (flags.TN_HANDSO_PILOT === 1) addButton(4, "Hand So", window.tnHandSoComm, "Hand So", "Open a comm link to the Sonata.");
         addButton(13, "Leave Ship", T.leaveAsk, "Leave Ship", "Send him back to the Aquarius bar on Zheng Shi.");
         addButton(14, "Back", mainGameMenu, "Back", "Leave him to it.");
     };
@@ -451,7 +461,25 @@ Add Javascript:
     };
 
     /* ---------- Hand So comm ---------- */
-    window.tnHandSoComm = function () {
+    /* Hand So's comm lives at your pilot's chair (ship menu) and in Codex -> Extra. */
+    function soReady() { return on() && typeof flags !== "undefined" && flags.TN_HANDSO_PILOT === 1; }
+    T.handSoBack = function () { mainGameMenu(); };
+    window.tnHandSoHelm = function (slot) {
+        if (!soReady()) return false;
+        addButton(slot, "Hand So", function () { window.tnHandSoComm(function () { mainGameMenu(); }); }, "Hand So", "Open a comm link to the Starlight Sonata from your pilot’s chair.");
+        return true;
+    };
+    window.tnCodexExtraAddons = function (list) {
+        if (!soReady() || !list || typeof list.push !== "function") return;
+        var item = { name: "Sonata Comm", desc: "Comm link to Hand So aboard the Starlight Sonata.", txt: "Hand So",
+            f: function () { window.tnHandSoComm(function () { window.showCodexExtra(); }); },
+            ttH: "Hand So", ttB: "Open a comm link to the Starlight Sonata." };
+        var blocked = (typeof inCombat === "function" && inCombat()) || (window.ui && typeof ui.disableExtraCodexActions === "function" && ui.disableExtraCodexActions());
+        if (blocked) { item.f = null; item.ttB = "You cannot use this at this time."; }
+        list.push(item);
+    };
+    window.tnHandSoComm = function (back) {
+        if (typeof back === "function") T.handSoBack = back;
         clearOutput();
         showBust("HAND_SO");
         showName("HAND\nSO");
@@ -466,7 +494,7 @@ Add Javascript:
         addButton(2, "Dane", T.handSoDane, "Dane", "Ask what she thinks of the Sonata’s owner.");
         var since = dayNow() - (Number(flags.TN_HANDSO_SINCE) || dayNow());
         if (flags.TN_HANDSO_BODY === 0 && since >= 3) addButton(3, "Her Request", T.handSoBody, "Her Request", "She’s been wanting to ask you something.");
-        addButton(14, "Back", window.tnDaneCrewMenu, "Back", "Close the comm link.");
+        addButton(14, "Back", function () { T.handSoBack(); }, "Back", "Close the comm link.");
     };
     function soSay(lines, minutes) {
         clearOutput();
@@ -497,7 +525,7 @@ Add Javascript:
         soSay([
             "You ask her what she thinks of Dane.",
             q("The sweaty one?") + " Her smile curls up wickedly. " + q("He talks to the ship when he thinks I am not listening. I am always listening. He calls her ‘baby.’ He apologizes when he bumps the console."),
-            "Somewhere behind you, from the direction of the galley, there is a muffled shout: " + q("I HEARD THAT."),
+            (crew() && typeof InPCShipInterior === "function" && InPCShipInterior()) ? "Somewhere behind you, from the direction of the galley, there is a muffled shout: " + q("I HEARD THAT.") : "Faintly, somewhere on the Sonata’s end of the line, a familiar voice shouts: " + q("I HEARD THAT."),
             q("He is very sweet,") + " Hand So whispers. " + q("Please do not tell him I said so. He would be so upset.")
         ], 5);
     };

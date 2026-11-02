@@ -33,6 +33,8 @@ the Rec Deck casino on Zheng Shi.
   not, it goes on loan to Saendra on Tavros (she pays Dane 1,000 credits every 30 days, 50,000 in
   all, then it stays on Tavros as a backup ship). If you haven't met Saendra, it stays docked on
   Zheng Shi until you ask Dane about it again.
+- **Hand So comm:** when she flies the Sonata, a **Hand So** button shows at your pilot's chair
+  (next to Fly) and in **Codex > Extra** as "Sonata Comm".
 - **On the ship:** Talk, Sex (he's always on top), Spar (no weapons; bet yourselves, and with
   Grav-Cuffs in your pack he bottoms if you win), Appearance, and Leave Ship (he goes back to the
   bar, and coming back is free).
@@ -51,7 +53,7 @@ You don't need to delete `backup` this time; the game didn't change.
 2. Copy in `TN_taur-naga_text_v2.8.mod`, `TN_Changelog_v2.8.js`, `TN_DaneCrew_v2.8.mod` and the new `enabled.txt`.
    (Or empty the folder, keeping `logs` and `backup`, and copy in all of `TITS-Mods/`.)
 3. If you had turned mods off with `#` in your old `enabled.txt`, do that again in the new one.
-4. Run **Test my mods** (dry run). It should finish with no MISS (540 replacements with the
+4. Run **Test my mods** (dry run). It should finish with no MISS (542 replacements with the
    pack's own `enabled.txt`).
 5. **Patch the game.**
 
