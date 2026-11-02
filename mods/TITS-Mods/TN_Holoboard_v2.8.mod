@@ -1,6 +1,6 @@
 Name: Anno's Holoboard
 Author: Kitty
-# TN_Holoboard - NestPatcher mod (TiTS 0.9.168), v2.7
+# TN_Holoboard - NestPatcher mod (TiTS 0.9.168), v2.8
 # Anno's Holoboard: a refurbished hoverboard coated in Anno's own invention, holopaint.
 #   - Works as a real hoverboard: anything in the game that checks for the pink hoverboard
 #     (faster travel, carrying huge endowments, Myrellion's landmines and window, and so

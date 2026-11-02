@@ -1,5 +1,5 @@
 /*
- * TN_Changelog_v2.7.js — in-game changelog for the TN mod pack (TiTS Android build)
+ * TN_Changelog_v2.8.js — in-game changelog for the TN mod pack (TiTS Android build)
  * ---------------------------------------------------------------------------
  * Adds a "Changelog" button to the Info section of the main menu sidebar (the same
  * section as Wiki), showing the installed mod version as Modv#.# and what changed.
@@ -40,7 +40,7 @@
   // ===========================================================================
   //  EDIT HERE
   // ===========================================================================
-  var MOD_VERSION = "2.7";   // the version of THIS build (shown as Modv2.7)
+  var MOD_VERSION = "2.8";   // the version of THIS build (shown as Modv2.8)
 
   // Optional: a hosted Markdown (or JSON) changelog, e.g.
   //   "https://raw.githubusercontent.com/<you>/<repo>/main/changelog.md"
@@ -50,6 +50,23 @@
 
   var CHANGELOG = [
     {
+      version: "2.8",
+      date: "2026-11-02",
+      title: "Taurs and nagas in the 0.9.168 scenes",
+      changes: [
+        { mod: "Taur/Naga Text", text: "Taur and naga wording for scenes added in TiTS 0.9.168: Dulcie the zil baker in Esbeth (all four of her sex scenes), Giallo's Paizuri on New Texas, Mags in Bay 12b on Canadia, and the gray goo bad end on Tarkus. Bipeds see the original text, and all the older wording still applies. Now `TN_taur-naga_text_v2.8.mod`; delete the old `TN_taur-naga_text.mod`." },
+        { mod: "Sex Scene Gallery", text: "New. **Info > Sex Gallery** in the main menu sidebar opens a gallery of every sex scene in the game (3,009 in TiTS 0.9.168), each with who it's with, where, the writer, tags like Anal or Oral, a short summary and how it starts. Scenes fill in as you play: when someone in a scene climaxes, the gallery checks that page's text and marks the scene as seen in this save. Summaries of scenes you haven't seen stay hidden unless you tap **Show summary** (or turn spoilers on in the mod menu). Search, filter by place and seen/not seen, and A-/A+ text size. Four achievements for filling it: **Sex Hound** (25%), **The Law of Sexual Exchange** (50%), **Nymphomaniac** (75%) and **Sexy Salacious Steele** (100%). Only scenes you see after installing it count. Files: `TN_SexGallery_v2.8.js` + `TN_SexGalleryScenes_v2.8.js` (both in `enabled.txt`). After a game update, make a new scene list with `tools/sex_scene_scan_v2.8.js` (needs acorn.js, like the taur gate scanner)." },
+        { mod: "Feruze Crew", text: "New. After the Farrow job on Dhaal, Feruze (your cousin's ex-bodyguard, fired after Dhaal) drinks in the back booth of the Crash Landing, the underground milk bar off the Mean Streets. Talk to her (getting fired, Zheng Shi, Dhaal, suula venom, your kid if you have one), buy a round, hook up on the old station platform, or hire her for a 5000 credit retainer (2500 if you've slept with her). On the ship she has talk, sex and Send Away (she goes back to the bar and rejoins for free). Four sex scenes, each with taur and naga versions: Fuck Her Puss, Scissor, Titfuck and Shark Seat. Files: `TN_FeruzeCrew_v2.8.mod` + `TN_FeruzeCrew_v2.8.js` (both in `enabled.txt`)." },
+        { mod: "Dane Crew", text: "New. Recruit Dane at the Aquarius bar on Zheng Shi after asking him about your cousin and how he got his start. His fee is 6,000 credits, minus 2,000 if you freed him on Myrellion and 2,000 if you gave his blade back. Hand So flies his ship if you kept her data bead (talk to her from your pilot’s chair or Codex > Extra); if not, Saendra borrows it while she fixes the Phoenix. He has a crew talk menu, a top-only sex menu with taur and naga versions of every scene, and weapon-free sparring with bets (bring Grav-Cuffs if you want to be on top). File: `TN_DaneCrew_v2.8.mod`." },
+        { mod: "Quad-Bat Pop", text: "New. **Quad-Bat Pop**, a black cherry lollipop shaped like a plus sign with a candy bat wing at each tip, sold by Jade on Tavros for 1200 credits. It always leaves you with two pairs of large bat wings, one under the other: it grows them if you have none, grows small bat wings to full size and adds a second pair, and turns any other wings (or back tentacles and shark fins) into bat wings. Bat wings you already had keep their look, furred backs included; new ones match your skin tone. Taurs and nagas get their own lines about what four wings can lift. File: `TN_QuadBatPop_v2.8.mod`." },
+        { mod: "Quad-Draco Pop", text: "New. **Quad-Draco Pop**, a red-hot cinnamon lollipop shaped like a plus sign with a scaled candy dragon wing at each tip, sold by Jade on Tavros for 1200 credits. It always leaves you with two pairs of large draconic wings, one under the other: it grows them if you have none, grows small dragon wings to full size and adds a second pair (frostwyrm and gryvain wings become draconic and keep their look), and turns any other wings (or back tentacles and shark fins) draconic. New ones match your scale color. Taurs and nagas get their own lines about what four wings can lift. File: `TN_QuadDracoPop_v2.8.mod`." },
+        { mod: "Shelly Cure Quest", text: "Fix: Dr. Lessau on Uveto now accepts Shelly's eggs. **Give Eggs** stayed greyed out even with one of each small egg (brightly-colored, pink, blue and white) in your pack, because the mod looked for them in the wrong place in your inventory. The same fix makes healing poultices and Bianca's medkits show up for Shelly's blood draw. Now `TN_ShellyCureQuest_v2.8.mod`; delete `TN_ShellyCureQuest_v2.4.mod`." },
+        { mod: "Shelly Cabin Returns", text: "Fix: patching stopped with two MISS lines for `content_tavros.js`, because TiTS 0.9.168 renamed the Assist egg reward function and the 0.9.168 update for this mod never made it into the pack. With Shelly on your crew, Next after her scenes takes you back to her cabin again. It's now in `enabled.txt`. Now `ShellyCabinReturns_v2.8.mod`; delete the old `ShellyCabinReturns.mod`." },
+        { mod: "Anno's Holoboard", text: "Back in the pack. The mod's file had gone missing, so Anno never stocked it and the cheat menu never listed it. It's rebuilt for TiTS 0.9.168 and sold in Anno's shop (the Tarkus outpost, or your ship once she's crew) for what Shekka charges for a pink board. It's also in Options > Cheats > Items (search \"holo\"). Anno shows it off the next time you talk to her, even if you met her long ago. File: `TN_Holoboard_v2.8.mod`." },
+        { mod: "Changelog", text: "Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`; delete `TN_Changelog_v2.7.js`." }
+      ]
+    },
+    {
       version: "2.7",
       date: "2026-11-01",
       title: "TiTS 0.9.168",
@@ -57,10 +74,10 @@
         { mod: "All mods", text: "Checked against TiTS 0.9.168: 508 of 508 patches apply. Every other mod works on 0.9.168 as it is." },
         { mod: "Stella D'Amore", text: "Updated for 0.9.168 (the game renamed her scene functions). Now `Stella_v2.7.mod`." },
         { mod: "Steph Irson", text: "Updated for 0.9.168. Now `StephIrson_v2.7.mod`." },
+        { mod: "Steph Irson", text: "Dialogue rewrite: no more \"Oi, mate!\" every other line. Her New Brisbane voice now shows in her word choice and in how she talks (drawls, purrs, teases), and the two sex scenes lost their repeated paragraphs. New scene: **Snake & Vine** in her Sex menu, for a Steele with a cunt tail to pair with her cockvine tail. All three of her sex scenes now have taur and naga versions. Now `StephIrson_v2.7.js`; delete the old `StephIrson.js`." },
         { mod: "Zheniya", text: "Updated for 0.9.168. Now `Zheniya_v2.7.mod`." },
         { mod: "Codex Wiki Button", text: "New: the Codex sidebar has a **Wiki** button under the Codex header. It opens the TiTS wiki, and while you read an entry (like Gabilani) a **Look up: Gabilani** button searches the wiki for it. It opens in the Wiki Browser over the game; without the Wiki Browser it opens in your browser, or in a small wiki window. Works on Android and desktop, and has its own switch in Android Mods. File: `TN_CodexWiki_v2.7.js`." },
         { mod: "Wiki Browser", text: "Other mods can now open it on a search or a page (the Codex button uses this). Now `WikiBrowser_v2.7.js`." },
-        { mod: "Anno's Holoboard", text: "Back in the pack. Its file had gone missing, so it was rebuilt for 0.9.168 as `TN_Holoboard_v2.7.mod`. It's in Anno's shop (Tarkus outpost or crew) and in Options > Cheats > Items (search \"holo\"). Anno shows it off the next time you talk to her, even if you met her long ago." },
         { mod: "Changelog", text: "Shows Modv2.7 as installed. Now `TN_Changelog_v2.7.js`." }
       ]
     },
