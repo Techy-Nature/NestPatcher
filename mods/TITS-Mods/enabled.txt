@@ -25,7 +25,7 @@ TN_LaneDetoxWeights_v2.4.mod
 TN_PhoenixThunderbird_v2.5.js
 TN_Gryphonix_v2.4.mod
 TN_ShellyCureBusts.js
-TN_ShellyCureQuest_v2.4.mod
+TN_ShellyCureQuest_v2.8.mod
 TN_Chimerune_v2.4.mod
 TN_ClockFormat_v2.4.mod
 TN_AzraFamily_v2.4.mod
