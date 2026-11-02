@@ -81,3 +81,49 @@ Streets, and look in the Bar Room. Feruze is in the back booth (button **Feruze*
 - On the ship: Talk, Sex and **Send Away** (she goes back to her booth and rejoins for free).
 - Sex scenes: Fuck Her Puss, Scissor, Titfuck, Shark Seat. Each has taur and naga versions.
 - Android Mods has a switch for her. Off = she isn't at the bar (if she's already crew, she stays).
+
+## Added later in Modv2.8: Sex Scene Gallery
+
+A new mod, so the pack version stays 2.8 (three new mods so far in 2.8; a new pack version comes every 10).
+
+1. Copy `TN_SexGallery_v2.8.js` and `TN_SexGalleryScenes_v2.8.js` into your mods folder.
+2. Add both names to `enabled.txt` (the pack's `enabled.txt` already has them at the end).
+3. Run **Test my mods**, then **Patch the game**. These are `.js` files, so the number of
+   replacements doesn't change.
+
+Using it:
+
+- **Open it:** main menu sidebar > **Info** > **Sex Gallery** (the button shows how much of this
+  save's gallery you've filled). It's also in the mod menu (Options > Android Mods, or Options >
+  TN Mod Settings on desktop) as **Sex Scene Gallery** > **Open the gallery**.
+- **How scenes get marked:** when anyone in a scene climaxes, the mod checks the text on that page
+  against the scene list and marks that scene as seen. Every save has its own gallery and
+  achievements. Scenes you saw before installing the mod aren't known, so replay favourites to
+  add them.
+- **Spoilers:** scenes you haven't seen show their name, partner, place, writer and tags, but the
+  summary stays hidden until you tap **Show summary**. The mod menu can show them all.
+- **Achievements:** Sex Hound (25%), The Law of Sexual Exchange (50%), Nymphomaniac (75%) and
+  Sexy Salacious Steele (100%). They pop up when you earn them and stay in the gallery's header.
+  Some scenes rule each other out (for example, different endings), so 100% takes more than one
+  save's worth of choices.
+- **Settings** (mod menu): achievement pop-ups, new scene pop-ups, and showing unseen summaries.
+
+### After a game update: make a new scene list
+
+The scene list comes from the game files, so a new TiTS version needs a new list. Old lists keep
+working for scenes that didn't change.
+
+1. Put `acorn.js` next to `sex_scene_scan_v2.8.js` (the same file the taur gate scanner uses).
+2. In Termux (or a terminal on PC), go to the `tools` folder and run:
+
+   ```
+   node sex_scene_scan_v2.8.js
+   ```
+
+3. The first time, it asks where acorn.js, the game's `www` folder, the `backup` folder, the mods
+   folder and the logs folder are. Press Enter to keep a suggested answer. It remembers them.
+4. It writes `TN_SexGalleryScenes_v2.8.js` into your mods folder and a full list of the scenes it
+   found to `logs/SexSceneScan.txt`. Then patch again.
+5. If it runs out of memory on `main.js`, run `node --max-old-space-size=3072 sex_scene_scan_v2.8.js`.
+
+Your saves keep their progress: scenes keep the same ID as long as their text doesn't change.
