@@ -55,6 +55,7 @@
       title: "Taurs and nagas in the 0.9.168 scenes",
       changes: [
         { mod: "Taur/Naga Text", text: "Taur and naga wording for scenes added in TiTS 0.9.168: Dulcie the zil baker in Esbeth (all four of her sex scenes), Giallo's Paizuri on New Texas, Mags in Bay 12b on Canadia, and the gray goo bad end on Tarkus. Bipeds see the original text, and all the older wording still applies. Now `TN_taur-naga_text_v2.8.mod`; delete the old `TN_taur-naga_text.mod`." },
+        { mod: "Dane Crew", text: "New. Recruit Dane at the Aquarius bar on Zheng Shi after asking him about your cousin and how he got his start. His fee is 6,000 credits, minus 2,000 if you freed him on Myrellion and 2,000 if you gave his blade back. Hand So flies his ship if you kept her data bead; if not, Saendra borrows it while she fixes the Phoenix. He has a crew talk menu, a top-only sex menu with taur and naga versions of every scene, and weapon-free sparring with bets (bring Grav-Cuffs if you want to be on top). File: `TN_DaneCrew_v2.8.mod`." },
         { mod: "Changelog", text: "Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`; delete `TN_Changelog_v2.7.js`." }
       ]
     },
