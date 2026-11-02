@@ -156,3 +156,27 @@ Using them:
   the lollipop does nothing. Wings you already grew stay.
 - Eating a different pop later swaps your wings to that type (Quad-Wing Pop for avian, Quad-Bat Pop
   for bat, Quad-Draco Pop for dragon).
+
+## Fixed in Modv2.8: Wiki button in the Codex
+
+The Codex **Wiki** button from 2.7 never showed, because it was a separate file
+(`TN_CodexWiki_v2.7.js`) that often didn't get loaded. It's now built into the Wiki Browser,
+so there's only one file.
+
+1. In your mods folder, delete `WikiBrowser_v2.7.js` and `TN_CodexWiki_v2.7.js` (if you have
+   them; also any `WikiBrowser_v2.5.js`).
+2. Copy in `WikiBrowser_v2.8.js`, the new `TN_Changelog_v2.8.js` and the new `enabled.txt`
+   (or change the `WikiBrowser_v2.7.js` line to `WikiBrowser_v2.8.js` and delete the
+   `TN_CodexWiki_v2.7.js` line yourself).
+3. Run **Test my mods**, then **Patch the game**. On Android, rebuild and install the APK.
+4. Check: load a game and open the **Codex**. **Wiki** sits under the "Codex" header in the left
+   sidebar. Open an entry and a **Look up:** button with its name appears under it. The main
+   menu's Info > Wiki is still there too.
+
+- **Android:** the **Wiki Browser** switch in Options > Android Mods turns the Info and Codex
+  buttons on and off together.
+- If the game isn't showing the sidebar, the Wiki button goes in the empty spot of the Codex's
+  bottom menu (next to **Appearance**) instead.
+- If it still doesn't show, turn on the debug log in Android Mods, open the Codex, and look for
+  `[Wiki] Loaded v2.8 (Info and Codex buttons)`. If that line is missing, the file isn't being
+  loaded: check `enabled.txt`.

@@ -29,7 +29,7 @@
  * ~~strikethrough~~, `code` and [links](https://...). Line breaks are kept.
  * Raw HTML is shown as plain text, never run.
  *
- * INSTALL: this file must be listed in mods/enabled.txt (after WikiBrowser_v2.7.js is
+ * INSTALL: this file must be listed in mods/enabled.txt (after WikiBrowser_v2.8.js is
  * fine; load order doesn't matter). If it isn't listed, the patcher skips it and
  * the Changelog button never appears in the Info section.
  */
@@ -62,6 +62,7 @@
         { mod: "Quad-Draco Pop", text: "New. **Quad-Draco Pop**, a red-hot cinnamon lollipop shaped like a plus sign with a scaled candy dragon wing at each tip, sold by Jade on Tavros for 1200 credits. It always leaves you with two pairs of large draconic wings, one under the other: it grows them if you have none, grows small dragon wings to full size and adds a second pair (frostwyrm and gryvain wings become draconic and keep their look), and turns any other wings (or back tentacles and shark fins) draconic. New ones match your scale color. Taurs and nagas get their own lines about what four wings can lift. File: `TN_QuadDracoPop_v2.8.mod`." },
         { mod: "Shelly Cure Quest", text: "Fix: Dr. Lessau on Uveto now accepts Shelly's eggs. **Give Eggs** stayed greyed out even with one of each small egg (brightly-colored, pink, blue and white) in your pack, because the mod looked for them in the wrong place in your inventory. The same fix makes healing poultices and Bianca's medkits show up for Shelly's blood draw. Now `TN_ShellyCureQuest_v2.8.mod`; delete `TN_ShellyCureQuest_v2.4.mod`." },
         { mod: "Shelly Cabin Returns", text: "Fix: patching stopped with two MISS lines for `content_tavros.js`, because TiTS 0.9.168 renamed the Assist egg reward function and the 0.9.168 update for this mod never made it into the pack. With Shelly on your crew, Next after her scenes takes you back to her cabin again. It's now in `enabled.txt`. Now `ShellyCabinReturns_v2.8.mod`; delete the old `ShellyCabinReturns.mod`." },
+        { mod: "Wiki Browser", text: "Fix: the Codex **Wiki** button (added in 2.7) never showed, because it was a separate file, `TN_CodexWiki_v2.7.js`, that often didn't get loaded. It's now built into the Wiki Browser, so there's one file. **Wiki** sits under the Codex header in the left sidebar, and while you read an entry (like Gabilani) **Look up: Gabilani** searches the wiki for it. The Info > Wiki button on the main menu is still there. One Android Mods switch (Wiki Browser) turns both on and off. Now `WikiBrowser_v2.8.js`; delete `WikiBrowser_v2.7.js` and `TN_CodexWiki_v2.7.js`." },
         { mod: "Changelog", text: "Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`; delete `TN_Changelog_v2.7.js`." }
       ]
     },
