@@ -1,7 +1,8 @@
-# TN_taur-naga_text.mod — written 2026-10-15, Tavros merged in 2026-10-24, checked for TiTS 0.9.167 on 2026-10-25
+# TN_taur-naga_text_v2.8.mod — written 2026-10-15, Tavros merged in 2026-10-24, checked for TiTS 0.9.167 on 2026-10-25, updated for 0.9.168 on 2026-11-02 (Modv2.8)
 # Companion to TN_taur-naga_gates.mod. Adds taur/naga wording to the scenes those gates open, on every planet
 # including Tavros (the old TN_taur-naga_tavros_text.mod is merged in below, so don't enable both). Bipeds see the original text: every change wraps the
 # original words in [pc.isTaur|…|…], [pc.isNaga|…|…] or [pc.isBiped|…|…] tags.
+# 0.9.168 update: the 269 older blocks still match 0.9.168, and 28 new blocks at the end cover the new scenes (Dulcie the zil baker, Giallo’s Paizuri, the gray goo bad end, Mags). Replaces TN_taur-naga_text.mod, so delete that file.
 # 0.9.167 check: all 269 blocks match the 0.9.167 bundles (same counts as 0.9.166), and the patched bundles pass node --check.
 # Load order doesn't matter: no needle overlaps the gates mod (tested both orders against the 134-gate gates mod generated 2026-10-25).
 # Numbers (#1…) match the gate numbers in the old audit, not the order of the gates mod.
@@ -1458,3 +1459,160 @@ Karen is jerking around on your lap
 With:
 [pc.isTaur|Karen is jerking around on your hindquarters|Karen is jerking around on your lap]
 
+
+# ----- 0.9.168 additions (Modv2.8, 2026-11-02) -----
+# New scenes in TiTS 0.9.168 that taurs and nagas can reach, with no gate of their own. Bipeds still see the original words.
+# Numbers carry on from #200 so they never clash with the old audit numbers.
+
+# ===== content_mhenga.js: Dulcie, the zil baker in Esbeth (18 changes) =====
+# --- #200 Domme Me ---
+# The game already wraps a naga's or goo's lower body around her; this adds the taur side.
+Replace [content_mhenga.js]
+Dulcie rubs her obsidian, honeysoaked snatch against your [pc.genitals] with a ravenous eagerness. She looks into your [pc.eyes]
+With:
+[pc.isTaur|Dulcie reaches beneath your barrel and strokes your [pc.genitals] with a ravenous eagerness, her obsidian, honeysoaked snatch grinding against your foreleg. She looks into your [pc.eyes]|Dulcie rubs her obsidian, honeysoaked snatch against your [pc.genitals] with a ravenous eagerness. She looks into your [pc.eyes]]
+
+Replace [content_mhenga.js]
+The zil MILF doesn’t need to ask twice. You grip your [pc.fingers] into her plush ass
+With:
+The zil MILF doesn’t need to ask twice. [pc.isTaur|You fold your legs and roll onto your side on the backroom floor, and she clambers astride your hindquarters, close enough for you to twist around and grip your [pc.fingers] into her plush ass|You grip your [pc.fingers] into her plush ass]
+
+Replace [content_mhenga.js]
+she pulls you by your shoulders and kisses you on your [pc.lips]
+With:
+[pc.isTaur|she leans up along your flank, pulls your human half around by the shoulders and kisses you on your [pc.lips]|she pulls you by your shoulders and kisses you on your [pc.lips]]
+
+Replace [content_mhenga.js]
+ravages you like an animal in heat, lying down and letting her fuck you
+With:
+ravages you like an animal in heat, [pc.isTaur|sprawling on your side|[pc.isNaga|sinking down into your coils|lying down]] and letting her fuck you
+
+Replace [content_mhenga.js]
+tightly grasping your shoulders and wildly
+With:
+tightly grasping [pc.isTaur|your flanks|your shoulders] and wildly
+
+Replace [content_mhenga.js]
+her thick thighs mashing against your [pc.thighsOrLegs]
+With:
+her thick thighs mashing against your [pc.isTaur|haunches|[pc.thighsOrLegs]]
+
+Replace [content_mhenga.js]
+Her words come out as a hot pant against your neck
+With:
+Her words come out as a hot pant against your [pc.isTaur|flank|neck]
+
+Replace [content_mhenga.js]
+She holds you close to her impressive breasts, smearing honey on your [pc.isHeight 76|[pc.chest]|[pc.face]] as she bucks into your [pc.hips]
+With:
+[pc.isTaur|She leans forward over your hindquarters, smearing honey across your [pc.skinFurScales] as she bucks into your haunches|She holds you close to her impressive breasts, smearing honey on your [pc.isHeight 76|[pc.chest]|[pc.face]] as she bucks into your [pc.hips]]
+
+Replace [content_mhenga.js]
+her breath hot and unsteady against your neck
+With:
+her breath hot and unsteady against your [pc.isTaur|flank|neck]
+
+Replace [content_mhenga.js]
+lathering your [pc.thighsOrLegs] in her sugary juices
+With:
+lathering your [pc.isTaur|hind legs|[pc.thighsOrLegs]] in her sugary juices
+
+Replace [content_mhenga.js]
+She squeezes her deliciously thick thighs tightly against your [pc.hips], leg-locking you
+With:
+She squeezes her deliciously thick thighs tightly against your [pc.isTaur|haunches, leg-locking your hind end|[pc.hips], leg-locking you]
+
+Replace [content_mhenga.js]
+With a tired sigh, she falls on top of you, almost crushing you with her weight.
+With:
+[pc.isTaur|With a tired sigh, she slumps forward across your hindquarters, her plush weight sinking into your flank.|With a tired sigh, she falls on top of you, almost crushing you with her weight.]
+
+Replace [content_mhenga.js]
+You nuzzle into her huge, honey-leaking breasts
+With:
+[pc.isTaur|You twist your human half around and nuzzle into her huge, honey-leaking breasts|You nuzzle into her huge, honey-leaking breasts]
+
+# --- #201 Sub Me (window scene) ---
+Replace [content_mhenga.js]
+you pick up Dulcie’s thorax and sling it over your shoulder, grasping her hips and pulling her close.
+With:
+[pc.isTaur|you lift Dulcie’s thorax out of the way and rear up over her, planting your forelegs to either side of her against the window frame, your barrel looming over her back.|you pick up Dulcie’s thorax and sling it over your shoulder, grasping her hips and pulling her close.]
+
+# --- #202 Cunnilingus (under the counter) ---
+Replace [content_mhenga.js]
+Her motions are swift, gently pushing you to the ground and positioning you so that you are underneath her.
+With:
+[pc.isTaur|Her motions are swift, gently pushing you down until your legs fold beneath you behind the counter, your hindquarters awkwardly crammed against the shelves and your human half tucked underneath her.|[pc.isNaga|Her motions are swift, gently pushing you down until you’re coiled up behind the counter, your head tucked underneath her.|Her motions are swift, gently pushing you to the ground and positioning you so that you are underneath her.]]
+
+# --- #203 Food Play ---
+Replace [content_mhenga.js]
+You strip out of your [pc.gear] and get on the bed, lying on top of the MILF-y zil
+With:
+[pc.isTaur|You strip out of your [pc.gear] and clamber onto the bed beside her, folding your legs and leaning your human half over the MILF-y zil|[pc.isNaga|You strip out of your [pc.gear] and slither onto the bed, coiling around the MILF-y zil|You strip out of your [pc.gear] and get on the bed, lying on top of the MILF-y zil]]
+
+Replace [content_mhenga.js]
+Dulcie grabs you by your shoulders and playfully rotates you 180 degrees.
+With:
+[pc.isTaur|Dulcie grabs you by your shoulders and playfully pushes you over, nudging and tugging until you’re lying on your side with your hindquarters by her head and your face by her hips.|Dulcie grabs you by your shoulders and playfully rotates you 180 degrees.]
+
+Replace [content_mhenga.js]
+Your hostess caresses your [pc.legs], positioning your [pc.lowerBody] so that your [pc.genitals] align with her mouth.
+With:
+[pc.isTaur|Your hostess caresses your hind legs, coaxing them apart so that your [pc.genitals] hang right above her mouth.|[pc.isNaga|Your hostess caresses your coils, guiding your [pc.lowerBody] so that your [pc.genitals] align with her mouth.|Your hostess caresses your [pc.legs], positioning your [pc.lowerBody] so that your [pc.genitals] align with her mouth.]]
+
+# ===== content_new_texas.js: Giallo’s Paizuri (4 changes) =====
+# --- #204 Paizuri ---
+Replace [content_new_texas.js]
+You sit on his straw bed, and pat a spot to the side of you.
+With:
+[pc.isTaur|You fold your legs and settle down on his straw bed, and pat a spot beside your forelegs.|[pc.isNaga|You coil up on his straw bed, and pat a spot to the side of you.|You sit on his straw bed, and pat a spot to the side of you.]]
+
+Replace [content_new_texas.js]
+Giallo’s swollen ovipositor is poking right into your [pc.thigh].
+With:
+Giallo’s swollen ovipositor is poking right into your [pc.isTaur|flank|[pc.isNaga|coils|[pc.thigh]]].
+
+Replace [content_new_texas.js]
+You lie on the bed,
+With:
+[pc.isTaur|You roll onto your side on the bed, propping your human half up on an elbow,|[pc.isNaga|You stretch out along the bed,|You lie on the bed,]]
+
+Replace [content_new_texas.js]
+Giallo crawls on top of you, sliding his ovipositor between
+With:
+[pc.isTaur|Giallo clambers up against your human half, sliding his ovipositor between|Giallo crawls on top of you, sliding his ovipositor between]
+
+# ===== content_tarkus.js: gray goo bad end (3 changes) =====
+# --- #205 Gray goo puppet ---
+Replace [content_tarkus.js]
+then wiggling her toes to gather her balance
+With:
+then [pc.isTaur|shifting your four legs to gather her balance|[pc.isNaga|flexing your tail to gather her balance|wiggling her toes to gather her balance]]
+
+Replace [content_tarkus.js]
+As she sits there on your knees - <i>her</i> knees - she keeps
+With:
+[pc.isTaur|As she settles there on your folded legs - <i>her</i> legs - she keeps|[pc.isNaga|As she rests there on your coils - <i>her</i> coils - she keeps|As she sits there on your knees - <i>her</i> knees - she keeps]]
+
+Replace [content_tarkus.js]
+get up from the ground and start walking towards the wasteland
+With:
+get up from the ground and start [pc.isNaga|slithering|walking] towards the wasteland
+
+# ===== content_vesperia.js: Mags, Bay 12b (3 changes) =====
+# --- #206 Mags facefuck ---
+# The game already uses [pc.isBiped] for where you stand; these fix the lines after it.
+Replace [content_vesperia.js]
+She grabs your thighs and chokes and coughs
+With:
+She grabs your [pc.isTaur|hind legs|[pc.isNaga|coils|thighs]] and chokes and coughs
+
+Replace [content_vesperia.js]
+slapping wetly against your thigh.
+With:
+slapping wetly against your [pc.isTaur|belly|[pc.isNaga|scales|thigh]].
+
+Replace [content_vesperia.js]
+You sit down, open your hips, slide your fingers through her dark hair and gently bend her head to your crotch
+With:
+[pc.isTaur|You fold your legs and settle down beside her, roll a hip aside, slide your fingers through her dark hair and gently guide her head down to your crotch|[pc.isNaga|You sink down onto your coils, slide your fingers through her dark hair and gently bend her head to your crotch|You sit down, open your hips, slide your fingers through her dark hair and gently bend her head to your crotch]]

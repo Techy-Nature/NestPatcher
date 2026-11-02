@@ -1,5 +1,5 @@
 /*
- * TN_Changelog_v2.7.js — in-game changelog for the TN mod pack (TiTS Android build)
+ * TN_Changelog_v2.8.js — in-game changelog for the TN mod pack (TiTS Android build)
  * ---------------------------------------------------------------------------
  * Adds a "Changelog" button to the Info section of the main menu sidebar (the same
  * section as Wiki), showing the installed mod version as Modv#.# and what changed.
@@ -40,7 +40,7 @@
   // ===========================================================================
   //  EDIT HERE
   // ===========================================================================
-  var MOD_VERSION = "2.7";   // the version of THIS build (shown as Modv2.7)
+  var MOD_VERSION = "2.8";   // the version of THIS build (shown as Modv2.8)
 
   // Optional: a hosted Markdown (or JSON) changelog, e.g.
   //   "https://raw.githubusercontent.com/<you>/<repo>/main/changelog.md"
@@ -49,6 +49,15 @@
   var REMOTE_URL = "https://raw.githubusercontent.com/Techy-Nature/NestPatcher/main/changelog.md";
 
   var CHANGELOG = [
+    {
+      version: "2.8",
+      date: "2026-11-02",
+      title: "Taurs and nagas in the 0.9.168 scenes",
+      changes: [
+        { mod: "Taur/Naga Text", text: "Taur and naga wording for scenes added in TiTS 0.9.168: Dulcie the zil baker in Esbeth (all four of her sex scenes), Giallo's Paizuri on New Texas, Mags in Bay 12b on Canadia, and the gray goo bad end on Tarkus. Bipeds see the original text, and all the older wording still applies. Now `TN_taur-naga_text_v2.8.mod`; delete the old `TN_taur-naga_text.mod`." },
+        { mod: "Changelog", text: "Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`; delete `TN_Changelog_v2.7.js`." }
+      ]
+    },
     {
       version: "2.7",
       date: "2026-11-01",

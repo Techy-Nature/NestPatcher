@@ -1,6 +1,6 @@
 # TN Mod Pack Changelog
 
-Latest: 2.7
+Latest: 2.8
 
 <!--
   How this file works (this comment is not shown in the game):
@@ -12,6 +12,11 @@ Latest: 2.7
   - You can use **bold**, *italics*, ~~strike~~, `code` and [links](https://example.com).
   - Bump "Latest:" when you release; players on an older build see "Modv#.# is available".
 -->
+
+## Modv2.8 — Taurs and nagas in the 0.9.168 scenes (2026-11-02)
+
+- **Taur/Naga Text:** Taur and naga wording for scenes added in TiTS 0.9.168: Dulcie the zil baker in Esbeth (all four of her sex scenes), Giallo's Paizuri on New Texas, Mags in Bay 12b on Canadia, and the gray goo bad end on Tarkus. Bipeds see the original text, and all the older wording still applies. Now `TN_taur-naga_text_v2.8.mod`; delete the old `TN_taur-naga_text.mod`.
+- **Changelog:** Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`; delete `TN_Changelog_v2.7.js`.
 
 ## Modv2.7 — TiTS 0.9.168 and a Codex wiki button (2026-11-01)
 
