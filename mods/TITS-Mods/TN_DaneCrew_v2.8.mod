@@ -14,6 +14,8 @@ Author: Neston
 #     Workout, Tail Milk; biped/taur/naga versions), Spar (no weapons, rocks/inventory/abilities/run
 #     greyed out, shields allowed; bet yourselves, and with Grav-Cuffs he bottoms for one).
 #   - Hand So comm (when she pilots the Sonata): at your pilot's chair, and in Codex -> Extra.
+#   - While Saendra has the Sonata on loan she works days (8:00-17:59): her Anon's bar button is
+#     greyed out with a tooltip, and her "How's Work" talk has new text about her jobs and the loan.
 # Toggle: Options -> Android Mods -> "Dane Crew". Off = he leaves the ship; flags stay in your save.
 # Design: dane-recruit/DANE-CREW-DESIGN-DRAFT.md. In-game author: Neston.
 
@@ -36,6 +38,16 @@ Replace [content_tavros.js]:
 in a position to ask about her lack of a wang-doodle.")),addButton(14,"Back",@@saen@@)}
 With:
 in a position to ask about her lack of a wang-doodle.")),window.tnDaneSaendraButton&&window.tnDaneSaendraButton(8,@@saen@@),addButton(14,"Back",@@saen@@)}
+
+Replace [content_tavros.js]:
+:(output("\n\nThe fiery red-head you saved from the pirates aboard <i>The Phoenix</i> is here, tucked away in one of the many booths available throughout the bar."),5===flags.SAENDRA_XPACK1_STATUS?addButton(@@e@@,"Saendra",@@li@@,"Saendra","Talk to Saen about her friend. Can you help her out?"):addButton(@@e@@,"Saendra",@@mv@@,"Saendra","See what Saen is up to."),!1))
+With:
+:(window.tnSaenWorking&&window.tnSaenWorking()?window.tnSaenBarAway(@@e@@):(output("\n\nThe fiery red-head you saved from the pirates aboard <i>The Phoenix</i> is here, tucked away in one of the many booths available throughout the bar."),5===flags.SAENDRA_XPACK1_STATUS?addButton(@@e@@,"Saendra",@@li@@,"Saendra","Talk to Saen about her friend. Can you help her out?"):addButton(@@e@@,"Saendra",@@mv@@,"Saendra","See what Saen is up to.")),!1))
+
+Replace [content_tavros.js]:
+function @@qv@@(){clearOutput(),author("Savin"),@@cv@@(),output("<i>“So, how’s work,”</i> you ask
+With:
+function @@qv@@(){if(window.tnSaenWorkTalk&&window.tnSaenWorkTalk(@@cv@@))return;clearOutput(),author("Savin"),@@cv@@(),output("<i>“So, how’s work,”</i> you ask
 
 Replace [main.js]:
 "Fly","You need to find a plasma conduit.")),@@cc@@(@@a@@,@@e@@)&&@@a@@++}if(@@e@@&@@r@@.cV.Exit)
@@ -370,6 +382,46 @@ Add Javascript:
         if (flags.TN_SONATA_PATH !== 2 && flags.TN_SONATA_PATH !== 3) return;
         loanTick();
         addButton(slot, "The Sonata", function () { T.saendraSonata(back); }, "The Sonata", "Ask Saen how Dane’s ship is treating her.");
+    };
+
+    /* While the Sonata is on loan (path 2), Saen flies day jobs in it: 8:00 to 17:59 game time. */
+    var SAEN_WORK_START = 8, SAEN_WORK_END = 18;
+    function saenHour() { var h = Number(typeof hours !== "undefined" ? hours : window.hours); return isNaN(h) ? 12 : h; }
+    function saenOnLoan() { if (!on() || typeof flags === "undefined") return false; loanTick(); return flags.TN_SONATA_PATH === 2; }
+    window.tnSaenWorking = function () {
+        if (!saenOnLoan()) return false;
+        var h = saenHour();
+        return h >= SAEN_WORK_START && h < SAEN_WORK_END;
+    };
+    T.saenWorking = window.tnSaenWorking;
+    window.tnSaenBarAway = function (slot) {
+        output("\n\nSaendra’s usual booth is empty, a half-finished drink abandoned on the table. A waitress catches you looking and shrugs. " + q("Saen? She’s out on a job in that borrowed ship of hers. Usually rolls back in here around dinnertime."));
+        addDisabledButton(slot, "Saendra", "Saendra", "Saen is out flying jobs in the Starlight Sonata during the day. Come back in the evening, after 6 PM.");
+    };
+    /* "How’s Work" while she has the Sonata on loan. Returns true when it handled the talk. */
+    window.tnSaenWorkTalk = function (showBusts) {
+        if (!saenOnLoan()) return false;
+        clearOutput();
+        author("Neston");
+        try { if (typeof showBusts === "function") showBusts(); else { showBust("SAENDRA"); showName("SAENDRA"); } } catch (err) {}
+        var paid = Number(flags.TN_SONATA_LOAN_PAID) || 0, left = Math.max(0, LOAN_TOTAL - paid);
+        var lines = [
+            q("So, how’s work?") + " you ask.",
+            "Saen stretches until her back pops, both fluffy tails fanning out behind her. " + q("Busy, for once,") + " she drawls, flashing you a tired, happy grin. " + q("Cargo hops, courier runs, the odd escort job for some nervous merchant. Out the airlock at eight, back in this booth by dinner. The Sonata’s no Phoenix, but she flies sweet, and she’s keeping me in the Black.")
+        ];
+        lines.push("Valeria flickers to life on her wrist, a tiny ledger hovering beside her. " + q("Which means actual income. Every thirty days, " + fmt(LOAN_STEP) + " credits goes to Dane for the loan.") + " She taps the ledger primly. " + q(left > 0 ? fmt(paid) + " repaid, " + fmt(left) + " to go. The rest goes into the Phoenix repair fund." : "And that’s the last payment. The Phoenix is paid for."));
+        lines.push(q("See? Told you I was good for it,") + " Saen purrs, knocking back the rest of her drink. " + q("Give it time, hero. One of these days I’m flying my own baby again, and Dane gets his ship back with a full tank and a thank-you note."));
+        if ((Number(flags["SAENDRA AFFECTION"]) || 0) >= 70) lines.push("Her tails curl around your [pc.leg] under the table. " + q("And yeah, I still call. Even from the cockpit."));
+        say(lines);
+        processTime(5);
+        try {
+            /* same as the game's own Saendra affection bump: +5, capped at SAENDRA_MAX_AFFECTION (69 until raised) */
+            if (flags.SAENDRA_MAX_AFFECTION === undefined) flags.SAENDRA_MAX_AFFECTION = 69;
+            var a = (Number(flags["SAENDRA AFFECTION"]) || 0) + 5;
+            flags["SAENDRA AFFECTION"] = Math.min(a, flags.SAENDRA_MAX_AFFECTION);
+        } catch (err) {}
+        removeButton(0);
+        return true;
     };
 
     T.saendraSonata = function (back) {
