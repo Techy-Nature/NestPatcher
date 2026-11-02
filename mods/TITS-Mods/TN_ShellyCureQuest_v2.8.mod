@@ -11,6 +11,7 @@ Author: Neston
 # Scenes support bipedal, taur and naga Steele, herms, cockvines and cunt-snakes. Sex scenes written by Techy-Nest.
 # Cured busts come from TN_ShellyCureBusts.js. List it before this mod in enabled.txt. Without it she keeps her old busts.
 # 2026-10-26: hooks for TN_ShellyFamily.mod (pill line, conception, pregnant text and busts). Harmless without it.
+# 2026-11-02 (Modv2.8 fix): Dr. Lessau now sees the eggs. The inventory check read pc.inventory as an array, but the game keeps items in pc.inventory.storage.
 
 # Dr. Lash's lab menu (Novahome): quest buttons go in free slots from 7 up.
 Replace [content_tarkus.js]:
@@ -143,11 +144,36 @@ Add JS:
     try { if (typeof pc.hasKeyItem === "function" && pc.hasKeyItem(name)) pc.removeKeyItem(name); } catch (err) {}
   }
 
+  // The player's items. In TiTS 0.9.16x pc.inventory is an ItemStorage object and the items live in
+  // pc.inventory.storage. (Treating pc.inventory itself as an array found nothing, so Dr. Lessau
+  // never saw Shelly's eggs and the healing items for the blood draw never showed up.)
+  function invList() {
+    var inv = (typeof pc !== "undefined" && pc) ? pc.inventory : null;
+    if (!inv) return [];
+    if (Array.isArray(inv.storage)) return inv.storage;
+    if (Array.isArray(inv)) return inv;
+    return [];
+  }
+  function className(it) {
+    try { return typeof it.getClassName === "function" ? it.getClassName() : ""; } catch (err) { return ""; }
+  }
+  // Take one of the item at list index idx, using the game's own remover when it has one.
+  function takeOne(idx) {
+    var list = invList();
+    var it = list[idx];
+    if (!it) return;
+    var cls = className(it);
+    if (cls && pc.inventory && typeof pc.inventory.removeItemByClass === "function") {
+      try { pc.inventory.removeItemByClass(cls, 1); return; } catch (err) { console.error("[Shelly Cure]", err); }
+    }
+    if (it.quantity > 1) it.quantity--; else list.splice(idx, 1);
+  }
+
   // Healing items for the blood draw. Matched by name so it works whatever the class names are in this build.
   function findItem(pattern) {
-    if (!pc.inventory) return -1;
-    for (var i = 0; i < pc.inventory.length; i++) {
-      var it = pc.inventory[i];
+    var list = invList();
+    for (var i = 0; i < list.length; i++) {
+      var it = list[i];
       if (!it) continue;
       var name = (it.shortName || "") + " " + (it.longName || "");
       if (pattern.test(name)) return i;
@@ -155,12 +181,13 @@ Add JS:
     return -1;
   }
   // Shelly's Assist gives one random small egg (content_tavros.js oviliumEggReward): four colours to collect.
+  // Class names checked against TiTS 0.9.168: SmallEgg, EggPinkSmall, EggBlueSmall, EggWhiteSmall.
   var EGG_KINDS = [["SmallEgg", "brightly-colored"], ["EggPinkSmall", "pink"], ["EggBlueSmall", "blue"], ["EggWhiteSmall", "white"]];
   function eggIndex(cls) {
-    if (!pc.inventory) return -1;
-    for (var i = 0; i < pc.inventory.length; i++) {
-      var it = pc.inventory[i];
-      if (it && typeof it.getClassName === "function" && it.getClassName() === cls && it.quantity > 0) return i;
+    var list = invList();
+    for (var i = 0; i < list.length; i++) {
+      var it = list[i];
+      if (it && className(it) === cls && it.quantity > 0) return i;
     }
     return -1;
   }
@@ -172,19 +199,14 @@ Add JS:
   function takeEggs() {
     for (var i = 0; i < EGG_KINDS.length; i++) {
       var idx = eggIndex(EGG_KINDS[i][0]);
-      if (idx < 0) continue;
-      var it = pc.inventory[idx];
-      if (it.quantity > 1) it.quantity--; else pc.inventory.splice(idx, 1);
+      if (idx >= 0) takeOne(idx);
     }
   }
   var POULTICE = /poultice/i;
   var MEDKIT = /med ?kit|medipen|bianca/i;
   function useItem(pattern) {
     var i = findItem(pattern);
-    if (i < 0) return;
-    var it = pc.inventory[i];
-    if (it.quantity > 1) it.quantity--;
-    else pc.inventory.splice(i, 1);
+    if (i >= 0) takeOne(i);
   }
 
   // ---------- shared scene plumbing ----------
