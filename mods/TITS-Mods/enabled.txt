@@ -45,4 +45,6 @@ Pregnancy_v2.4.js
 TitsEditor.js
 TN_Virine_v2.4.mod
 TN_HoloChastity_v2.6.mod
+TN_FeruzeCrew_v2.8.mod
+TN_FeruzeCrew_v2.8.js
 TN_DaneCrew_v2.8.mod
