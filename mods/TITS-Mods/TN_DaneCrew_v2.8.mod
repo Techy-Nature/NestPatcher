@@ -14,6 +14,13 @@ Author: Neston
 #     Workout, Tail Milk; biped/taur/naga versions), Spar (no weapons, rocks/inventory/abilities/run
 #     greyed out, shields allowed; bet yourselves, and with Grav-Cuffs he bottoms for one).
 #   - Hand So comm (when she pilots the Sonata): at your pilot's chair, and in Codex -> Extra.
+#   - While Saendra has the Sonata on loan she works days (8:00-17:59): her Anon's bar button is
+#     greyed out with a tooltip, and her "How's Work" talk has new text about her jobs and the loan.
+#   - Once the loan is repaid, How's Work becomes "Treasure?" (her friend quest finished: Pete saved and the datapad talk done) or
+#     "Plans?". After that talk she's out noon-6 PM and can turn up at other bars (roaming, like Erra).
+#     Each afternoon she docks the Phoenix on one rim world; the game's Hangar list shows it there
+#     (and on Tavros when she's home, plus the Sonata). Her rim-bar menu has Talk (Futafication is
+#     Tavros-only) and Sex (her own sex menu, aboard the Phoenix).
 # Toggle: Options -> Android Mods -> "Dane Crew". Off = he leaves the ship; flags stay in your save.
 # Design: dane-recruit/DANE-CREW-DESIGN-DRAFT.md. In-game author: Neston.
 
@@ -35,7 +42,47 @@ pc.inventory.removeItemByClass(@@blade@@.Y),flags.TN_DANE_BLADE_BACK=1,pc.addNic
 Replace [content_tavros.js]:
 in a position to ask about her lack of a wang-doodle.")),addButton(14,"Back",@@saen@@)}
 With:
-in a position to ask about her lack of a wang-doodle.")),window.tnDaneSaendraButton&&window.tnDaneSaendraButton(8,@@saen@@),addButton(14,"Back",@@saen@@)}
+in a position to ask about her lack of a wang-doodle.")),window.tnDaneSaendraButton&&window.tnDaneSaendraButton(8,@@saen@@),addButton(14,"Back",@@saen@@),window.tnSaenTalkFix&&window.tnSaenTalkFix()}
+
+Replace [content_tavros.js]:
+:(output("\n\nThe fiery red-head you saved from the pirates aboard <i>The Phoenix</i> is here, tucked away in one of the many booths available throughout the bar."),5===flags.SAENDRA_XPACK1_STATUS?addButton(@@e@@,"Saendra",@@li@@,"Saendra","Talk to Saen about her friend. Can you help her out?"):addButton(@@e@@,"Saendra",@@mv@@,"Saendra","See what Saen is up to."),!1))
+With:
+:(window.tnSaenWorking&&window.tnSaenWorking()?window.tnSaenBarAway(@@e@@):(output("\n\nThe fiery red-head you saved from the pirates aboard <i>The Phoenix</i> is here, tucked away in one of the many booths available throughout the bar."),5===flags.SAENDRA_XPACK1_STATUS?addButton(@@e@@,"Saendra",@@li@@,"Saendra","Talk to Saen about her friend. Can you help her out?"):addButton(@@e@@,"Saendra",@@mv@@,"Saendra","See what Saen is up to.")),!1))
+
+Replace [content_tavros.js]:
+function @@qv@@(){clearOutput(),author("Savin"),@@cv@@(),output("<i>“So, how’s work,”</i> you ask
+With:
+function @@qv@@(){if(window.tnSaenWorkTalk&&window.tnSaenWorkTalk(@@cv@@))return;clearOutput(),author("Savin"),@@cv@@(),output("<i>“So, how’s work,”</i> you ask
+
+Replace [content_tavros.js]:
+clearMenu(),addButton(0,"How’s Work",@@qv@@),addButton(1,"Hobbies",
+With:
+clearMenu(),addButton(0,window.tnSaenWorkLabel?window.tnSaenWorkLabel():"How’s Work",@@qv@@),addButton(1,"Hobbies",
+
+Replace [content_tavros.js]:
+function @@pv@@(){(!(arguments.length>0&&void 0!==arguments[0])||arguments[0])&&(@@rv@@(),output("You ask Saen if she’s got a few minutes to just chat.")
+With:
+window.tnSaenTalkMenu=function(){return @@pv@@.apply(this,arguments)};function @@pv@@(){(!(arguments.length>0&&void 0!==arguments[0])||arguments[0])&&(@@rv@@(),output("You ask Saen if she’s got a few minutes to just chat.")
+
+Replace [content_tavros.js]:
+function @@jv@@(){clearMenu(),saendra.hasCock()?addButton(0,"Get Buttfuck’d"
+With:
+window.tnSaenSexPick=function(){return @@jv@@.apply(this,arguments)};function @@jv@@(){clearMenu(),saendra.hasCock()?addButton(0,"Get Buttfuck’d"
+
+Replace [main.js]:
+t.push(["Stealth Ship",window.carmelitaShipBonus]));return t}(i.FQName)
+With:
+t.push(["Stealth Ship",window.carmelitaShipBonus]));window.tnHangarShips&&window.tnHangarShips(e,t);return t}(i.FQName)
+
+Replace [main.js]:
+void 0===flags.ERRA_HEARTBROKEN&&t.push("erraBarText"),
+With:
+window.tnSaenRoamOk&&window.tnSaenRoamOk(o)&&t.push("tnSaenRoam","tnSaenRoam"),void 0===flags.ERRA_HEARTBROKEN&&t.push("erraBarText"),
+
+Replace [main.js]:
+mariaBarBonus:window.mariaBarBonus}[flags.BAR_NPC]
+With:
+mariaBarBonus:window.mariaBarBonus,tnSaenRoam:window.tnSaenRoamBar}[flags.BAR_NPC]
 
 Replace [main.js]:
 "Fly","You need to find a plasma conduit.")),@@cc@@(@@a@@,@@e@@)&&@@a@@++}if(@@e@@&@@r@@.cV.Exit)
@@ -372,6 +419,283 @@ Add Javascript:
         addButton(slot, "The Sonata", function () { T.saendraSonata(back); }, "The Sonata", "Ask Saen how Dane’s ship is treating her.");
     };
 
+    /* ---------- Saendra's days ----------
+       Path 2 (Sonata on loan): she flies jobs 8:00-17:59 and is away from Anon's bar.
+       Path 3 (loan repaid, Phoenix flying): How's Work becomes "Treasure?" (her friend quest finished:
+       Pete saved and the datapad talk done, SAENDRA_XPACK1_STATUS >= 10) or "Plans?" (not). After that talk she
+       roams: away from Anon's 12:00-17:59 and can turn up at other bars in the roaming bar rotation. */
+    var SAEN_WORK_START = 8, SAEN_WORK_END = 18, SAEN_ROAM_START = 12, SAEN_ROAM_END = 18;
+    function saenHour() { var h = Number(typeof hours !== "undefined" ? hours : window.hours); return isNaN(h) ? 12 : h; }
+    function saenOk() { return on() && typeof flags !== "undefined" && flags.SAENDRA_DISABLED === undefined; }
+    function saenOnLoan() { if (!saenOk()) return false; loanTick(); return flags.TN_SONATA_PATH === 2; }
+    function saenFree() { if (!saenOk()) return false; loanTick(); return flags.TN_SONATA_PATH === 3; }
+    function saenQuestWon() { return Number(flags.SAENDRA_XPACK1_STATUS) >= 10; } /* 10+ = the pirate datapad talk (Pete was saved at 9) */
+    function saenRoaming() { return saenFree() && flags.TN_SAEN_ROAM === 1; }
+    function inHours(a, b) { var h = saenHour(); return h >= a && h < b; }
+    function saenAffection(n) {
+        /* same as the game's own Saendra affection bump: capped at SAENDRA_MAX_AFFECTION (69 until raised) */
+        try {
+            if (flags.SAENDRA_MAX_AFFECTION === undefined) flags.SAENDRA_MAX_AFFECTION = 69;
+            var a = (Number(flags["SAENDRA AFFECTION"]) || 0) + n;
+            flags["SAENDRA AFFECTION"] = Math.min(a, flags.SAENDRA_MAX_AFFECTION);
+        } catch (err) {}
+    }
+    function saenShow(showBusts) {
+        try {
+            if (typeof showBusts === "function") showBusts();
+            else if (typeof saendra !== "undefined" && saendra.showAll) saendra.showAll();
+            else { showBust("SAENDRA"); showName("SAENDRA"); }
+        } catch (err) {}
+    }
+
+    /* Anon's bar: true when she isn't in her booth right now. */
+    window.tnSaenWorking = function () {
+        if (saenOnLoan()) return inHours(SAEN_WORK_START, SAEN_WORK_END);
+        if (saenRoaming()) return inHours(SAEN_ROAM_START, SAEN_ROAM_END);
+        return false;
+    };
+    T.saenWorking = window.tnSaenWorking;
+    window.tnSaenBarAway = function (slot) {
+        if (saenRoaming()) {
+            output("\n\nSaendra’s usual booth is empty. A waitress wiping down the table catches you looking. " + q("Saen? Took off around noon in that ship of hers, grinning like she’d already stolen something. She’s usually back for dinner."));
+            addDisabledButton(slot, "Saendra", "Saendra", "Saen is out in the Phoenix chasing fortune and fun in the afternoons. She might turn up in another bar out on the rim. Back here after 6 PM.");
+            return;
+        }
+        output("\n\nSaendra’s usual booth is empty, a half-finished drink abandoned on the table. A waitress catches you looking and shrugs. " + q("Saen? She’s out on a job in that borrowed ship of hers. Usually rolls back in here around dinnertime."));
+        addDisabledButton(slot, "Saendra", "Saendra", "Saen is out flying jobs in the Starlight Sonata during the day. Come back in the evening, after 6 PM.");
+    };
+
+    /* Label for her first talk button (canon "How’s Work"). */
+    window.tnSaenWorkLabel = function () {
+        if (saenFree()) return saenQuestWon() ? "Treasure?" : "Plans?";
+        return "How’s Work";
+    };
+
+    /* Her first talk. Returns true when the mod handled it, false to run the game's own. */
+    window.tnSaenWorkTalk = function (showBusts) {
+        if (saenOnLoan()) return loanWorkTalk(showBusts);
+        if (saenFree()) { if (saenQuestWon()) treasureTalk(showBusts); else plansTalk(showBusts); return true; }
+        return false;
+    };
+
+    function loanWorkTalk(showBusts) {
+        clearOutput();
+        author("Neston");
+        saenShow(showBusts);
+        var paid = Number(flags.TN_SONATA_LOAN_PAID) || 0, left = Math.max(0, LOAN_TOTAL - paid);
+        var lines = [
+            q("So, how’s work?") + " you ask.",
+            "Saen stretches until her back pops, both fluffy tails fanning out behind her. " + q("Busy, for once,") + " she drawls, flashing you a tired, happy grin. " + q("Cargo hops, courier runs, the odd escort job for some nervous merchant. Out the airlock at eight, back in this booth by dinner. The Sonata’s no Phoenix, but she flies sweet, and she’s keeping me in the Black.")
+        ];
+        lines.push("Valeria flickers to life on her wrist, a tiny ledger hovering beside her. " + q("Which means actual income. Every thirty days, " + fmt(LOAN_STEP) + " credits goes to Dane for the loan.") + " She taps the ledger primly. " + q(left > 0 ? fmt(paid) + " repaid, " + fmt(left) + " to go. The rest goes into the Phoenix repair fund." : "And that’s the last payment. The Phoenix is paid for."));
+        lines.push(q("See? Told you I was good for it,") + " Saen purrs, knocking back the rest of her drink. " + q("Give it time, hero. One of these days I’m flying my own baby again, and Dane gets his ship back with a full tank and a thank-you note."));
+        if ((Number(flags["SAENDRA AFFECTION"]) || 0) >= 70) lines.push("Her tails curl around your [pc.leg] under the table. " + q("And yeah, I still call. Even from the cockpit."));
+        say(lines);
+        processTime(5);
+        saenAffection(5);
+        removeButton(0);
+        return true;
+    };
+
+    function freeTalkEnd(first) {
+        processTime(first ? 10 : 4);
+        saenAffection(first ? 10 : 3);
+        if (first) flags.TN_SAEN_ROAM = 1;
+        removeButton(0);
+    }
+    function treasureTalk(showBusts) {
+        clearOutput();
+        author("Neston");
+        saenShow(showBusts);
+        var first = flags.TN_SAEN_ROAM !== 1;
+        if (!first) {
+            say([
+                q("Any luck with the treasure?") + " you ask.",
+                "Saen waggles a chrome hand. " + q("Found a map that was actually a menu, and a menu that was actually a map,") + " she drawls. " + q("Ate well, at least. I’m getting closer, hero. I can smell it.")
+            ]);
+            freeTalkEnd(false);
+            return;
+        }
+        say([
+            q("So,") + " you ask, leaning on the table. " + q("Treasure?"),
+            "Saen goes very still. Then a slow, wolfish grin spreads across her freckled face, and both her tails start to wag. " + q("You remember that, huh?"),
+            "She knocks back half her drink and sets it down with a clack. " + q("Yeah. Treasure. The real kind. It’s why I left home, way back. My family had everything planned out for me, a nice safe life with a nice safe ending. And I took one look at the stars and said nope.") + " She laughs, low and a little rueful. " + q("Packed a bag, stole a ride, and went looking for the big score. Every pirate’s got one. Mine’s still out there."),
+            "Valeria’s avatar pops up on her wrist, arms folded. " + q("And now we have a working ship, a paid-off loan, and a mechanic who is alive and speaking to us. So she has no excuses left.") + " The little hologram softens. " + q("Which is a good thing. For once."),
+            q("Pete’s back on his feet, the Phoenix is flying, and nobody’s breathing down my neck for credits,") + " Saen murmurs, almost to herself. " + q("Hero... none of that happens without you. You pulled me off that pirate ship, you went in after Pete, you got Dane to trust me with his baby. I owe you more than I can ever pay back."),
+            "Before you can wave it off, she’s around the table and squeezing you in a fierce, tail-wrapped hug that smells of engine grease and cheap whiskey. " + q("Thank you. Seriously. Thank you, thank you, <b>thank you</b>.") + " She finally lets go, cheeks pink, and drops back into her seat. " + q("So! Afternoons, I’m out hunting. Leads, rumors, old star charts, bar-room gossip. If you catch me out on the rim, the first round’s on me."),
+            "<b>(Saendra now goes out from noon to 6 PM. You might run into her in other bars around the rim.)</b>"
+        ]);
+        freeTalkEnd(true);
+    }
+    function plansTalk(showBusts) {
+        clearOutput();
+        author("Neston");
+        saenShow(showBusts);
+        var first = flags.TN_SAEN_ROAM !== 1;
+        if (!first) {
+            say([
+                q("Any new plans?") + " you ask.",
+                "Saen shrugs, the very picture of innocence. " + q("Plans? Me? I go where the wind blows, hero. Today it blew toward a card game with some very trusting merchants.") + " She jingles a credit chit at you. " + q("Wind was good to me.")
+            ]);
+            freeTalkEnd(false);
+            return;
+        }
+        say([
+            q("So the Phoenix is flying again and the loan’s done,") + " you say. " + q("Plans?"),
+            "Saen leans back and props her boots on the table, a lazy grin tugging at her lips. " + q("Plans,") + " she purrs, tasting the word like it’s a fine whiskey. " + q("Y’know, I don’t think I’ve had a single day without somebody owning a piece of me since the pirates jumped us. Dock fees. Repair bills. Loans.") + " She waves a chrome hand. " + q("And now? Nothing. Nobody."),
+            q("So... maybe I go have some fun. Maybe I chase a rumor or two. Big fortune out there for a girl with a fast ship and loose morals.") + " She winks. " + q("I’m a pirate, hero. Plans are for people who want to get caught."),
+            "Valeria flickers up on her wrist with a long-suffering sigh. " + q("Translation: she has no idea, and she is thrilled about it."),
+            "Saen laughs, then reaches across the table and grabs your hand in both of hers, suddenly serious. " + q("Hey. Real talk for a sec. None of this happens without you. The Phoenix, the loan, Dane trusting me with his ship... you went to bat for me every time. Thank you. I mean it. Thank you so damn much.") + " She gives your hand a squeeze, tails thumping happily against the booth. " + q("Afternoons, I’ll be out there making trouble. Find me on the rim sometime and I’ll buy you a drink."),
+            "<b>(Saendra now goes out from noon to 6 PM. You might run into her in other bars around the rim.)</b>"
+        ]);
+        freeTalkEnd(true);
+    }
+
+    /* ---------- Docked ships in the game's Hangar list ---------- */
+    window.tnHangarShips = function (fq, list) {
+        if (!on() || typeof flags === "undefined" || !list) return;
+        try {
+            loanTick();
+            var p = flags.TN_SONATA_PATH;
+            if (saenOk() && p === 3 && flags["FALL OF THE PHOENIX STATUS"] !== 1) {
+                var roamingNow = saenRoaming() && inHours(SAEN_ROAM_START, SAEN_ROAM_END);
+                var phoenixAt = roamingNow ? saenDaySpot().hangar : TAVROS_HANGAR;
+                if (fq === phoenixAt) list.push(["The Phoenix", function (slot) { addButton(slot, "The Phoenix", T.hangarPhoenix, "The Phoenix", "Saendra’s ship, the Phoenix, is docked here."); }]);
+            }
+            var sonataHome = (p === 3) || (p === 2 && !inHours(SAEN_WORK_START, SAEN_WORK_END));
+            if (fq === TAVROS_HANGAR && sonataHome && flags.TN_SONATA_PATH !== 1) list.push(["Starlight Sonata", function (slot) { addButton(slot, "Sonata", T.hangarSonata, "Starlight Sonata", "Dane’s ship, the Starlight Sonata, is docked here."); }]);
+        } catch (err) { console.warn("[TN] Dane crew: hangar list failed", err); }
+    };
+    T.hangarPhoenix = function () {
+        clearOutput();
+        author("Neston");
+        showName("THE\nPHOENIX");
+        var roamingNow = saenRoaming() && inHours(SAEN_ROAM_START, SAEN_ROAM_END);
+        say([
+            "The <i>Phoenix</i> sits in her berth, sleek and freshly patched, her hull still shiny where the new plating went on. A few scorch marks along the dorsal fin have been left on purpose, painted around with tiny flames like a badge of honor.",
+            roamingNow ? "The airlock is sealed. As you walk past, the hull speakers crackle and Valeria’s voice chirps out. " + q("Hello, [pc.name]! The captain is in the bar, ‘doing research.’ I am guarding the ship, which mostly means watching dock workers try to read her name on the hull and pronounce it wrong.") : "The ramp is down and you can hear tinny music drifting out of the cargo bay. Valeria’s voice crackles over the hull speakers. " + q("Hi, [pc.name]! The captain’s up in Anon’s, if you’re looking for her. She made me promise to tell everyone that the ship is ‘totally paid for now.’ So. She is.")
+        ]);
+        processTime(2);
+        clearMenu();
+        addButton(0, "Next", mainGameMenu);
+    };
+    T.hangarSonata = function () {
+        clearOutput();
+        author("Neston");
+        showName("STARLIGHT\nSONATA");
+        say([
+            "The <i>Starlight Sonata</i> waits in her berth, Dane’s chunky old merc ship, all bolted-on armor and oversized engines. Somebody has polished her nose cone to a mirror shine and left a sticky note on the airlock: <i>“Thanks for the ride. Fuel’s topped off. - S.”</i>",
+            flags.TN_SONATA_PATH === 2 ? "Saendra will have her back out on a job come morning." : "She’s here as your crew’s backup ship now, fueled and ready if anyone ever needs her."
+        ]);
+        processTime(1);
+        clearMenu();
+        addButton(0, "Next", mainGameMenu);
+    };
+
+    /* ---------- Saendra in the roaming bar rotation (like Erra) ---------- */
+    /* Each afternoon she docks the Phoenix on one rim world and drinks in its bar. */
+    var SAEN_SPOTS = [
+        { hangar: "ARA ARA.MHEN’GA.SHIP HANGAR", places: ["MHEN’GA"], name: "Mhen’ga" },
+        { hangar: "INGNAM.TARKUS.201", places: ["TARKUS"], name: "Tarkus" },
+        { hangar: "NYE.NEWTEXAS.500", places: ["NEWTEXAS"], name: "New Texas" },
+        { hangar: "SINDATHU.MYRELLION.600", places: ["MYRELLION"], name: "Myrellion", ok: function () { return flags.KQ2_MYRELLION_STATE !== 1; } },
+        { hangar: "SIRETTA.UVETO STATION.UVS F15", places: ["UVETO STATION", "UVETO VII"], name: "Uveto" },
+        { hangar: "LIBERTERIA.CANADIA STATION.CANADA1", places: ["CANADIA STATION"], name: "Canadia Station" }
+    ];
+    var TAVROS_HANGAR = "KALAS.TAVROS.TAVROS HANGAR";
+    function saenDaySpot() {
+        var list = SAEN_SPOTS.filter(function (x) { return !x.ok || x.ok(); });
+        var d = Math.floor(dayNow());
+        return list[((d * 7 + 3) % list.length + list.length) % list.length];
+    }
+    T.saenDaySpot = saenDaySpot;
+    function hereIndex() {
+        try { var r = getCurrentRoom(); return { loc: r.parentLocation.locationIndex, room: r.index, fq: r.FQName }; } catch (err) { return { loc: "", room: "", fq: "" }; }
+    }
+    function onTavros() { return hereIndex().loc === "TAVROS"; }
+    T.onTavros = onTavros;
+    window.tnSaenRoamOk = function (room) {
+        if (!saenRoaming()) return false;
+        if (room === "ANON'S BAR AND BOARD") return false;
+        if (!inHours(SAEN_ROAM_START, SAEN_ROAM_END)) return false;
+        return saenDaySpot().places.indexOf(hereIndex().loc) >= 0;
+    };
+    var SAEN_DAY = [
+        "she spent the morning haggling with a fence over a crate of ‘slightly used’ shield emitters",
+        "she chased a rumor about a derelict treasure barge for three systems and found a very angry family of space-goats",
+        "she won a star chart in a card game and is pretty sure at least half of it is real",
+        "she got into a bar fight, won it, and was bought a drink by the loser",
+        "she outran a customs cutter just for the fun of it and is still riding the high"
+    ];
+    window.tnSaenRoamBar = function (slot) {
+        if (!window.tnSaenRoamOk(hereIndex().room)) return;
+        output("\n\nA familiar flash of fiery red hair catches your eye. Saendra’s sprawled in a corner booth, boots up on the table and twin tails swishing, nursing a drink like she owns the place.");
+        addButton(slot, "Saendra", T.saenRoamMeet, "Saendra", "Saen’s out on the rim this afternoon. Say hi.");
+    };
+    T.saenRoamMeet = function () {
+        clearOutput();
+        author("Neston");
+        saenShow();
+        say([
+            "You slide into the booth across from her. Saen’s face lights up. " + q("Well, look who it is! Fancy meeting you out here, hero.") + " She flags down a server with one chrome hand. " + q("Told you the first round’s on me."),
+            "Between sips she tells you that " + rnd(SAEN_DAY) + ". " + q("Best part of being free,") + " she drawls, grinning. " + q("Every day’s a new disaster.")
+        ]);
+        processTime(10);
+        saenAffection(2);
+        T.saenRoamButtons();
+    };
+    T.saenRoamButtons = function () {
+        clearMenu();
+        addButton(0, "Another Story", T.saenRoamStory, "Another Story", "Ask what else she’s been up to.");
+        addButton(1, "Drink", T.saenRoamDrink, "Drink", "Have another round together.");
+        if (typeof window.tnSaenTalkMenu === "function") addButton(2, "Talk", function () { window.__tnSaenRoamMeet = true; window.tnSaenTalkMenu(); }, "Talk", "Chat with Saen.");
+        if (typeof window.tnSaenSexPick === "function") addButton(3, "Sex", T.saenRoamSex, "Sex", "See if she wants to blow off some steam aboard the Phoenix.");
+        addButton(14, "Leave", function () { window.__tnSaenRoamMeet = false; mainGameMenu(); }, "Leave", "Let her get back to her afternoon.");
+    };
+    T.saenRoamBack = function () { clearOutput(); author("Neston"); saenShow(); output("Saen leans back in the booth, tails swishing. " + q("So, what else, hero?")); T.saenRoamButtons(); };
+    /* Her canon talk menu, opened from a rim bar: Futafication is Tavros-only, Back returns here. */
+    window.tnSaenTalkFix = function () {
+        if (onTavros() || !window.__tnSaenRoamMeet) return;
+        addDisabledButton(7, "Futafication", "Futafication", "Better to bring that up back on Tavros, near the Dark Chrysalis.");
+        addButton(14, "Back", T.saenRoamBack, "Back", "Back to the booth.");
+    };
+    T.saenRoamSex = function () {
+        window.__tnSaenRoamMeet = false;
+        clearOutput();
+        author("Neston");
+        saenShow();
+        var spot = saenDaySpot();
+        say([
+            "Leaning across the table with a sly grin, you ask if she wants to blow off some steam.",
+            "Saen is out of the booth before you finish the sentence, grabbing your hand and towing you out of the bar. " + q("Phoenix is docked right down at the " + spot.name + " hangar,") + " she purrs, both tails flicking against your thighs the whole way. " + q("Got a bunk with a lock and everything."),
+            "By the time the airlock cycles shut behind you, the two of you are tangled up against the bulkhead, kissing hungrily, hands roaming everywhere. She drags you back to her cabin and tumbles onto the bed with you. " + q("So how do you want me, hero?") + " she breathes. " + q("I’m all yours....")
+        ]);
+        processTime(15);
+        window.tnSaenSexPick();
+    };
+    T.saenRoamStory = function () {
+        clearOutput();
+        author("Neston");
+        saenShow();
+        say([q("What else?") + " you ask.", "Saen taps her chin, then leans in conspiratorially. " + q("Okay, so,") + " she murmurs, and tells you that " + rnd(SAEN_DAY) + ". Valeria pipes up from her wrist to correct three of the details, and Saen flicks the hologram on the nose."]);
+        processTime(10);
+        T.saenRoamButtons();
+        removeButton(0);
+    };
+    T.saenRoamDrink = function () {
+        clearOutput();
+        author("Neston");
+        saenShow();
+        say([
+            "You order another round and clink glasses. Saen drinks like it’s a competition, which, with her, it probably is. By the bottom of the glass her tails have found their way around your [pc.leg] under the table.",
+            q("Gotta get moving soon,") + " she sighs, not moving at all. " + q("Fortune waits for no woman. But it can wait a little.")
+        ]);
+        processTime(20);
+        saenAffection(3);
+        T.saenRoamButtons();
+        removeButton(1);
+    };
+
     T.saendraSonata = function (back) {
         loanTick();
         clearOutput();
@@ -575,7 +899,7 @@ Add Javascript:
         install();
         if (!window.tnDaneCrewWatch) window.tnDaneCrewWatch = setInterval(function () {
             install();
-            try { if (window.__tnDaneSparStash && window.CombatManager && !window.CombatManager.combatContainer) T.sparRestore(); } catch (err) {}
+            try { if ((window.__tnDaneSparStash || flags.TN_DANE_SPAR_TAKEN === 1) && window.CombatManager && !window.CombatManager.combatContainer) T.sparRestore(); } catch (err) {}
         }, 1000);
     }
     T.boot = boot;
@@ -1031,18 +1355,34 @@ Add Javascript:
         nextTo(window.tnDaneCrewMenu, "Back to Dane.");
     }
 
+    /* Weapons are put away with the game's own take/give calls (0.9.168 Inventory),
+       so they sit in the save's hidden equipment slots and come back even after a reload. */
     T.sparRestore = function () {
         var s = window.__tnDaneSparStash;
         window.__tnDaneSpar = false;
-        if (!s) return;
         window.__tnDaneSparStash = null;
+        if (typeof flags !== "undefined" && flags.TN_DANE_SPAR_TAKEN === 1) {
+            flags.TN_DANE_SPAR_TAKEN = 0;
+            try {
+                pc.inventory.giveMeleeWeapon();
+                pc.inventory.giveRangedWeapon();
+            } catch (err) { console.warn("[TN] Dane spar: weapon restore failed", err); }
+        }
+        if (!s) return;
         try {
-            pc.inventory.meleeWeapon = s.m;
-            pc.inventory.rangedWeapon = s.r;
             pc.HPRaw = Math.max(Number(pc.HPRaw) || 0, s.hp);
             pc.shieldsRaw = Math.max(Number(pc.shieldsRaw) || 0, s.sh);
         } catch (err) { console.warn("[TN] Dane spar: restore failed", err); }
     };
+    function sparTakeWeapons() {
+        var inv = pc.inventory, te = inv.transientEquipment || {};
+        if (typeof inv.takeMeleeWeapon !== "function" || typeof inv.giveMeleeWeapon !== "function") return false;
+        if (te.meleeWeapon || te.rangedWeapon) return false;
+        inv.takeMeleeWeapon();
+        inv.takeRangedWeapon();
+        flags.TN_DANE_SPAR_TAKEN = 1;
+        return true;
+    }
 
     function sparAI(allies, hostiles) {
         var o = this.selectTarget(hostiles);
@@ -1076,22 +1416,9 @@ Add Javascript:
 
     T.sparStart = function (bet) {
         var req = window.__tnDaneReq, CM = window.CombatManager;
-        var DaneClass, Rock;
-        try {
-            DaneClass = req(61397).g;
-            Rock = req(54014).yq.RegisteredClasses.Rock;
-        } catch (err) { console.warn("[TN] Dane spar: setup failed", err); sparFail(); return; }
-        if (!DaneClass || !Rock || !CM) { sparFail(); return; }
-        function fists() {
-            var f = new Rock();
-            f.shortName = "Fists";
-            f.longName = "fists";
-            f.description = "your fists";
-            f.attackVerb = "punch";
-            f.attackNoun = "punch";
-            try { f.baseDamage.kinetic.damageValue = 3; } catch (err) {}
-            return f;
-        }
+        var DaneClass;
+        try { DaneClass = req(61397).g; } catch (err) { console.warn("[TN] Dane spar: setup failed", err); sparFail(); return; }
+        if (!DaneClass || !CM) { sparFail(); return; }
         var e;
         try {
             e = new DaneClass();
@@ -1102,8 +1429,7 @@ Add Javascript:
             e.aimRaw = Math.round(6 * k);
             e.intelligenceRaw = Math.round(11 * k);
             e.willpowerRaw = Math.round(9 * k);
-            e.inventory.meleeWeapon = fists();
-            e.inventory.rangedWeapon = new Rock();
+            if (e.inventory.takeMeleeWeapon) { e.inventory.takeMeleeWeapon(); e.inventory.takeRangedWeapon(); }
             try { if (e.inventory.storage) e.inventory.storage.length = 0; } catch (err) {}
             e.credits = 0;
             e.XP = function () { return 0; };
@@ -1113,10 +1439,9 @@ Add Javascript:
             e.HPRaw = e.HPMax();
         } catch (err) { console.warn("[TN] Dane spar: Dane setup failed", err); sparFail(); return; }
 
-        window.__tnDaneSparStash = { m: pc.inventory.meleeWeapon, r: pc.inventory.rangedWeapon, hp: Number(pc.HPRaw) || 1, sh: Number(pc.shieldsRaw) || 0, bet: !!bet };
+        try { if (!sparTakeWeapons()) { sparFail(); return; } } catch (err) { console.warn("[TN] Dane spar: could not put weapons away", err); T.sparRestore(); sparFail(); return; }
+        window.__tnDaneSparStash = { hp: Number(pc.HPRaw) || 1, sh: Number(pc.shieldsRaw) || 0, bet: !!bet };
         window.__tnDaneSpar = true;
-        pc.inventory.meleeWeapon = fists();
-        pc.inventory.rangedWeapon = new Rock();
 
         CM.newGroundCombat();
         CM.setFriendlyActors(pc);

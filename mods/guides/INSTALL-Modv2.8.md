@@ -35,6 +35,16 @@ the Rec Deck casino on Zheng Shi.
   Zheng Shi until you ask Dane about it again.
 - **Hand So comm:** when she flies the Sonata, a **Hand So** button shows at your pilot's chair
   (next to Fly) and in **Codex > Extra** as "Sonata Comm".
+- **Saendra at work:** while she has the Sonata on loan, she flies jobs during the day (8 AM to
+  6 PM game time). Her button in Anon's bar is greyed out then, with a tooltip saying when to come
+  back, and her **How's Work** talk is about the jobs and paying Dane back.
+- **After the loan is paid off:** How's Work becomes **Treasure?** if you finished her friend quest
+  (Pete saved and the pirate datapad talk done), or **Plans?** if not. After that talk she's out
+  from noon to 6 PM. Each afternoon she docks the Phoenix on one rim world (Mhen'ga, Tarkus, New
+  Texas, Myrellion, Uveto or Canadia) and can turn up in that world's bar, like Erra. There she
+  has Talk (Futafication stays Tavros-only) and Sex (her usual sex menu, aboard the Phoenix).
+- **Hangar:** the Phoenix shows in that world's **Hangar** list while she's there, and on Tavros
+  when she's home. The Sonata shows in the Tavros Hangar whenever it's docked there.
 - **On the ship:** Talk, Sex (he's always on top), Spar (no weapons; bet yourselves, and with
   Grav-Cuffs in your pack he bottoms if you win), Appearance, and Leave Ship (he goes back to the
   bar, and coming back is free).
@@ -53,7 +63,7 @@ You don't need to delete `backup` this time; the game didn't change.
 2. Copy in `TN_taur-naga_text_v2.8.mod`, `TN_Changelog_v2.8.js`, `TN_DaneCrew_v2.8.mod` and the new `enabled.txt`.
    (Or empty the folder, keeping `logs` and `backup`, and copy in all of `TITS-Mods/`.)
 3. If you had turned mods off with `#` in your old `enabled.txt`, do that again in the new one.
-4. Run **Test my mods** (dry run). It should finish with no MISS (543 replacements with the
+4. Run **Test my mods** (dry run). It should finish with no MISS (559 replacements with the
    pack's own `enabled.txt`).
 5. **Patch the game.**
 
@@ -68,7 +78,7 @@ A new mod, so the pack version stays 2.8 (a new pack version comes every 10 new 
 1. Copy `TN_FeruzeCrew_v2.8.mod` and `TN_FeruzeCrew_v2.8.js` into your mods folder.
 2. Add both names to `enabled.txt` (the pack's `enabled.txt` already has them at the end).
 3. Run **Test my mods**. With the pack's `enabled.txt` it should finish with no MISS
-   (543 replacements, with Dane Crew included).
+   (559 replacements, with Dane Crew included).
 4. **Patch the game.**
 
 Where to find her: finish the Farrow quest on Dhaal (the one where you rescue your cousin
