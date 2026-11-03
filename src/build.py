@@ -4,8 +4,8 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "patchers")
-CLI_VERSION = "1.9"
-GUI_VERSION = "0.11"
+CLI_VERSION = "1.10"
+GUI_VERSION = "0.12"
 MAC_VERSION = "1.7"
 
 HEADERS = {

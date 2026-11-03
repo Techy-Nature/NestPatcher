@@ -1,25 +1,19 @@
-#!/usr/bin/env python3
-# NestPatcher for Trials in Tainted Space, Linux edition (Debian, Ubuntu, Mint,
-# Fedora, Nobara and friends).
+# NestPatcher for Trials in Tainted Space, Windows 10/11 edition.
 # Based on KittyPatcher by LibraKitty (the original Windows patcher).
 # Same .mod format, flags and safety rules as the Desktop, Android and Mac patchers:
 # Replace / With still swaps exact text. Hashed bundles such as
 # content_first14.<hash>.js are found from the plain name content_first14.js.
 # Add Javascript blocks load from mods/nest/nest-inline.js.
 #
-# Linux differences:
-#   * The game folder can live anywhere (~/Games/TiTS is a good spot). The patcher
-#     looks next to itself, in ~/Games, ~/Downloads, ~/Desktop and /opt, or you
-#     point at it once with --game and it is remembered.
-#   * A TiTS .AppImage is unpacked once with --extract-appimage into a normal
-#     folder; you then start the game from that folder's AppRun.
-#   * If the game ships packed as resources/app.asar, --unpack-asar extracts it
-#     (pure Python, no npm needed) and keeps the original as app.asar.nest-original.
-#   * Node.js install hints match your distro (apt on Debian/Ubuntu, dnf on
-#     Fedora/Nobara).
-#   * --export-appimage packs the patched game into one .AppImage file, and
-#     --export-mac makes a macOS TiTS.app (as a zip) from the same game.
-#   * Mods live in nestmods/ next to this script, outside the game, so a game
+# Windows differences:
+#   * The game folder (the one with TiTS.exe and resources\) can live anywhere.
+#     The patcher looks next to itself, on the Desktop, in Downloads, Documents,
+#     C:\Games and Program Files, or you point at it once with --game.
+#   * Program Files is write-protected, so the patcher explains how to move the
+#     game to C:\Games if Windows blocks it.
+#   * Double-click NestPatcher_Windows_v1.9.bat for a numbered menu.
+#   * --export-mac makes a macOS TiTS.app (as a zip) from the patched game.
+#   * Mods live in nestmods\ next to this script, outside the game, so a game
 #     update cannot wipe them.
 
 import os
@@ -36,13 +30,13 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_Linux_v1.9.py'
-TOOL_VERSION = '1.9'
-PLATFORM_DEFAULT = 'linux'
-PLATFORM_LABEL = 'Linux'
+TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.10.py'
+TOOL_VERSION = '1.10'
+PLATFORM_DEFAULT = 'windows'
+PLATFORM_LABEL = 'Windows 10/11'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
 # No version in the settings name, so a newer patcher keeps your saved folders.
-SETTINGS_NAME = 'NestPatcher_TiTS_Linux.settings.json'
+SETTINGS_NAME = 'NestPatcher_TiTS_Windows.settings.json'
 
 # --------------------------------------------------------------------------
 # Where things live
@@ -550,6 +544,13 @@ def make_runtime(blocks):
     return "\n".join(parts) + "\n"
 
 
+# Programs that can sit in the game folder but are not the game. Our own launcher
+# and LibraKitty's patcher are here so that running the patcher from inside the
+# game folder doesn't look like "TiTS is running".
+NOT_GAME_EXES = ("unins", "notification_helper", "crashpad", "nestpatcher", "kittypatcher",
+                 "python", "py.exe", "pyw.exe", "node.exe")
+
+
 def game_executables():
     """Executables in the game folder, used to tell whether the game is open."""
     names = []
@@ -560,13 +561,62 @@ def game_executables():
                 continue
             low = name.lower()
             if PLATFORM == "windows":
-                if low.endswith(".exe") and not low.startswith(("unins", "notification_helper", "crashpad")):
+                if low.endswith(".exe") and not low.startswith(NOT_GAME_EXES):
                     names.append(name)
             elif os.access(path, os.X_OK) and "." not in name and not low.startswith("chrome"):
                 names.append(name)
     except OSError:
         pass
     return names
+
+
+def windows_process_paths(pids):
+    """Full program paths for these Windows process ids. A path that can't be read is None."""
+    paths = {pid: None for pid in pids}
+    if not pids:
+        return paths
+    script = ("Get-Process -Id " + ",".join(str(pid) for pid in pids) +
+              " -ErrorAction SilentlyContinue | ForEach-Object { \"$($_.Id)|$($_.Path)\" }")
+    try:
+        result = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                                capture_output=True, text=True, errors="replace", timeout=20,
+                                **hidden_window())
+    except (OSError, subprocess.SubprocessError):
+        return paths
+    for line in result.stdout.splitlines():
+        pid, _, path = line.strip().partition("|")
+        if pid.isdigit() and int(pid) in paths and path.strip():
+            paths[int(pid)] = path.strip()
+    return paths
+
+
+def windows_game_pids(tasklist_csv, exes, skip_pids):
+    """Process ids from `tasklist /FO CSV /NH` output whose program name is one of the game's."""
+    import csv
+    pids = []
+    for row in csv.reader(tasklist_csv.splitlines()):
+        if len(row) < 2 or row[0].strip().lower() not in exes:
+            continue
+        try:
+            pid = int(row[1].strip())
+        except ValueError:
+            continue
+        if pid not in skip_pids:
+            pids.append(pid)
+    return pids
+
+
+def windows_running_from_game(paths):
+    """Says which process (truthy) if any process runs from the game folder. A same-named program elsewhere
+    (another copy of TiTS, another Electron app) doesn't count. When Windows hides a
+    path we can't tell, so we play safe and count it."""
+    game_real = os.path.normcase(os.path.realpath(GAME)).rstrip("\\/") + os.sep
+    for pid, path in sorted(paths.items()):
+        if path is None:
+            return "process " + str(pid) + " (Windows didn't say where it runs from)"
+        if os.path.normcase(os.path.realpath(path)).startswith(game_real):
+            return path + " (process " + str(pid) + ")"
+    return ""
 
 
 def game_running():
@@ -581,11 +631,14 @@ def game_running():
                                     errors="replace", **hidden_window())
         except OSError:
             return False
-        for line in result.stdout.splitlines():
-            first = line.split(",", 1)[0].strip('"').lower()
-            if first in exes:
-                return True
-        return False
+        # Never count the patcher itself or the launcher that started it.
+        skip = {os.getpid()}
+        if hasattr(os, "getppid"):
+            skip.add(os.getppid())
+        pids = windows_game_pids(result.stdout, exes, skip)
+        if not pids:
+            return False
+        return windows_running_from_game(windows_process_paths(pids))
     if PLATFORM == "mac":
         try:
             result = subprocess.run(["pgrep", "-f", os.path.basename(GAME) + "/Contents/MacOS/"],
@@ -662,8 +715,11 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
         else:
             say(problem)
         return 1
-    if not dry_run and game_running():
+    running = False if dry_run else game_running()
+    if running:
         log("STOP: TiTS is running. " + quit_hint() + " Then run the patcher again.")
+        if isinstance(running, str) and running:
+            log("  Found: " + running)
         return 1
     node = which_tool("node", "nodejs")
     if validate and not node:
@@ -861,8 +917,11 @@ def restore_originals():
     if not os.path.isdir(BACKUP):
         say("No backups yet, so the game has never been patched by NestPatcher. Nothing to restore.")
         return 0
-    if game_running():
+    running = game_running()
+    if running:
         log("STOP: TiTS is running. " + quit_hint() + " Then try again.")
+        if isinstance(running, str) and running:
+            log("  Found: " + running)
         return 1
     count = 0
     for name in sorted(os.listdir(BACKUP)):

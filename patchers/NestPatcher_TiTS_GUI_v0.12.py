@@ -28,8 +28,8 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_GUI_v0.11.py'
-TOOL_VERSION = '0.11'
+TOOL_NAME = 'NestPatcher_TiTS_GUI_v0.12.py'
+TOOL_VERSION = '0.12'
 PLATFORM_DEFAULT = None
 PLATFORM_LABEL = 'GUI'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
@@ -542,6 +542,13 @@ def make_runtime(blocks):
     return "\n".join(parts) + "\n"
 
 
+# Programs that can sit in the game folder but are not the game. Our own launcher
+# and LibraKitty's patcher are here so that running the patcher from inside the
+# game folder doesn't look like "TiTS is running".
+NOT_GAME_EXES = ("unins", "notification_helper", "crashpad", "nestpatcher", "kittypatcher",
+                 "python", "py.exe", "pyw.exe", "node.exe")
+
+
 def game_executables():
     """Executables in the game folder, used to tell whether the game is open."""
     names = []
@@ -552,13 +559,62 @@ def game_executables():
                 continue
             low = name.lower()
             if PLATFORM == "windows":
-                if low.endswith(".exe") and not low.startswith(("unins", "notification_helper", "crashpad")):
+                if low.endswith(".exe") and not low.startswith(NOT_GAME_EXES):
                     names.append(name)
             elif os.access(path, os.X_OK) and "." not in name and not low.startswith("chrome"):
                 names.append(name)
     except OSError:
         pass
     return names
+
+
+def windows_process_paths(pids):
+    """Full program paths for these Windows process ids. A path that can't be read is None."""
+    paths = {pid: None for pid in pids}
+    if not pids:
+        return paths
+    script = ("Get-Process -Id " + ",".join(str(pid) for pid in pids) +
+              " -ErrorAction SilentlyContinue | ForEach-Object { \"$($_.Id)|$($_.Path)\" }")
+    try:
+        result = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                                capture_output=True, text=True, errors="replace", timeout=20,
+                                **hidden_window())
+    except (OSError, subprocess.SubprocessError):
+        return paths
+    for line in result.stdout.splitlines():
+        pid, _, path = line.strip().partition("|")
+        if pid.isdigit() and int(pid) in paths and path.strip():
+            paths[int(pid)] = path.strip()
+    return paths
+
+
+def windows_game_pids(tasklist_csv, exes, skip_pids):
+    """Process ids from `tasklist /FO CSV /NH` output whose program name is one of the game's."""
+    import csv
+    pids = []
+    for row in csv.reader(tasklist_csv.splitlines()):
+        if len(row) < 2 or row[0].strip().lower() not in exes:
+            continue
+        try:
+            pid = int(row[1].strip())
+        except ValueError:
+            continue
+        if pid not in skip_pids:
+            pids.append(pid)
+    return pids
+
+
+def windows_running_from_game(paths):
+    """Says which process (truthy) if any process runs from the game folder. A same-named program elsewhere
+    (another copy of TiTS, another Electron app) doesn't count. When Windows hides a
+    path we can't tell, so we play safe and count it."""
+    game_real = os.path.normcase(os.path.realpath(GAME)).rstrip("\\/") + os.sep
+    for pid, path in sorted(paths.items()):
+        if path is None:
+            return "process " + str(pid) + " (Windows didn't say where it runs from)"
+        if os.path.normcase(os.path.realpath(path)).startswith(game_real):
+            return path + " (process " + str(pid) + ")"
+    return ""
 
 
 def game_running():
@@ -573,11 +629,14 @@ def game_running():
                                     errors="replace", **hidden_window())
         except OSError:
             return False
-        for line in result.stdout.splitlines():
-            first = line.split(",", 1)[0].strip('"').lower()
-            if first in exes:
-                return True
-        return False
+        # Never count the patcher itself or the launcher that started it.
+        skip = {os.getpid()}
+        if hasattr(os, "getppid"):
+            skip.add(os.getppid())
+        pids = windows_game_pids(result.stdout, exes, skip)
+        if not pids:
+            return False
+        return windows_running_from_game(windows_process_paths(pids))
     if PLATFORM == "mac":
         try:
             result = subprocess.run(["pgrep", "-f", os.path.basename(GAME) + "/Contents/MacOS/"],
@@ -654,8 +713,11 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
         else:
             say(problem)
         return 1
-    if not dry_run and game_running():
+    running = False if dry_run else game_running()
+    if running:
         log("STOP: TiTS is running. " + quit_hint() + " Then run the patcher again.")
+        if isinstance(running, str) and running:
+            log("  Found: " + running)
         return 1
     node = which_tool("node", "nodejs")
     if validate and not node:
@@ -853,8 +915,11 @@ def restore_originals():
     if not os.path.isdir(BACKUP):
         say("No backups yet, so the game has never been patched by NestPatcher. Nothing to restore.")
         return 0
-    if game_running():
+    running = game_running()
+    if running:
         log("STOP: TiTS is running. " + quit_hint() + " Then try again.")
+        if isinstance(running, str) and running:
+            log("  Found: " + running)
         return 1
     count = 0
     for name in sorted(os.listdir(BACKUP)):
@@ -3389,10 +3454,10 @@ PAGE = r"""<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NestPatcher</title>
 <style>
-:root,:root[data-theme=dark]{--bg:#121318;--logbg:#0b0c10;--thumb:#5a5f70;--track:#1b1d24;--panel:#1b1d24;--panel2:#23262f;--line:#2f3340;--text:#e7e8ee;--dim:#9aa0b0;
+:root,:root[data-theme=dark]{--btn:#3a3b41;--btnline:#000000;--btntext:#ffffff;--bg:#121318;--logbg:#0b0c10;--thumb:#5a5f70;--track:#1b1d24;--panel:#1b1d24;--panel2:#23262f;--line:#2f3340;--text:#e7e8ee;--dim:#9aa0b0;
 --accent:#c48cff;--accent2:#8f5ad6;--ok:#6fdc8c;--warn:#ffcf5c;--bad:#ff7a85;--focus:#ffd34d;--wbg:#2a2618;--bbg:#2b1a1e;--gbg:#17281d;color-scheme:dark}
-@media (prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#f6f6f9;--panel:#ffffff;--panel2:#eef0f5;--line:#c9ccd6;--text:#17181d;--dim:#4f5566;--accent:#6b2fbf;--accent2:#6b2fbf;--ok:#17703a;--warn:#7a5600;--bad:#b0182a;--focus:#0a58ca;--logbg:#fbfbfd;--thumb:#8a90a2;--track:#e6e8ee;--wbg:#fff6dc;--bbg:#fde8eb;--gbg:#e4f5e9;color-scheme:light}}
-:root[data-theme=light]{--bg:#f6f6f9;--panel:#ffffff;--panel2:#eef0f5;--line:#c9ccd6;--text:#17181d;--dim:#4f5566;--accent:#6b2fbf;--accent2:#6b2fbf;--ok:#17703a;--warn:#7a5600;--bad:#b0182a;--focus:#0a58ca;--logbg:#fbfbfd;--thumb:#8a90a2;--track:#e6e8ee;--wbg:#fff6dc;--bbg:#fde8eb;--gbg:#e4f5e9;color-scheme:light}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]){--btn:#ffffff;--btnline:#c8c9ce;--btntext:#000000;--bg:#f6f6f9;--panel:#ffffff;--panel2:#eef0f5;--line:#c9ccd6;--text:#17181d;--dim:#4f5566;--accent:#6b2fbf;--accent2:#6b2fbf;--ok:#17703a;--warn:#7a5600;--bad:#b0182a;--focus:#0a58ca;--logbg:#fbfbfd;--thumb:#8a90a2;--track:#e6e8ee;--wbg:#fff6dc;--bbg:#fde8eb;--gbg:#e4f5e9;color-scheme:light}}
+:root[data-theme=light]{--btn:#ffffff;--btnline:#c8c9ce;--btntext:#000000;--bg:#f6f6f9;--panel:#ffffff;--panel2:#eef0f5;--line:#c9ccd6;--text:#17181d;--dim:#4f5566;--accent:#6b2fbf;--accent2:#6b2fbf;--ok:#17703a;--warn:#7a5600;--bad:#b0182a;--focus:#0a58ca;--logbg:#fbfbfd;--thumb:#8a90a2;--track:#e6e8ee;--wbg:#fff6dc;--bbg:#fde8eb;--gbg:#e4f5e9;color-scheme:light}
 html{font-size:calc(16px * var(--scale,1))}
 *{box-sizing:border-box}
 *{scrollbar-width:auto;scrollbar-color:var(--thumb) var(--track)}
@@ -3401,7 +3466,7 @@ html{font-size:calc(16px * var(--scale,1))}
 html,body{overflow-y:auto}main{overflow-x:auto}
 .status span,code{overflow-wrap:anywhere}
 .a11y{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.a11y button,.a11y select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:.9rem;cursor:pointer;min-width:2.6rem}
+.a11y button,.a11y select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font:inherit;font-size:.9rem;cursor:pointer;min-width:2.6rem}
 .a11y .lbl{color:var(--dim);font-size:.85rem}
 body{margin:0;background:var(--bg);color:var(--text);font:1rem/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
@@ -3420,7 +3485,7 @@ label{display:block;font-weight:600;margin:10px 0 4px}
 input[type=text],textarea{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit}
 textarea{min-height:90px;resize:vertical}
 .row input[type=text]{flex:1;min-width:200px}
-button.b{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer}
+button.b{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer}
 button.b:hover{border-color:var(--accent)}
 button.p{background:var(--accent2);border-color:var(--accent2);color:#fff}
 button.p:hover{background:var(--accent)}
@@ -3443,8 +3508,8 @@ font:.8125rem/1.45 ui-monospace,Consolas,"DejaVu Sans Mono",monospace;white-spac
 .banner{border-left:4px solid var(--warn);background:var(--wbg);color:var(--text);padding:10px 12px;border-radius:6px;margin-bottom:14px}
 .banner.bad{border-color:var(--bad);background:var(--bbg)}
 .banner.good{border-color:var(--ok);background:var(--gbg)}
-#totop{position:fixed;right:20px;bottom:20px;z-index:50;background:var(--accent2);color:#fff;border:2px solid var(--panel);border-radius:999px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45)}
-#totop:hover{background:var(--accent)}#totop[hidden]{display:none}
+#totop{position:fixed;right:20px;bottom:20px;z-index:50;background:var(--btn);color:var(--btntext);border:2px solid var(--btnline);border-radius:999px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+#totop:hover{border-color:var(--accent)}#totop[hidden]{display:none}
 @media (max-width:600px){header{flex-wrap:wrap}.status{grid-template-columns:1fr}#log{height:19rem}}
 </style></head><body>
 <header><h1>🪺 NestPatcher</h1><span class="ver" id="ver"></span><span class="sp"></span>
