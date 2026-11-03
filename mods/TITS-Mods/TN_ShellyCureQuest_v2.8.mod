@@ -284,7 +284,8 @@ Add JS:
 
   // =====================================================================
   //  DR. LASH ROUTE
-  //  LASH stage: 1 asked Lash, 2 pitched to Shelly, 3 Shelly thinking, 4 she said no,
+  //  LASH stage: 1 asked Lash, 2 pitched to Shelly, 3 Shelly thinking, 4 she said no (after 3 days,
+  //  Lash Again? puts her back at 3 for a fresh roll),
   //  5 she said yes but Steele refused sterilization, 6 waiting at airlock for Tarkus,
   //  7 backed out in the lab (pay Lash to continue), 8 done.
   // =====================================================================
@@ -503,6 +504,7 @@ Add JS:
     if (num("ROLL") !== 1) {
       t += say("It’s a no, Steele. I’d rather not do this with... such a disreputable doctor, not to mention such a permanent side effect. If you can find someone else, eventually, I’d be open to trying again with someone else! But not... this person, and not right now.") + " You sigh, but nod and say you understand.";
       setF("LASH", 4);
+      setF("LASH_NO_AT", now());
       output(t);
       addButton(0, "Next", toTalk);
       return;
@@ -517,6 +519,29 @@ Add JS:
       output(t);
       addButton(0, "Bring Her Out", lashBringOut, "Bring Her Out", "Head out to Dr. Lash’s lab with Shelly in tow.");
     }
+  }
+  function lashAskAgain() {
+    shellyScene();
+    output(p(
+      "You ask Shelly, gently, whether she’s given any more thought to Dr. Lash’s cure since she turned it down.",
+      "She fidgets with one of her ears, pulling it down in front of her face. " + say("I... have, actually. A lot. He still gives me the creeps, [pc.name], but the eggs aren’t going anywhere on their own, are they?") + " She sighs. " + say("Let me sleep on it one more time. Ask me again tomorrow, and I’ll give you a real answer.")
+    ));
+    delete flags.TN_SCQ_ROLL;
+    setF("LASH", 3);
+    setF("LASH_DUE", now() + DAY);
+    next(toTalk, "Next", "Shelly will decide again in about a day.");
+  }
+  function lessauAskAgain() {
+    shellyScene();
+    output(p(
+      "You ask Shelly whether she’s still sure about turning down Dr. Lessau’s cures.",
+      "She’s quiet for a long moment, her cotton tail twitching. " + say("No... I’m not, honestly. I keep thinking about what I said. About having kids. I panicked a little, I think, with all of it right in front of me.") + " She looks up at you, ears perking. " + say("Do you think he still has them? I’d like another look, if you’ll come with me."),
+      "You tell her you’ll ask him, and her smile is small but real."
+    ));
+    setF("LESSAU", 3);
+    setF("LESSAU_DUE", 0);
+    setF("LESSAU_RETRY", 1);
+    next(toTalk, "Next", "Visit Dr. Lessau on Uveto, then bring Shelly down.");
   }
   function lashRefuse() {
     shellyScene();
@@ -669,7 +694,8 @@ Add JS:
   // =====================================================================
   //  DR. LESSAU ROUTE
   //  LESSAU stage: 1 asked (needs eggs), 2 has sample case, 3 samples delivered (5 days),
-  //  4 cures shown (Shelly declined), 5 Shelly thinking (48h), 6 done.
+  //  4 cures shown (Shelly declined; after 2 days her Lessau Cures? talk button sends you back
+  //  to stage 3 with LESSAU_RETRY=1, a guaranteed yes), 5 Shelly thinking (48h), 6 done.
   // =====================================================================
 
   function lessauAsk() {
@@ -805,6 +831,16 @@ Add JS:
   }
   function lessauAskCures() {
     lessauScene();
+    if (num("LESSAU_RETRY") === 1) {
+      output(p(
+        "Dr. Lessau looks up from his work as you come in, and his eyes light up. " + say("[pc.name]! Did Shelly change her mind, then? I kept her cures in storage, just in case. Bring her down whenever she’s ready, and I’ll go over them again.")
+      ));
+      clearMenu();
+      if (shellyOnCrew()) addButton(0, "Bring Shelly", lessauBringShelly, "Bring Shelly Back", "Go get Shelly and bring her back to Lessau’s laboratory. Takes an hour.");
+      else addDisabledButton(0, "Bring Shelly", "Bring Shelly Back", "Shelly needs to be aboard your ship.");
+      addButton(14, "Later", mainGameMenu, "Later", "Come back with Shelly another time.");
+      return;
+    }
     output(p(
       "<b>Eureka! That cure you’ve wanted? I’ve finished!</b>",
       "<i>[pc.name] Steele,\n\nI’ve finished a few different versions of the cure for your crewmate you’ve been hoping for. Come on by my laboratory to see the results.\n\nBest,\n\n-Dr. Lessau</i>",
@@ -833,7 +869,7 @@ Add JS:
     lessauScene();
     var trust = Math.max(0, Math.min(10, Number(flags.TN_SHELLY_TRUST) || 0));
     var trustLine = trust >= 10 ? ", trusting you completely," : trust >= 7 ? ", trusting you a lot," : trust >= 5 ? ", trusting you as much as she can," : ",";
-    var yes = roll(75); // rerolled every time this scene runs, so it can be save-scummed
+    var yes = num("LESSAU_RETRY") === 1 || roll(75); // rerolled every time this scene runs, so it can be save-scummed; a second visit she asked for is always a yes
     var t = p(
       "As you both sit on the couches, Shelly curls into you" + trustLine + " but still no doubt nervous about what happens next.",
       "Lessau sets the cures on a tray, then brings the tray over to the table and sets it down on it. He then lowers himself down on his haunches in front of the chair, allowing himself to curl up on it. Then he begins explaining.",
@@ -848,9 +884,11 @@ Add JS:
       if (credits() >= LESSAU_PRICE) addButton(1, "Pay Now", function () { lessauPay(true); }, "Pay him now", "Pay Dr. Lessau 15,000 credits.");
       else addDisabledButton(1, "Pay Now", "Pay him now", "You need 15,000 credits.");
     } else {
-      t += "But I think I like the way I am now. I’ve... gotten used to it, I suppose.”</i> You sigh, somewhat disappointed, but you try to not let it show. You smile, and thank Lessau for what he’s done, but you won’t be needing the cures it seems.\n\n" + say("Very well. It was a fun experiment, in any case!") + " He takes the cures away and you both head back to the ship.";
+      t += "But I think I like the way I am now. I’ve... gotten used to it, I suppose.”</i> You sigh, somewhat disappointed, but you try to not let it show. You smile, and thank Lessau for what he’s done, but you won’t be needing the cures it seems.\n\n" + say("Very well. It was a fun experiment, in any case!") + " He sets the cures back in storage, in case she changes her mind, and you both head back to the ship.";
       output(t);
       setF("LESSAU", 4);
+      setF("LESSAU_NO_AT", now());
+      setF("LESSAU_RETRY", 0);
       addButton(0, "Continue", toShipDock, "Continue", "Return to the ship.");
     }
   }
@@ -923,9 +961,16 @@ Add JS:
     else if (lash === 3) {
       if (now() >= num("LASH_DUE")) addButton(7, "Decision?", lashDecision, "Cure Decision?", "Ask Shelly about her decision with Dr. Lash.");
       else addDisabledButton(7, "Decision?", "Cure Decision?", "Shelly is still thinking it over. Give her another " + hoursLeft(num("LASH_DUE")) + " hours.");
+    } else if (lash === 4) {
+      if (now() >= num("LASH_NO_AT") + 3 * DAY) addButton(7, "Lash Again?", lashAskAgain, "Dr. Lash Again?", "Ask Shelly if she’d reconsider Dr. Lash’s cure. She’ll think it over for another day.");
+      else addDisabledButton(7, "Lash Again?", "Dr. Lash Again?", "Shelly only just turned Dr. Lash down. Give her another " + hoursLeft(num("LASH_NO_AT") + 3 * DAY) + " hours before asking again.");
     } else if (lash === 5) addButton(7, "Change Mind", lashChangeMind, "Change your Mind", "Tell Shelly you changed your mind and you’ll go get sterilized. This is permanent for this save. Fertility and virility transformatives and implants do nothing.");
 
-    if (les === 2 && num("PARTIAL") !== 1) addButton(8, "Samples", shellyGatherSamples, "Gather Samples", "Gather Dr. Lessau’s samples from Shelly.");
+    if (les === 4) {
+      if (now() >= num("LESSAU_NO_AT") + 2 * DAY) addButton(8, "Lessau Cures?", lessauAskAgain, "Dr. Lessau’s Cures?", "Ask Shelly if she’d like another look at Dr. Lessau’s cures.");
+      else addDisabledButton(8, "Lessau Cures?", "Dr. Lessau’s Cures?", "Shelly only just turned the cures down. Give her another " + hoursLeft(num("LESSAU_NO_AT") + 2 * DAY) + " hours before asking again.");
+    }
+    else if (les === 2 && num("PARTIAL") !== 1) addButton(8, "Samples", shellyGatherSamples, "Gather Samples", "Gather Dr. Lessau’s samples from Shelly.");
     else if (les === 2 && num("BLOOD") !== 1) {
       if (num("SYRINGE") === 1) addButton(8, "Blood Sample", shellyBlood, "Blood Sample", "Gather the remaining blood sample from Shelly.");
       else addDisabledButton(8, "Blood Sample", "Blood Sample", "Shelly won’t give blood without a proper tool. Ask Dr. Lessau.");
@@ -1452,7 +1497,8 @@ Add JS:
   // Exposed for testing with the console or the "impulse" cheat.
   window.tnShellyCure = {
     lashAsk: lashAsk, lashPitch: lashPitch, lashDecision: lashDecision, lashEnterLab: lashEnterLab,
-    lessauAsk: lessauAsk, lessauAskCures: lessauAskCures, reveal: shellyCureReveal
+    lessauAsk: lessauAsk, lessauAskCures: lessauAskCures, reveal: shellyCureReveal,
+    lashAskAgain: lashAskAgain, lessauAskAgain: lessauAskAgain
   };
 
   boot();
