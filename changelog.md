@@ -26,6 +26,7 @@ Latest: 2.8
 - **Anno's Holoboard:** Back in the pack. The mod's file had gone missing, so Anno never stocked it and the cheat menu never listed it. It's rebuilt for TiTS 0.9.168 and sold in Anno's shop (the Tarkus outpost, or your ship once she's crew) for what Shekka charges for a pink board. It's also in Options > Cheats > Items (search "holo"). Anno shows it off the next time you talk to her, even if you met her long ago. File: `TN_Holoboard_v2.8.mod`.
 - **Changelog:** Shows Modv2.8 as installed. Now `TN_Changelog_v2.8.js`; delete `TN_Changelog_v2.7.js`.
 - **Wiki Browser:** Fix: the Codex **Wiki** button (added in 2.7) never showed, because it was a separate file, `TN_CodexWiki_v2.7.js`, that often didn't get loaded. It's now built into the Wiki Browser, so there's one file. **Wiki** sits under the Codex header in the left sidebar, and while you read an entry (like Gabilani) **Look up: Gabilani** searches the wiki for it. The Info > Wiki button on the main menu is still there. One Android Mods switch (Wiki Browser) turns both on and off. Now `WikiBrowser_v2.8.js`; delete `WikiBrowser_v2.7.js` and `TN_CodexWiki_v2.7.js`.
+- **Editor:** Removed from the pack. It wrote changes straight into the running game and broke things nearly every time it was used. Use the **Save Editor** (Load Game sidebar) instead, which edits a save file. Delete `TitsEditor.js` from your mods folder and patch again.
 
 ## Modv2.7 — TiTS 0.9.168 and a Codex wiki button (2026-11-01)
 

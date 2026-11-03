@@ -11,7 +11,7 @@ their pack had that ours didn't and folds it into ours, using TN names.
 |---|---|
 | `Zheniya.mod` + `Zheniya.js` | Added. Renamed to TN (`TN_ZHENIYA_CREW`). All 5 patches apply to 0.9.167 as they are. |
 | `Pregnancy.js` | Added and **fixed**. It looked for `window.SC`, which the game never defines, so the bars always said 0% and Pause did nothing. It now finds the game's pregnancy manager directly. Flag is now `TN_PREG_PAUSE`. |
-| `TitsEditor.js` | Added, renamed to TN. Main menu **Editor** button, including a Debug Mode checkbox under Game. |
+| `TitsEditor.js` | Added in Modv2.2, **removed in Modv2.8**: it wrote straight into the running game and kept breaking things. Use the Save Editor (Load Game sidebar) instead. |
 | `StephIrson.js` | Added. Our `StephIrson.mod` called functions that only existed in this file, so Steph never appeared before. Also fixed our `StephIrson.mod` patches, which matched neither 0.9.166 nor 0.9.167. |
 | `CrewSize.js` | Their **Bypass crew limit** checkbox merged into ours (it uses the game's own `INFINITE_CREW` flag). |
 
@@ -54,8 +54,7 @@ has (`KITTY_COURTESANS`, `KITTY_EXTRA_IMPLANTS`, `PAULETTE_KITTY`) are left alon
    The dry run should end with `DRY RUN: 508 replacements`, and the real run with `DONE`.
    If a line says `MISS`, stop and send `kitty-mods\logs\ModPatchLog.txt`.
 7. **Start the game** and load the save. Mod settings are now under **Options > Android Mods**
-   rather than a main-menu Mods button. The Editor button stays on the main menu, and the
-   Wiki moves to the Info section of the sidebar.
+   rather than a main-menu Mods button. The Wiki moves to the Info section of the sidebar.
 8. **Check:** turn on Debug Mode in Options > Android Mods, tap **TN DEBUG**, and look for
    `[TN] Copied … old KITTY_ save flags to TN_`. The crew should all still be there.
 
