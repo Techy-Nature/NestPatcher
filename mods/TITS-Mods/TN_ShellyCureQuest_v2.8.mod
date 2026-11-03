@@ -230,7 +230,10 @@ Add JS:
   function toCabin() { if (typeof window.tnShellyCabin === "function") window.tnShellyCabin(); else mainGameMenu(); }
   function toShipDock() {
     // Lab scenes end "back at the ship": put Steele at the ship's docking room when the game exposes it.
-    try { if (typeof skipToRoom === "function" && typeof getShipRoom === "function") { skipToRoom(getShipRoom()); return; } } catch (err) {}
+    // skipToRoom only moves Steele; mainGameMenu then draws that room's menu and movement buttons.
+    // (Without it the old scene text and Continue button stayed on screen, so Steele looked stuck.)
+    try { if (typeof skipToRoom === "function" && typeof getShipRoom === "function" && getShipRoom()) skipToRoom(getShipRoom()); }
+    catch (err) { console.warn("[Shelly Cure] couldn't move to the ship", err); }
     mainGameMenu();
   }
   function recover(minutesFromNow, msg) { setF("RECOVER_UNTIL", now() + minutesFromNow); setF("RECOVER_MSG", msg); }

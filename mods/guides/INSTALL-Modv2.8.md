@@ -189,6 +189,31 @@ Using it:
   for bare steel.
 - **Toggle:** Options > Android Mods > **Anno's Holoboard**. Off = not stocked and no showcase.
 
+## Added later in Modv2.8: Save Fixer
+
+Before this, a save slot that hit an error while loading just sat on "Loading your save from
+slot N..." forever (Load From File already showed an error, slots didn't).
+
+1. Copy `TN_SaveFixer_v2.8.js` into your mods folder.
+2. Add it to `enabled.txt` (the pack's `enabled.txt` already has it).
+3. Run **Test my mods**, then **Patch the game**. It doesn't patch game files.
+
+What it does:
+
+- **No more endless Loading:** a slot that fails shows **Save Didn't Load** with the real error.
+- **Repair & Load:** if the save holds an item, character or other object the game doesn't know
+  (usually from a mod that's off, renamed or didn't patch), it lists them and offers to leave
+  them out and load the rest. Afterwards it shows what was left out. **Save to a new slot**, so
+  the old one keeps them in case you get that mod working again.
+- **A mod failing after the load:** it says so and shows that mod's error, so it can be reported.
+- **Toggle:** Options > Android Mods > **Save Fixer** (on by default).
+
+## Removed in Modv2.8: the in-game Editor
+
+`TitsEditor.js` (the main-menu **Editor**) wrote straight into the running game and kept breaking
+things. Delete it from your mods folder. The **Save Editor** in the Load Game sidebar edits a save
+file instead.
+
 ## Fixed in Modv2.8: Wiki button in the Codex
 
 The Codex **Wiki** button from 2.7 never showed, because it was a separate file
