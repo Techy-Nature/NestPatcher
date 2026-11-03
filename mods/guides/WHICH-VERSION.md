@@ -20,8 +20,8 @@ Game version: **TiTS 0.9.168** (Modv2.8). Librakitty's pack was made for 0.9.166
 | Wiki Browser | **Neston** | `WikiBrowser_v2.8.js` | Newer. It lives in the sidebar's Info section, not on the main menu, and also adds Wiki buttons to the Codex sidebar. |
 | Zheniya | **Librakitty's, via Neston's pack** | `Zheniya_v2.7.mod`, `Zheniya.js` | Librakitty's mod with TN names, patches fixed for 0.9.168. |
 | Pregnancy | **Librakitty's, fixed in Neston's pack** | `Pregnancy_v2.4.js` | Librakitty's original never found the game's pregnancy system, so the bars stayed at 0% and Pause did nothing. Fixed. |
-| Editor | **Librakitty's, via Neston's pack** | `TitsEditor.js` | Main-menu Editor button, with a Debug Mode checkbox under Game. |
-| Save Editor (web) | **Neston** | `TN_Save_Editor_v2.5.js` | A different tool from the Editor: it opens the online save editor. Fine to keep both. |
+| Editor | **Removed in Modv2.8** | | Librakitty's main-menu Editor wrote straight into the running game and kept breaking things. Use the Save Editor below. Delete `TitsEditor.js`. |
+| Save Editor (web) | **Neston** | `TN_Save_Editor_v2.5.js` | Opens the online save editor from the Load Game sidebar. It edits a save file, not the running game. |
 | Everything starting with `TN_` | **Neston** | | Neston's own mods. Librakitty's pack has no versions of these. |
 
 ## Files from Librakitty's pack to remove
