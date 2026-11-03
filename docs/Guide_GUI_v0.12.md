@@ -31,7 +31,7 @@ At the top of the panel:
 - **Theme:** Auto (follows your system), Dark or Light.
 - Both are remembered for next time.
 - Long lists and the log have big, visible scrollbars. You can drag the log box's bottom corner to make it taller.
-- **Back to the top:** once you scroll down, a purple **▲ Top** button shows in the bottom corner. Keyboard: press **Up arrow** (or **Home**). While you're typing in a box, picking from a drop-down, or have the log box selected, Up works as normal there; click on an empty part of the page first to get the jump back.
+- **Back to the top:** once you scroll down, a round **▲ Top** button (dark grey in dark mode, white in light mode) shows in the bottom corner. Keyboard: press **Up arrow** (or **Home**). While you're typing in a box, picking from a drop-down, or have the log box selected, Up works as normal there; click on an empty part of the page first to get the jump back.
 
 ## The tabs
 

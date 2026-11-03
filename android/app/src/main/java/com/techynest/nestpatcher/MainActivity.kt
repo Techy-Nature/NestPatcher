@@ -6,7 +6,11 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -130,10 +134,36 @@ class MainActivity : AppCompatActivity() {
         return view
     }
 
+    private fun isDark() =
+        (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+    /** Rounded button look: dark grey, black edge, white text in dark mode;
+     *  white, light grey edge, black text in light mode. Disabled buttons fade. */
+    private fun styleButton(view: Button) {
+        val dark = isDark()
+        val fill = if (dark) 0xFF3A3B41.toInt() else 0xFFFFFFFF.toInt()
+        val edge = if (dark) 0xFF000000.toInt() else 0xFFC8C9CE.toInt()
+        val textOn = if (dark) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
+        val textOff = if (dark) 0xFF8A8C94.toInt() else 0xFF9A9CA4.toInt()
+        val pill = GradientDrawable().apply {
+            cornerRadius = dp(28).toFloat()
+            setColor(fill)
+            setStroke(dp(2), edge)
+        }
+        // A small inset keeps a gap between buttons that sit next to each other.
+        view.background = InsetDrawable(pill, dp(3), dp(4), dp(3), dp(4))
+        view.setTextColor(ColorStateList(
+            arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),
+            intArrayOf(textOff, textOn)))
+        view.stateListAnimator = null
+        view.setPadding(dp(20), dp(12), dp(20), dp(12))
+    }
+
     private fun button(label: String, onClick: () -> Unit): Button {
         val view = Button(this)
         view.text = label
         view.isAllCaps = false
+        styleButton(view)
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f * scale())
         view.setOnClickListener { onClick() }
         texts.add(view to 16f)
@@ -242,14 +272,8 @@ class MainActivity : AppCompatActivity() {
         topButton.isAllCaps = false
         topButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f * scale())
         topButton.contentDescription = "Scroll back to the top"
-        topButton.setTextColor(0xFFFFFFFF.toInt())
-        topButton.background = android.graphics.drawable.GradientDrawable().apply {
-            cornerRadius = dp(24).toFloat()
-            setColor(0xFF8F5AD6.toInt())
-            setStroke(dp(2), 0xFF1B1D24.toInt())
-        }
+        styleButton(topButton)
         topButton.elevation = dp(6).toFloat()
-        topButton.setPadding(dp(18), dp(10), dp(18), dp(10))
         topButton.visibility = View.GONE
         topButton.setOnClickListener { scrollToTop() }
         texts.add(topButton to 16f)

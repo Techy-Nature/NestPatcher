@@ -1,4 +1,4 @@
-# NestPatcher Android app v0.8 — step by step
+# NestPatcher Android app v0.9 — step by step
 
 The NestPatcher app runs the NestPatcher patcher on your phone without Termux. It is **not KittyPatcher**. It is based on KittyPatcher by LibraKitty.
 
@@ -20,7 +20,7 @@ TITS-Modding/
 ## 1. Get the APK
 
 1. Open the repo's **Actions** tab on GitHub, open the newest green **Test and build** run, and download **nestpatcher-android-apk**. If you'd rather use a tagged version, use **Releases** instead.
-2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.8.apk`.
+2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.9.apk`.
 
 ## 2. Install it
 
@@ -100,7 +100,7 @@ Tap **Copy log** to paste the log into a bug report.
 - **A− / A+** change the text size from 80% to 250%.
 - **Theme** switches between Auto, Dark and Light.
 - The page scrolls, and its scrollbar always shows.
-- **Back to the top:** once you scroll down, a purple **▲ Top** button shows in the bottom-right corner. Tap it to jump back up.
+- **Back to the top:** once you scroll down, a round **▲ Top** button (dark grey in dark mode, white in light mode) shows in the bottom-right corner. Tap it to jump back up.
 - **Bluetooth or USB keyboard:** press **Up arrow** (or **Home**) to jump to the top. **Tab** still moves between buttons. While you're typing in a text box, Up works as normal in that box.
 - If you tap **▲ Top** while a patch is running, the log stops pulling you back down. Scroll to the bottom again and it follows the log once more.
 - In the GUI patcher view (inside the app) the same **▲ Top** button and Up key work too.
