@@ -4,7 +4,7 @@ Author: Neston
 # Needs Shelly-Custom-Talk-Menu.js (and ShellyShop.mod) loaded first. List this mod after them in enabled.txt.
 # Starts from Shelly's existing "Cure?" talk option (5+ trust), which sets flags.TN_SHELLY_CURE_DISCUSSION.
 # Dr. Lash and Dr. Lessau get their buttons from two small anchors below (TiTS 0.9.166 bundles). Test on a backup save first.
-# Lessau's egg step needs one of each small egg colour from Shelly's Assist: brightly-colored, pink, blue and white.
+# Lessau's egg step needs one of each small egg color from Shelly's Assist: brightly-colored, pink, blue and white.
 # All progress is stored in flags.TN_SCQ_* and survives saving and loading.
 # Android Mods > Shelly Cure Quest has a setting for whether Dr. Lash's sterilization also removes Steele's genitals.
 # Once she's cured, her cabin Sex menu opens: First Time, then Make Love (affection 5+), She Rides, Eat Her Out, Her Mouth and Grind.
@@ -21,9 +21,9 @@ window.bothriocQuestActive()&&window.bothriocQuestDoctorButton(4,"Lash"),window.
 
 # Dr. Lessau's main menu (Steele Tech, Uveto): quest buttons follow his own buttons.
 Replace [content_uveto.js]:
-addButton(14,"Leave",mainGameMenu)}function Ci(){
+She’s got some unique issues he might be able to help with."),addButton(14,"Leave",mainGameMenu)}
 With:
-window.tnShellyCureDoctorButtons&&(e=window.tnShellyCureDoctorButtons("lessau",e)),addButton(14,"Leave",mainGameMenu)}function Ci(){
+She’s got some unique issues he might be able to help with."),window.tnShellyCureDoctorButtons&&(e=window.tnShellyCureDoctorButtons("lessau",e)),addButton(14,"Leave",mainGameMenu)}
 
 Add JS:
 (function () {
@@ -169,18 +169,21 @@ Add JS:
     if (it.quantity > 1) it.quantity--; else list.splice(idx, 1);
   }
 
-  // Healing items for the blood draw. Matched by name so it works whatever the class names are in this build.
-  function findItem(pattern) {
+  // Healing items for the blood draw: [game class names, name pattern as a fallback].
+  // Bianca sells the field surgeon's kit (FSrgKit, "a kit of medical spray"). The old pattern matched
+  // any "medipen" instead (Priapin, Lactaid, the Treatment...), so it could use up the wrong item.
+  function findItem(kind) {
     var list = invList();
     for (var i = 0; i < list.length; i++) {
       var it = list[i];
-      if (!it) continue;
+      if (!it || !(it.quantity > 0)) continue;
+      if (kind[0].indexOf(className(it)) >= 0) return i;
       var name = (it.shortName || "") + " " + (it.longName || "");
-      if (pattern.test(name)) return i;
+      if (kind[1].test(name)) return i;
     }
     return -1;
   }
-  // Shelly's Assist gives one random small egg (content_tavros.js oviliumEggReward): four colours to collect.
+  // Shelly's Assist gives one random small egg (content_tavros.js oviliumEggReward): four colors to collect.
   // Class names checked against TiTS 0.9.168: SmallEgg, EggPinkSmall, EggBlueSmall, EggWhiteSmall.
   var EGG_KINDS = [["SmallEgg", "brightly-colored"], ["EggPinkSmall", "pink"], ["EggBlueSmall", "blue"], ["EggWhiteSmall", "white"]];
   function eggIndex(cls) {
@@ -202,8 +205,8 @@ Add JS:
       if (idx >= 0) takeOne(idx);
     }
   }
-  var POULTICE = /poultice/i;
-  var MEDKIT = /med ?kit|medipen|bianca/i;
+  var POULTICE = [["HealingPoultice"], /healing poultice/i];
+  var MEDKIT = [["FSrgKit"], /field surgeon/i];
   function useItem(pattern) {
     var i = findItem(pattern);
     if (i >= 0) takeOne(i);
@@ -230,7 +233,10 @@ Add JS:
   function toCabin() { if (typeof window.tnShellyCabin === "function") window.tnShellyCabin(); else mainGameMenu(); }
   function toShipDock() {
     // Lab scenes end "back at the ship": put Steele at the ship's docking room when the game exposes it.
-    try { if (typeof skipToRoom === "function" && typeof getShipRoom === "function") { skipToRoom(getShipRoom()); return; } } catch (err) {}
+    // skipToRoom only moves Steele; mainGameMenu then draws that room's menu and movement buttons.
+    // (Without it the old scene text and Continue button stayed on screen, so Steele looked stuck.)
+    try { if (typeof skipToRoom === "function" && typeof getShipRoom === "function" && getShipRoom()) skipToRoom(getShipRoom()); }
+    catch (err) { console.warn("[Shelly Cure] couldn't move to the ship", err); }
     mainGameMenu();
   }
   function recover(minutesFromNow, msg) { setF("RECOVER_UNTIL", now() + minutesFromNow); setF("RECOVER_MSG", msg); }
@@ -278,7 +284,8 @@ Add JS:
 
   // =====================================================================
   //  DR. LASH ROUTE
-  //  LASH stage: 1 asked Lash, 2 pitched to Shelly, 3 Shelly thinking, 4 she said no,
+  //  LASH stage: 1 asked Lash, 2 pitched to Shelly, 3 Shelly thinking, 4 she said no (after 3 days,
+  //  Lash Again? puts her back at 3 for a fresh roll),
   //  5 she said yes but Steele refused sterilization, 6 waiting at airlock for Tarkus,
   //  7 backed out in the lab (pay Lash to continue), 8 done.
   // =====================================================================
@@ -495,8 +502,9 @@ Add JS:
     var t = p("Shelly’s email is still sitting on your codex.", email, "You ask Shelly about her decision with Dr. Lash. She tells you, ");
     clearMenu();
     if (num("ROLL") !== 1) {
-      t += say("It’s a no, Steele. I’d rather not do this with... this unreputable of a doctor, not to mention such a permanent side effect. If you can find someone else, eventually, I’d be open to trying again with someone else! But not... this person, and not right now.") + " You sigh, but nod and say you understand.";
+      t += say("It’s a no, Steele. I’d rather not do this with... such a disreputable doctor, not to mention such a permanent side effect. If you can find someone else, eventually, I’d be open to trying again with someone else! But not... this person, and not right now.") + " You sigh, but nod and say you understand.";
       setF("LASH", 4);
+      setF("LASH_NO_AT", now());
       output(t);
       addButton(0, "Next", toTalk);
       return;
@@ -511,6 +519,29 @@ Add JS:
       output(t);
       addButton(0, "Bring Her Out", lashBringOut, "Bring Her Out", "Head out to Dr. Lash’s lab with Shelly in tow.");
     }
+  }
+  function lashAskAgain() {
+    shellyScene();
+    output(p(
+      "You ask Shelly, gently, whether she’s given any more thought to Dr. Lash’s cure since she turned it down.",
+      "She fidgets with one of her ears, pulling it down in front of her face. " + say("I... have, actually. A lot. He still gives me the creeps, [pc.name], but the eggs aren’t going anywhere on their own, are they?") + " She sighs. " + say("Let me sleep on it one more time. Ask me again tomorrow, and I’ll give you a real answer.")
+    ));
+    delete flags.TN_SCQ_ROLL;
+    setF("LASH", 3);
+    setF("LASH_DUE", now() + DAY);
+    next(toTalk, "Next", "Shelly will decide again in about a day.");
+  }
+  function lessauAskAgain() {
+    shellyScene();
+    output(p(
+      "You ask Shelly whether she’s still sure about turning down Dr. Lessau’s cures.",
+      "She’s quiet for a long moment, her cotton tail twitching. " + say("No... I’m not, honestly. I keep thinking about what I said. About having kids. I panicked a little, I think, with all of it right in front of me.") + " She looks up at you, ears perking. " + say("Do you think he still has them? I’d like another look, if you’ll come with me."),
+      "You tell her you’ll ask him, and her smile is small but real."
+    ));
+    setF("LESSAU", 3);
+    setF("LESSAU_DUE", 0);
+    setF("LESSAU_RETRY", 1);
+    next(toTalk, "Next", "Visit Dr. Lessau on Uveto, then bring Shelly down.");
   }
   function lashRefuse() {
     shellyScene();
@@ -561,7 +592,7 @@ Add JS:
     clearMenu();
     if (credits() >= LASH_PRICE) addButton(0, "Pay Him", function () { lashPay(false); }, "Pay Him", "Pay Dr. Lash 50,000 credits for his service.");
     else addDisabledButton(0, "Pay Him", "Pay Him", "You need 50,000 credits.");
-    addButton(1, "Back Out", lashBackOut, "Back Out", "Wait, wait, nevermind!");
+    addButton(1, "Back Out", lashBackOut, "Back Out", "Wait, wait, never mind!");
   }
   function lashBackOut() {
     lashScene();
@@ -627,9 +658,9 @@ Add JS:
       : faceIs(["TYPE_FELINE", "TYPE_SNAKE", "TYPE_NAGA"]) ? ", hissing loudly" : ", glaring at him";
     output(p(
       "You decide to stay nearby to make sure Dr. Lash keeps up his end of the deal. You watch some tv on the extranet while you wait. He doesn’t cut anything with you watching, but he does inject a lot of serums. Then he takes notes on his computer at his desk as he waits.",
-      "The color of her hair and ears changes with the first dose. He gives another, and a bunch of POP noises happen, which startles you and you look up at him" + react + ". He stares at the ground, as a bunch of the large eggs come out and pop, making a mess of sweets. " + say("I expect you to clean this up. Might as well make yourself useful.") + " He sniffs pompously, and points to a closet. You put your pack down and your codex back in it, then go over to the closet and open it. There’s a mop bucket and cleaning supplies, as well as an actual mop. Wow. You’d think he’d- oh.",
+      "The color of her hair and ears changes with the first dose. He gives another, and a burst of POP noises startles you, and you look up at him" + react + ". He stares at the ground, as a bunch of the large eggs come out and pop, making a mess of sweets. " + say("I expect you to clean this up. Might as well make yourself useful.") + " He sniffs pompously, and points to a closet. You put your pack down and your codex back in it, then go over to the closet and open it. There’s a mop bucket and cleaning supplies, as well as an actual mop. Wow. You’d think he’d- oh.",
       "You blink, and a high-tech flying cleaning bot comes out of the closet- then another. They work to automatically clean up the mess. " + say("Do I really need to?"),
-      say("They’re not going to get the biggest mess. They’re for the ceiling.") + " You look up, and see candy egg goop dripping down from the eggsplosion. You grin to yourself on that very clever pun as you grab the mop, fill it with water and soap. Then you sigh at the mess, and get to work on the floor with the mop as he works to get a better injection for getting rid of all of the eggs."
+      say("They’re not going to get the biggest mess. They’re for the ceiling.") + " You look up, and see candy egg goop dripping down from the eggsplosion. You grin to yourself at that very clever pun as you grab the mop and fill the bucket with water and soap. Then you sigh at the mess, and get to work on the floor with the mop as he works to get a better injection for getting rid of all of the eggs."
     ));
     next(lashCleanup, "Cleanup", "Keep cleaning as Dr. Lash works to refine the egg-vaccine.");
   }
@@ -637,10 +668,10 @@ Add JS:
     lashScene();
     passTime(HOUR);
     output(p(
-      "He finally gets a clue an hour in, and smiles widely, as you finish up cleaning up and emptying out the dirty water bucket outside.",
+      "He finally has his breakthrough an hour in, and smiles widely as you finish cleaning and empty the dirty water bucket outside.",
       "You come back in, to another loud POP, even louder than before, groaning as you hope there’s not any more mess to be had. But when you come in... Shelly is moaning in her sleep as the eggs slowly recede, to the point that her stomach... it almost starts to look normal! Dr. Lash removes the syringe from her stomach, lithely going back over and grabbing a healing spray, before spraying it on her stomach, where the syringe was inserted and the cure payload injected.",
-      "You put the rest of the supplies away, and as you come out, you hear a tired feminine voice say, " + say("[pc.name]..? Did I...?") + " You go over to her bedside, and look up at the ceiling, noticing the bots finishing with the ceiling and walls. There’s no more goop in here, thankfully. You explain, " + say("You’re okay. I made sure of it. Dr. Lash cured you and you won’t be able to have any more children, same as we agreed. It looks like you still have your genitals, which is good. He had me working... probably on purpose.") + " You shoot a glare over at Dr. Lash. He’s already ignoring you two, though, and has turned back to his computer. You proceed to tell her you’ll grab her clothing, and something to nibble on for food that you brought " + (yammiAboard() ? "from Yammi’s stock." : "from the kitchen on the ship."),
-      "She nibbles on some food, but you can tell she’s in a lot of pain. Whether that’s mental or physical, is yet to be seen. Probably a mix of both. You bring her slowly back to the ship, and hope she can heal well from all this. You rub her back gently, reassuring her as you two head back.",
+      "You put the rest of the supplies away, and as you come out, you hear a tired feminine voice say, " + say("[pc.name]...? Did I...?") + " You go over to her bedside, and look up at the ceiling, noticing the bots finishing with the ceiling and walls. There’s no more goop in here, thankfully. You explain, " + say("You’re okay. I made sure of it. Dr. Lash cured you and you won’t be able to have any more children, same as we agreed. It looks like you still have your genitals, which is good. He had me working... probably on purpose.") + " You shoot a glare over at Dr. Lash. He’s already ignoring you two, though, and has turned back to his computer. You proceed to tell her you’ll grab her clothing, and something to nibble on for food that you brought " + (yammiAboard() ? "from Yammi’s stock." : "from the kitchen on the ship."),
+      "She nibbles on some food, but you can tell she’s in a lot of pain. Whether that’s mental or physical is yet to be seen. Probably a mix of both. You bring her slowly back to the ship, and hope she can heal well from all this. You rub her back gently, reassuring her as you two head back.",
       "She’ll need to heal for a while after this- probably about three days."
     ));
     next(lashFinish);
@@ -663,7 +694,8 @@ Add JS:
   // =====================================================================
   //  DR. LESSAU ROUTE
   //  LESSAU stage: 1 asked (needs eggs), 2 has sample case, 3 samples delivered (5 days),
-  //  4 cures shown (Shelly declined), 5 Shelly thinking (48h), 6 done.
+  //  4 cures shown (Shelly declined; after 2 days her Lessau Cures? talk button sends you back
+  //  to stage 3 with LESSAU_RETRY=1, a guaranteed yes), 5 Shelly thinking (48h), 6 done.
   // =====================================================================
 
   function lessauAsk() {
@@ -678,11 +710,11 @@ Add JS:
     next(mainGameMenu);
   }
   function eggProgressAfterAssist() {
-    // After Shelly's own Assist scene, remind the player which egg colours Dr. Lessau still needs.
+    // After Shelly's own Assist scene, remind the player which egg colors Dr. Lessau still needs.
     if (!enabled() || f("FAILED") || f("CURED") || num("LESSAU") !== 1) return;
     var miss = missingEggs();
     if (miss.length) output("\n\n<i>(Dr. Lessau’s egg samples: still missing " + miss.join(", ") + ".)</i>");
-    else output("\n\n<i>(You have one of each small egg colour. Take them to Dr. Lessau.)</i>");
+    else output("\n\n<i>(You have one of each small egg color. Take them to Dr. Lessau.)</i>");
   }
   function lessauGiveEggs() {
     lessauScene();
@@ -705,7 +737,7 @@ Add JS:
   function shellyGatherSamples() {
     shellyScene();
     var t = p(
-      "You tell Shelly that Dr. Lessau needs samples to figure out how to cure her. She blinks at you, then says " + say("Since when have you been working on this?") + " You respond how long it’s been, which is since you talked to her about a cure quite a time ago.",
+      "You tell Shelly that Dr. Lessau needs samples to figure out how to cure her. She blinks at you, then says " + say("Since when have you been working on this?") + " You tell her: ever since the two of you talked about a cure, quite a while ago.",
       say("...Wh- What if I don’t want to be cured?") + " You say it can’t hurt to make the cure, then decide after whether to take it or not. She sighs, and asks " + say("What kind of samples did you need?") + " You tell her- basically all the kinds. Keratin, blood, vaginal secretions, spit, and skin. She looks at you with a somewhat startled look. " + say("Blood? Please tell me you have some kind of tool for that.")
     );
     if (num("SYRINGE") === 1) {
@@ -716,7 +748,7 @@ Add JS:
     } else {
       t = p(t,
         "You open your mouth... only to close it again, and hang your head. You mumble out an apology for not having anything to take out the blood with.",
-        say("You should be sorry, [pc.name]. I’m... okay with getting the rest of the samples, but until I don’t have to cut into myself for a blood sample, I’m not comfortable with you taking blood. Okay?"),
+        say("You should be sorry, [pc.name]. I’m... okay with getting the rest of the samples, but until there’s a way that doesn’t mean cutting into myself, I’m not comfortable with you taking blood. Okay?"),
         "You nod, raise your head, and you two start to work on getting the rest of the samples. She clips a fingernail for the keratin sample, spits in one of the other sample vials, and clips off some dead heel skin from her foot for the dead skin sample. You now have a partially filled sample case! Maybe get something to help with that blood sample, though. Lessau should have something, right?"
       );
     }
@@ -738,7 +770,7 @@ Add JS:
     output("You gently pull out from your pack the syringe from Lessau, and say that it’s an easy-to-use tool for gathering half a vial of blood. You say you’ll try to be gentle and do it from a vein. You’ve seen it done enough times during your childhood and out here on the rush that it shouldn’t be too hard, right? Shelly asks if you have something to heal her with.");
     clearMenu();
     if (healOptions().length) addButton(0, "You do.", healMenu, "You do.", "Give Shelly something to heal her.");
-    else addDisabledButton(0, "You do.", "You do.", "You need a Healing Poultice, one of Bianca’s medkits, or a bandaid.");
+    else addDisabledButton(0, "You do.", "You do.", "You need a healing poultice, a field surgeon’s kit (Bianca sells them), or a bandaid.");
     addButton(1, "You don’t.", shellyNoHeal, "You don’t.", "You don’t have any healing items. Shame.");
   }
   function healMenu() {
@@ -746,7 +778,7 @@ Add JS:
     clearMenu();
     var slot = 0;
     if (o.indexOf("poultice") >= 0) addButton(slot++, "Poultice", function () { shellyDrawBlood("poultice"); }, "Healing Poultice", "Give Shelly a healing poultice.");
-    if (o.indexOf("medkit") >= 0) addButton(slot++, "Medkit", function () { shellyDrawBlood("medkit"); }, "Bianca’s Medkit", "Give Shelly one of Bianca’s healing medkits.");
+    if (o.indexOf("medkit") >= 0) addButton(slot++, "Med Spray", function () { shellyDrawBlood("medkit"); }, "Field Surgeon’s Kit", "Give Shelly a can of regelatin spray from your field surgeon’s kit.");
     if (o.indexOf("bandaid") >= 0) addButton(slot++, "Bandaid", function () { shellyDrawBlood("bandaid"); }, "Bandaid and Cotton Ball", "Give Shelly a bandaid and a cotton ball.");
     addButton(14, "Back", shellyBlood);
   }
@@ -799,6 +831,16 @@ Add JS:
   }
   function lessauAskCures() {
     lessauScene();
+    if (num("LESSAU_RETRY") === 1) {
+      output(p(
+        "Dr. Lessau looks up from his work as you come in, and his eyes light up. " + say("[pc.name]! Did Shelly change her mind, then? I kept her cures in storage, just in case. Bring her down whenever she’s ready, and I’ll go over them again.")
+      ));
+      clearMenu();
+      if (shellyOnCrew()) addButton(0, "Bring Shelly", lessauBringShelly, "Bring Shelly Back", "Go get Shelly and bring her back to Lessau’s laboratory. Takes an hour.");
+      else addDisabledButton(0, "Bring Shelly", "Bring Shelly Back", "Shelly needs to be aboard your ship.");
+      addButton(14, "Later", mainGameMenu, "Later", "Come back with Shelly another time.");
+      return;
+    }
     output(p(
       "<b>Eureka! That cure you’ve wanted? I’ve finished!</b>",
       "<i>[pc.name] Steele,\n\nI’ve finished a few different versions of the cure for your crewmate you’ve been hoping for. Come on by my laboratory to see the results.\n\nBest,\n\n-Dr. Lessau</i>",
@@ -827,7 +869,7 @@ Add JS:
     lessauScene();
     var trust = Math.max(0, Math.min(10, Number(flags.TN_SHELLY_TRUST) || 0));
     var trustLine = trust >= 10 ? ", trusting you completely," : trust >= 7 ? ", trusting you a lot," : trust >= 5 ? ", trusting you as much as she can," : ",";
-    var yes = roll(75); // rerolled every time this scene runs, so it can be save-scummed
+    var yes = num("LESSAU_RETRY") === 1 || roll(75); // rerolled every time this scene runs, so it can be save-scummed; a second visit she asked for is always a yes
     var t = p(
       "As you both sit on the couches, Shelly curls into you" + trustLine + " but still no doubt nervous about what happens next.",
       "Lessau sets the cures on a tray, then brings the tray over to the table and sets it down on it. He then lowers himself down on his haunches in front of the chair, allowing himself to curl up on it. Then he begins explaining.",
@@ -842,9 +884,11 @@ Add JS:
       if (credits() >= LESSAU_PRICE) addButton(1, "Pay Now", function () { lessauPay(true); }, "Pay him now", "Pay Dr. Lessau 15,000 credits.");
       else addDisabledButton(1, "Pay Now", "Pay him now", "You need 15,000 credits.");
     } else {
-      t += "But I think I like the way I am now. I’ve... gotten used to it, I suppose.”</i> You sigh, somewhat disappointed, but you try to not let it show. You smile, and thank Lessau for what he’s done, but you won’t be needing the cures it seems.\n\n" + say("Very well. It was a fun experiment, in any case!") + " He takes the cures away and you both head back to the ship.";
+      t += "But I think I like the way I am now. I’ve... gotten used to it, I suppose.”</i> You sigh, somewhat disappointed, but you try to not let it show. You smile, and thank Lessau for what he’s done, but you won’t be needing the cures it seems.\n\n" + say("Very well. It was a fun experiment, in any case!") + " He sets the cures back in storage, in case she changes her mind, and you both head back to the ship.";
       output(t);
       setF("LESSAU", 4);
+      setF("LESSAU_NO_AT", now());
+      setF("LESSAU_RETRY", 0);
       addButton(0, "Continue", toShipDock, "Continue", "Return to the ship.");
     }
   }
@@ -863,7 +907,7 @@ Add JS:
       setF("LESSAU_DEBT", LESSAU_PRICE);
       t = p(
         "You explain you don’t have the funds right this moment, but you’re willing to pay him when you can.",
-        "He nods, says " + say("Very well,") + " then slithers over to his desk to grab a three-vial case. He comes back over and puts the cures in, then closes the case and gives them to Shelly. He then gives some sage advice about the cures, pressing onto her hand as she holds the case with his own, " + advice + " He smiles, pats her shoulder as she stares at the case, and then goes back to minding the shop."
+        "He nods, says " + say("Very well,") + " then slithers over to his desk to grab a three-vial case. He comes back over and puts the cures in, then closes the case and gives them to Shelly. He then gives some sage advice about the cures, pressing his hand over hers as she holds the case. " + advice + " He smiles, pats her shoulder as she stares at the case, and then goes back to minding the shop."
       );
     }
     t = p(t, "You and Shelly go back to the ship. She carries it carefully as the elevator goes up, like there isn’t a mold of padding between the vials and the metal of the carrier case. You hold onto her shoulders from the side with one " + limb + ", trying to provide some grounding as you both take the elevator back up and walk back to " + shipName() + ".");
@@ -917,9 +961,16 @@ Add JS:
     else if (lash === 3) {
       if (now() >= num("LASH_DUE")) addButton(7, "Decision?", lashDecision, "Cure Decision?", "Ask Shelly about her decision with Dr. Lash.");
       else addDisabledButton(7, "Decision?", "Cure Decision?", "Shelly is still thinking it over. Give her another " + hoursLeft(num("LASH_DUE")) + " hours.");
+    } else if (lash === 4) {
+      if (now() >= num("LASH_NO_AT") + 3 * DAY) addButton(7, "Lash Again?", lashAskAgain, "Dr. Lash Again?", "Ask Shelly if she’d reconsider Dr. Lash’s cure. She’ll think it over for another day.");
+      else addDisabledButton(7, "Lash Again?", "Dr. Lash Again?", "Shelly only just turned Dr. Lash down. Give her another " + hoursLeft(num("LASH_NO_AT") + 3 * DAY) + " hours before asking again.");
     } else if (lash === 5) addButton(7, "Change Mind", lashChangeMind, "Change your Mind", "Tell Shelly you changed your mind and you’ll go get sterilized. This is permanent for this save. Fertility and virility transformatives and implants do nothing.");
 
-    if (les === 2 && num("PARTIAL") !== 1) addButton(8, "Samples", shellyGatherSamples, "Gather Samples", "Gather Dr. Lessau’s samples from Shelly.");
+    if (les === 4) {
+      if (now() >= num("LESSAU_NO_AT") + 2 * DAY) addButton(8, "Lessau Cures?", lessauAskAgain, "Dr. Lessau’s Cures?", "Ask Shelly if she’d like another look at Dr. Lessau’s cures.");
+      else addDisabledButton(8, "Lessau Cures?", "Dr. Lessau’s Cures?", "Shelly only just turned the cures down. Give her another " + hoursLeft(num("LESSAU_NO_AT") + 2 * DAY) + " hours before asking again.");
+    }
+    else if (les === 2 && num("PARTIAL") !== 1) addButton(8, "Samples", shellyGatherSamples, "Gather Samples", "Gather Dr. Lessau’s samples from Shelly.");
     else if (les === 2 && num("BLOOD") !== 1) {
       if (num("SYRINGE") === 1) addButton(8, "Blood Sample", shellyBlood, "Blood Sample", "Gather the remaining blood sample from Shelly.");
       else addDisabledButton(8, "Blood Sample", "Blood Sample", "Shelly won’t give blood without a proper tool. Ask Dr. Lessau.");
@@ -982,7 +1033,7 @@ Add JS:
       if (!f("CURED") && !f("FAILED") && les === 1) {
         var miss = missingEggs();
         if (!miss.length) list.push([true, "Give Eggs", lessauGiveEggs, "Give Eggs", "Give one of each of Shelly’s small eggs to Dr. Lessau."]);
-        else list.push([false, "Give Eggs", null, "Give Eggs", "Assist Shelly to collect one of each small egg colour. Still missing: " + miss.join(", ") + "."]);
+        else list.push([false, "Give Eggs", null, "Give Eggs", "Assist Shelly to collect one of each small egg color. Still missing: " + miss.join(", ") + "."]);
       }
       if (!f("CURED") && !f("FAILED") && les === 2 && num("SYRINGE") !== 1) list.push([true, "Syringe?", lessauSyringe, "Blood Syringe?", "Ask about getting a syringe so Shelly doesn’t have to be cut to get the blood sample."]);
       if (!f("CURED") && !f("FAILED") && les === 2 && num("BLOOD") === 1) list.push([true, "Samples", lessauGiveBlood, "Give Samples", "Give Dr. Lessau Shelly’s blood sample and the rest of the case."]);
@@ -1122,7 +1173,7 @@ Add JS:
     if (g.knot) {
       return "\n\n" + (how === "ride" ? "She flops down onto your chest, and you stay tied together" : "You stay tied, spooning her") + ", waiting for your knot to go down. It’s a while before it slips free with a wet pop, and she giggles, then moans as your " + load.size + " load finally has room to " + (load.huge ? "rush out onto the bed." : load.big ? "rush out." : "leak out.");
     }
-    return "\n\n" + (how === "ride" ? "She flops down onto your chest with a happy sigh, and you ease" : "You chuckle and spoon her for a bit, easing") + " your [pc.cockLength]-inch " + (g.cock ? "[pc.cock]" : "[pc.tailCock]") + " out and letting part of your " + load.size + " load " + (load.huge ? "flood out onto the bed." : load.big ? "rush out onto the bed." : "leak out.");
+    return "\n\n" + (how === "ride" ? "She flops down onto your chest with a happy sigh, and you ease" : "You chuckle and spoon her for a bit, easing") + " your " + (g.cock ? "[pc.cockLength]-inch [pc.cock]" : "[pc.tailCock]") + " out and letting part of your " + load.size + " load " + (load.huge ? "flood out onto the bed." : load.big ? "rush out onto the bed." : "leak out.");
   }
   function pillLine() {
     var fam = window.tnShellyFamily && window.tnShellyFamily.pillLine();
@@ -1192,7 +1243,7 @@ Add JS:
     sexScene();
     var g = gear(), body = bodyType(), t;
     if (body === "taur") t = "Shelly sits at the edge of the bunk, and you lower your forequarters, folding your front legs so your face is level with her lap. She drapes her legs over your shoulders and holds on tightly.";
-    else if (body === "naga") t = "You coil low on the deck and lift Shelly on a loop of your tail until she’s sitting at mouth height, supported and spread, with your long tongue free to do its work." + (longTongue() ? " She learns exactly how deep a tongue like yours can reach, and it’s a lesson she won’t soon forget." : "");
+    else if (body === "naga") t = "You coil low on the deck and lift Shelly on a loop of your tail until she’s sitting at mouth height, supported and spread, with your tongue free to do its work." + (longTongue() ? " She learns exactly how deep a tongue like yours can reach, and it’s a lesson she won’t soon forget." : "");
     else t = "You kneel at the edge of Shelly’s bunk and pull her hips to the edge. She props herself up on her elbows to watch you, already blushing.";
     t = p(t,
       byCure({
@@ -1446,7 +1497,8 @@ Add JS:
   // Exposed for testing with the console or the "impulse" cheat.
   window.tnShellyCure = {
     lashAsk: lashAsk, lashPitch: lashPitch, lashDecision: lashDecision, lashEnterLab: lashEnterLab,
-    lessauAsk: lessauAsk, lessauAskCures: lessauAskCures, reveal: shellyCureReveal
+    lessauAsk: lessauAsk, lessauAskCures: lessauAskCures, reveal: shellyCureReveal,
+    lashAskAgain: lashAskAgain, lessauAskAgain: lessauAskAgain
   };
 
   boot();

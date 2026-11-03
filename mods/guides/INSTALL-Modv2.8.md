@@ -189,6 +189,38 @@ Using it:
   for bare steel.
 - **Toggle:** Options > Android Mods > **Anno's Holoboard**. Off = not stocked and no showcase.
 
+## Added later in Modv2.8: Save Fixer
+
+Before this, a save slot that hit an error while loading just sat on "Loading your save from
+slot N..." forever (Load From File already showed an error, slots didn't).
+
+1. Copy `TN_SaveFixer_v2.8.js` into your mods folder.
+2. Add it to `enabled.txt` (the pack's `enabled.txt` already has it).
+3. Run **Test my mods**, then **Patch the game**. It doesn't patch game files.
+
+What it does:
+
+- **No more endless Loading:** a slot that fails shows **Save Didn't Load** with the real error.
+- **Old names are updated first:** if the save holds an item, character or other object the game
+  doesn't know under that name (for example an old Kitty name from before the TN rename), the
+  fixer finds the name the mod uses now and loads the save with it. Nothing is left out.
+- **Then it waits a minute:** if no current name matches, it shows **Repairing Save** and retries
+  every few seconds for a minute, because a mod may still be starting up.
+- **Only then it asks:** **Save Still Won't Load** names the item and the mod it comes from, with
+  **Load Without It** (leave that mod's pieces out of this load), **Wait Longer** or **Close**.
+  Afterwards it lists what it renamed or left out. **Save to a new slot**, so the old one stays as
+  it is in case you get that mod working again.
+- **A slot that never finishes reading:** after a minute you get **Still Loading** with Keep
+  Waiting or Close, instead of a stuck screen.
+- **A mod failing after the load:** it says so and shows that mod's error, so it can be reported.
+- **Toggle:** Options > Android Mods > **Save Fixer** (on by default).
+
+## Removed in Modv2.8: the in-game Editor
+
+`TitsEditor.js` (the main-menu **Editor**) wrote straight into the running game and kept breaking
+things. Delete it from your mods folder. The **Save Editor** in the Load Game sidebar edits a save
+file instead.
+
 ## Fixed in Modv2.8: Wiki button in the Codex
 
 The Codex **Wiki** button from 2.7 never showed, because it was a separate file
