@@ -201,10 +201,17 @@ slot N..." forever (Load From File already showed an error, slots didn't).
 What it does:
 
 - **No more endless Loading:** a slot that fails shows **Save Didn't Load** with the real error.
-- **Repair & Load:** if the save holds an item, character or other object the game doesn't know
-  (usually from a mod that's off, renamed or didn't patch), it lists them and offers to leave
-  them out and load the rest. Afterwards it shows what was left out. **Save to a new slot**, so
-  the old one keeps them in case you get that mod working again.
+- **Old names are updated first:** if the save holds an item, character or other object the game
+  doesn't know under that name (for example an old Kitty name from before the TN rename), the
+  fixer finds the name the mod uses now and loads the save with it. Nothing is left out.
+- **Then it waits a minute:** if no current name matches, it shows **Repairing Save** and retries
+  every few seconds for a minute, because a mod may still be starting up.
+- **Only then it asks:** **Save Still Won't Load** names the item and the mod it comes from, with
+  **Load Without It** (leave that mod's pieces out of this load), **Wait Longer** or **Close**.
+  Afterwards it lists what it renamed or left out. **Save to a new slot**, so the old one stays as
+  it is in case you get that mod working again.
+- **A slot that never finishes reading:** after a minute you get **Still Loading** with Keep
+  Waiting or Close, instead of a stuck screen.
 - **A mod failing after the load:** it says so and shows that mod's error, so it can be reported.
 - **Toggle:** Options > Android Mods > **Save Fixer** (on by default).
 
