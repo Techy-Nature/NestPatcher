@@ -28,8 +28,8 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_GUI_v0.10.py'
-TOOL_VERSION = '0.10'
+TOOL_NAME = 'NestPatcher_TiTS_GUI_v0.11.py'
+TOOL_VERSION = '0.11'
 PLATFORM_DEFAULT = None
 PLATFORM_LABEL = 'GUI'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
@@ -3443,6 +3443,8 @@ font:.8125rem/1.45 ui-monospace,Consolas,"DejaVu Sans Mono",monospace;white-spac
 .banner{border-left:4px solid var(--warn);background:var(--wbg);color:var(--text);padding:10px 12px;border-radius:6px;margin-bottom:14px}
 .banner.bad{border-color:var(--bad);background:var(--bbg)}
 .banner.good{border-color:var(--ok);background:var(--gbg)}
+#totop{position:fixed;right:20px;bottom:20px;z-index:50;background:var(--accent2);color:#fff;border:2px solid var(--panel);border-radius:999px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+#totop:hover{background:var(--accent)}#totop[hidden]{display:none}
 @media (max-width:600px){header{flex-wrap:wrap}.status{grid-template-columns:1fr}#log{height:19rem}}
 </style></head><body>
 <header><h1>🪺 NestPatcher</h1><span class="ver" id="ver"></span><span class="sp"></span>
@@ -3524,6 +3526,7 @@ font:.8125rem/1.45 ui-monospace,Consolas,"DejaVu Sans Mono",monospace;white-spac
   <div id="bugout" style="margin-top:12px"></div></div>
 </section>
 </main>
+<button id="totop" hidden title="Back to the top (Up arrow or Home)" aria-label="Scroll back to the top">▲ Top</button>
 <script>
 const KEY=new URLSearchParams(location.hash.slice(1)).get("k")||"";
 let S={},logNext=0,polling=false,archSet=false;
@@ -3635,6 +3638,16 @@ $("resetsize").onclick=()=>{UI.scale=1;saveUI()};
 $("theme").onchange=()=>{UI.theme=$("theme").value;saveUI()};
 document.addEventListener("keydown",e=>{if(e.altKey&&(e.key==="="||e.key==="+")){e.preventDefault();$("bigger").click()}
  if(e.altKey&&e.key==="-"){e.preventDefault();$("smaller").click()}});
+// Back to top: the button, or Up arrow / Home on the keyboard. Typing in a text box,
+// a drop-down, or the log box keeps their normal Up/Home.
+function pageTop(){return Math.max(window.scrollY||0,document.documentElement.scrollTop||0,document.body.scrollTop||0)}
+function toTop(){const smooth=matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth";
+ window.scrollTo({top:0,behavior:smooth});document.body.scrollTo({top:0,behavior:smooth})}
+function typing(el){if(!el)return false;if(el.isContentEditable||/^(TEXTAREA|SELECT)$/.test(el.tagName)||el.closest("#log"))return true;
+ return el.tagName==="INPUT"&&!/^(checkbox|radio|button|submit|reset)$/.test(el.type)}
+$("totop").onclick=()=>{toTop();const t=document.querySelector("nav button[aria-selected=true]");if(t)t.focus({preventScroll:true})};
+document.addEventListener("keydown",e=>{if((e.key==="ArrowUp"||e.key==="Home")&&!e.altKey&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!typing(document.activeElement)){e.preventDefault();toTop()}});
+document.addEventListener("scroll",()=>{$("totop").hidden=pageTop()<300},{capture:true,passive:true});
 refresh().then(()=>{if(S.ui){UI=Object.assign(UI,S.ui)}applyUI();if(S.gameOk&&S.modsOk)tab("patch");poll()});
 </script></body></html>
 """

@@ -17,6 +17,7 @@ import android.provider.Settings
 import android.text.InputType
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
@@ -28,6 +29,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
@@ -69,6 +71,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var checkerView: WebView
     private lateinit var guiView: WebView
     private lateinit var guiBar: LinearLayout
+    private lateinit var pageBox: FrameLayout
+    private lateinit var topButton: Button
     private val buttons = mutableListOf<Button>()
     private val texts = mutableListOf<Pair<TextView, Float>>()
 
@@ -76,6 +80,8 @@ class MainActivity : AppCompatActivity() {
     private var running = false
     private var guiRunning = false
     private var guiUrl = ""
+    // Off after you jump to the top, so a running patch doesn't pull you back down.
+    private var followLog = true
 
     // Step 3 asks for whatever folders the chosen patcher needs (nest_android.needs_json).
     private val slotInputs = LinkedHashMap<String, EditText>()
@@ -227,7 +233,35 @@ class MainActivity : AppCompatActivity() {
         page.isScrollbarFadingEnabled = false
         page.scrollBarStyle = View.SCROLLBARS_INSIDE_INSET
         page.addView(content)
-        root.addView(page, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+
+        // "Back to top" floats over the bottom corner once you've scrolled down.
+        pageBox = FrameLayout(this)
+        pageBox.addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        topButton = Button(this)
+        topButton.text = "▲ Top"
+        topButton.isAllCaps = false
+        topButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f * scale())
+        topButton.contentDescription = "Scroll back to the top"
+        topButton.setTextColor(0xFFFFFFFF.toInt())
+        topButton.background = android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = dp(24).toFloat()
+            setColor(0xFF8F5AD6.toInt())
+            setStroke(dp(2), 0xFF1B1D24.toInt())
+        }
+        topButton.elevation = dp(6).toFloat()
+        topButton.setPadding(dp(18), dp(10), dp(18), dp(10))
+        topButton.visibility = View.GONE
+        topButton.setOnClickListener { scrollToTop() }
+        texts.add(topButton to 16f)
+        pageBox.addView(topButton, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END).apply {
+            setMargins(dp(16), dp(16), dp(20), dp(20))
+        })
+        page.viewTreeObserver.addOnScrollChangedListener {
+            topButton.visibility = if (page.scrollY > dp(300)) View.VISIBLE else View.GONE
+            if (!page.canScrollVertically(1)) followLog = true
+        }
+        root.addView(pageBox, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         // The GUI patcher shows here, full screen, when it's running.
         guiBar = LinearLayout(this)
@@ -296,7 +330,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun log(line: String) {
         logView.append(line + "\n")
-        page.post { page.fullScroll(View.FOCUS_DOWN) }
+        if (followLog) page.post { page.fullScroll(View.FOCUS_DOWN) }
+    }
+
+    /** Back to the top of the page, with keyboard focus on the first button there. */
+    private fun scrollToTop() {
+        followLog = false
+        page.fullScroll(View.FOCUS_UP)
+    }
+
+    /**
+     * Up arrow on a Bluetooth/USB keyboard jumps to the top of the page (so does Home).
+     * Typing in a text box keeps normal Up/Home, and Tab still moves between buttons.
+     * When the GUI patcher is showing, its own page handles the keys.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val code = event.keyCode
+        val plain = !event.isCtrlPressed && !event.isAltPressed && !event.isMetaPressed && !event.isShiftPressed
+        if ((code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_MOVE_HOME) && plain &&
+            ::page.isInitialized && page.visibility == View.VISIBLE && currentFocus !is EditText) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) scrollToTop()
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun copyLog() {
@@ -553,6 +609,7 @@ class MainActivity : AppCompatActivity() {
         running = !isGui
         guiRunning = isGui
         setButtonsEnabled(isGui)
+        followLog = true
         log("── " + script.name + (if (extra.isEmpty()) "" else " $extra") + " ──")
         Thread {
             val code = try {
@@ -578,6 +635,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showGui(show: Boolean) {
+        pageBox.visibility = if (show) View.GONE else View.VISIBLE
         page.visibility = if (show) View.GONE else View.VISIBLE
         guiBar.visibility = if (show) View.VISIBLE else View.GONE
         guiView.visibility = if (show) View.VISIBLE else View.GONE

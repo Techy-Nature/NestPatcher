@@ -18,15 +18,15 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 
 | You are on | Use | Guide |
 |---|---|---|
-| Windows 10/11, no installing | `NestPatcher_GUI_v0.10_Windows.zip` from [Releases](../../releases) | [Guide_GUI_v0.10.md](docs/Guide_GUI_v0.10.md) |
-| Linux, no installing | `NestPatcher_GUI_v0.10-x86_64.AppImage` from [Releases](../../releases) | [Guide_GUI_v0.10.md](docs/Guide_GUI_v0.10.md) |
+| Windows 10/11, no installing | `NestPatcher_GUI_v0.11_Windows.zip` from [Releases](../../releases) | [Guide_GUI_v0.11.md](docs/Guide_GUI_v0.11.md) |
+| Linux, no installing | `NestPatcher_GUI_v0.11-x86_64.AppImage` from [Releases](../../releases) | [Guide_GUI_v0.11.md](docs/Guide_GUI_v0.11.md) |
 | Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.9.py`](patchers/) + `NestPatcher_Windows_v1.9.bat` | [Guide_Windows_v1.9.md](docs/Guide_Windows_v1.9.md) |
 | Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.9.py`](patchers/) + `nestpatcher_linux_v1.9.sh` | [Guide_Linux_v1.9.md](docs/Guide_Linux_v1.9.md) |
 | macOS, with only the Windows game (TiTS.exe) | [`patchers/NestPatcher_TiTS_Mac_v1.7.py`](patchers/) `--app` the Windows game folder: it patches it and makes TiTS.app | [NestPatcher_Mac_Guide_v1.7.md](docs/NestPatcher_Mac_Guide_v1.7.md) |
 | macOS | [`patchers/NestPatcher_TiTS_Mac_v1.7.py`](patchers/) | [NestPatcher_Mac_Guide_v1.7.md](docs/NestPatcher_Mac_Guide_v1.7.md) |
-| Make a **Mac app** or **Linux AppImage** of the patched game | GUI 0.10 (**Make Mac app** / **Make AppImage**) or `--export-mac` / `--export-appimage` | [Guide_Export_Mac_AppImage_v1.9.md](docs/Guide_Export_Mac_AppImage_v1.9.md) |
-| Android, no Termux (app) | `NestPatcher_Android_App_v0.7.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.7.md](docs/Guide_Android_App_v0.7.md) |
-| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.5.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.10.md](docs/Guide_GUI_v0.10.md) |
+| Make a **Mac app** or **Linux AppImage** of the patched game | GUI 0.11 (**Make Mac app** / **Make AppImage**) or `--export-mac` / `--export-appimage` | [Guide_Export_Mac_AppImage_v1.9.md](docs/Guide_Export_Mac_AppImage_v1.9.md) |
+| Android, no Termux (app) | `NestPatcher_Android_App_v0.8.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.8.md](docs/Guide_Android_App_v0.8.md) |
+| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.5.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.11.md](docs/Guide_GUI_v0.11.md) |
 
 The GUI bundles include Python and Node.js. The command-line versions need Python 3 and Node.js installed (Node.js checks every mod for mistakes before the game is touched).
 
