@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.join(REPO, "android", "app", "src", "main", "python")
 sys.path.insert(0, HERE)
 
 import nest_android  # noqa: E402
-from smoke_test import MAIN, CONTENT, INDEX, MOD  # noqa: E402
+from smoke_test import MAIN, CONTENT, CLEAN_INDEX, MOD  # noqa: E402
 
 NODE = shutil.which("node") or os.environ.get("NESTPATCHER_NODE")
 
@@ -47,7 +47,7 @@ class Sink(object):
 def make_project(root):
     www = os.path.join(root, "extracted", "apk", "assets", "www")
     os.makedirs(www)
-    for name, text in {"index.html": INDEX, "main.1a2b3c4d.js": MAIN, "content_test.5e6f7a8b.js": CONTENT}.items():
+    for name, text in {"index.html": CLEAN_INDEX, "main.1a2b3c4d.js": MAIN, "content_test.5e6f7a8b.js": CONTENT}.items():
         with open(os.path.join(www, name), "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
     mods = os.path.join(root, "mods")

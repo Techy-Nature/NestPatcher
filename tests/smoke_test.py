@@ -18,6 +18,8 @@ MAIN = 'e.exports={i8:"0.9.999"};function greet(){return "world"}function Xq(e){
 CONTENT = 'function shop(){return ["apple"]}\n'
 INDEX = ('<!doctype html><html><head><script defer src="main.1a2b3c4d.js"></script>'
          '<script src="mods/kitty/kitty-inline.js"></script></head><body></body></html>\n')
+# The same page in a fresh, never-patched game.
+CLEAN_INDEX = INDEX.replace('<script src="mods/kitty/kitty-inline.js"></script>', "")
 MOD = """# Smoke test mod
 Replace [main.js]:
 return "world"
@@ -53,7 +55,7 @@ def build(root, mods_name):
     # KittyPatcher kept a clean index.html in kitty-mods/backup before adding its tag.
     os.makedirs(os.path.join(mods, "backup"))
     with open(os.path.join(mods, "backup", "index.html"), "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(INDEX.replace('<script src="mods/kitty/kitty-inline.js"></script>', ""))
+        handle.write(CLEAN_INDEX)
     with open(os.path.join(mods, "Smoke.mod"), "w", encoding="utf-8") as handle:
         handle.write(MOD)
     with open(os.path.join(mods, "Extra.js"), "w", encoding="utf-8") as handle:
