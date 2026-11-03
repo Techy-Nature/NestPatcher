@@ -1,7 +1,7 @@
 """End-to-end check of a NestPatcher command-line script on a tiny fake game.
 
-    python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.10.py
-    python tests/smoke_test.py patchers/NestPatcher_TiTS_Windows_v1.10.py --python path/to/python
+    python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.11.py
+    python tests/smoke_test.py patchers/NestPatcher_TiTS_Windows_v1.11.py --python path/to/python
 
 No TiTS files are needed: the fake game has an index.html, a hashed main.<hash>.js
 with a version string, and one content bundle. Node.js must be on PATH (or set
@@ -50,6 +50,10 @@ def build(root, mods_name):
     os.makedirs(os.path.join(app, "mods", "kitty"))   # leftover from KittyPatcher
     mods = os.path.join(root, "tool", mods_name)
     os.makedirs(mods)
+    # KittyPatcher kept a clean index.html in kitty-mods/backup before adding its tag.
+    os.makedirs(os.path.join(mods, "backup"))
+    with open(os.path.join(mods, "backup", "index.html"), "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(INDEX.replace('<script src="mods/kitty/kitty-inline.js"></script>', ""))
     with open(os.path.join(mods, "Smoke.mod"), "w", encoding="utf-8") as handle:
         handle.write(MOD)
     with open(os.path.join(mods, "Extra.js"), "w", encoding="utf-8") as handle:
@@ -132,6 +136,21 @@ def main():
         result = run("--restore")
         check("restore exits 0", result.returncode == 0)
         check("restore brings back the original", read("main.1a2b3c4d.js") == MAIN)
+
+        # A game folder that was patched somewhere else and shared without its backups:
+        # the patcher must stop instead of patching modded files or saving them as originals.
+        result = run()
+        check("patch again before sharing exits 0", result.returncode == 0)
+        shutil.rmtree(os.path.join(tool, "nestmods", "backup"))
+        patched_main = read("main.1a2b3c4d.js")
+        result = run()
+        check("already-patched game without backup stops", result.returncode != 0
+              and "already patched" in result.stdout)
+        check("already-patched game is left alone", read("main.1a2b3c4d.js") == patched_main)
+        check("no modded file saved as a backup", not os.path.isdir(os.path.join(tool, "nestmods", "backup")))
+        result = run("--restore")
+        check("restore without backup explains itself", result.returncode != 0
+              and "no clean backup" in result.stdout)
 
         result = run("--bug-report", "--note", "smoke")
         logs = os.path.join(tool, "nestmods", "logs")

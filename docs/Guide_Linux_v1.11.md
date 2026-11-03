@@ -26,7 +26,7 @@ sudo dnf install python3 nodejs
 
 Or run the helper that picks the right one:
 ```bash
-bash install_deps_linux_v1.10.sh
+bash install_deps_linux_v1.11.sh
 ```
 
 Check that it worked:
@@ -42,7 +42,7 @@ node --version
 **If your TiTS is a single `.AppImage` file**, it can't be patched as it is. Unpack it once:
 
 ```bash
-python3 NestPatcher_TiTS_Linux_v1.10.py --extract-appimage ~/Games/TiTS.AppImage
+python3 NestPatcher_TiTS_Linux_v1.11.py --extract-appimage ~/Games/TiTS.AppImage
 ```
 
 That makes `~/Games/TiTS-nest/`. From now on start the game with `~/Games/TiTS-nest/AppRun` (you can make a desktop shortcut to it).
@@ -54,14 +54,14 @@ mkdir -p ~/Games/NestPatcher
 ```
 
 Put in it:
-- `NestPatcher_TiTS_Linux_v1.10.py`
-- `nestpatcher_linux_v1.10.sh`
+- `NestPatcher_TiTS_Linux_v1.11.py`
+- `nestpatcher_linux_v1.11.sh`
 - your mods folder, **renamed to `nestmods`** (it holds `enabled.txt` and the `.mod` / `.js` files)
 
 ```
 ~/Games/NestPatcher/
-    NestPatcher_TiTS_Linux_v1.10.py
-    nestpatcher_linux_v1.10.sh
+    NestPatcher_TiTS_Linux_v1.11.py
+    nestpatcher_linux_v1.11.sh
     nestmods/
         enabled.txt
         AndroidModMenu.js
@@ -71,7 +71,7 @@ Put in it:
 Make the launcher runnable:
 ```bash
 cd ~/Games/NestPatcher
-chmod +x nestpatcher_linux_v1.10.sh
+chmod +x nestpatcher_linux_v1.11.sh
 ```
 
 ## Step 4: test your mods
@@ -79,7 +79,7 @@ chmod +x nestpatcher_linux_v1.10.sh
 1. Close TiTS.
 2. Run:
    ```bash
-   ./nestpatcher_linux_v1.10.sh
+   ./nestpatcher_linux_v1.11.sh
    ```
 3. Type **1** (Test my mods) and press Enter.
 4. The first time it looks in `~/Games`, `~/Downloads`, `~/Desktop` and `/opt`. If it lists several, type the number of the right one.
@@ -88,7 +88,7 @@ chmod +x nestpatcher_linux_v1.10.sh
 ## Step 5: patch for real
 
 ```bash
-./nestpatcher_linux_v1.10.sh
+./nestpatcher_linux_v1.11.sh
 ```
 Type **2**. The last line should say **`DONE: ... validation passed`**. Start TiTS as usual.
 
@@ -97,7 +97,7 @@ Type **2**. The last line should say **`DONE: ... validation passed`**. Start Ti
 If it can't find the game, tell it once (you can drag the folder into the terminal to paste its path):
 
 ```bash
-python3 NestPatcher_TiTS_Linux_v1.10.py --game ~/Games/TiTS --dry-run
+python3 NestPatcher_TiTS_Linux_v1.11.py --game ~/Games/TiTS --dry-run
 ```
 
 It remembers the path. `--mods PATH` works the same way. `--forget` clears both. `--show` prints what it's using, plus your distro, Python, Node.js and TiTS versions.
@@ -118,6 +118,8 @@ Turn **every** mod off with option **3** (`--restore`).
 | `packed as app.asar` | Menu option **6** (`--unpack-asar`) once, then patch. |
 | `Missing enabled files` | A name in `enabled.txt` has no file. Fix it or put `#` in front. |
 | `MISS SomeMod.mod` | That mod doesn't fit this TiTS version, or needs another mod that is off. |
+| `this game copy was already patched` | The game folder already has mods in it and no clean backup (often a pre-patched copy someone shared). Unpack a fresh TiTS into a new folder and patch that. |
+| Hundreds of `MISS` lines | Usually an already-patched game or an old mod pack. Use a fresh game and the newest mod pack (mod names ending in `_v2.x`), and delete `nestmods/backup` first. |
 | Something else | Menu option **4** makes a bug report zip in `nestmods/logs/`. Send it to the mod author. |
 
 **Nobara / Fedora note:** Flatpak and Steam copies of games live in sandboxed folders. If TiTS came as a Flatpak, copy its game files out to `~/Games/TiTS` and patch that copy.
@@ -128,11 +130,11 @@ After patching, you can pack the game into a single `.AppImage` file to copy to 
 
 ```bash
 sudo apt install squashfs-tools        # optional, packs faster (or: sudo dnf install squashfs-tools)
-python3 NestPatcher_TiTS_Linux_v1.10.py --export-appimage
-python3 NestPatcher_TiTS_Linux_v1.10.py --export-mac
+python3 NestPatcher_TiTS_Linux_v1.11.py --export-appimage
+python3 NestPatcher_TiTS_Linux_v1.11.py --export-mac
 ```
 
-Menu options **7** and **8** do the same. The file lands in `NestExports/` inside your mods folder. Full steps: [Guide_Export_Mac_AppImage_v1.10.md](Guide_Export_Mac_AppImage_v1.10.md).
+Menu options **7** and **8** do the same. The file lands in `NestExports/` inside your mods folder. Full steps: [Guide_Export_Mac_AppImage_v1.11.md](Guide_Export_Mac_AppImage_v1.11.md).
 
 ## After a TiTS update
 
@@ -143,5 +145,5 @@ Menu options **7** and **8** do the same. The file lands in `NestExports/` insid
 ## Full command list
 
 ```bash
-python3 NestPatcher_TiTS_Linux_v1.10.py --help
+python3 NestPatcher_TiTS_Linux_v1.11.py --help
 ```

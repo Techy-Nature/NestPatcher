@@ -508,6 +508,32 @@ def clean_index(source):
     )
 
 
+def patched_without_backup():
+    """True when index.html already loads NestPatcher or KittyPatcher scripts but the mods
+    folder has no clean index.html backup. Then the game's .js files are already modded and
+    there is no clean copy to patch from: patching again would MISS (or apply mods twice),
+    and the modded files would be saved as the "original" backup."""
+    index_path = os.path.join(APP, "index.html")
+    if not os.path.isfile(index_path) or os.path.isfile(os.path.join(BACKUP, "index.html")):
+        return False
+    with open(index_path, encoding="utf-8", errors="replace") as handle:
+        source = handle.read()
+    return clean_index(source) != source
+
+
+def already_patched_help():
+    log("STOP: this game copy was already patched, but " + BACKUP + " has no clean backup of it.")
+    log("The game's files already contain mods, so the patcher can't find the text it looks for.")
+    log("This happens with a game folder that was patched somewhere else and then shared or")
+    log("copied, or when the nestmods folder (with its backup folder) was replaced.")
+    log("Fix:")
+    log("  1. Unzip a fresh copy of TiTS into a new folder.")
+    log("  2. Delete this backup folder if it exists: " + BACKUP)
+    log("  3. Point the patcher at the fresh game and patch again.")
+    log("If this copy already has the mods you want, you can also just play it as it is.")
+    log("Nothing was changed.")
+
+
 def make_runtime(blocks):
     parts = ["/* NestPatcher runtime: generated; do not edit. */"]
     for block in blocks:
@@ -703,6 +729,9 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
     log("NestPatcher " + TOOL_VERSION + " (" + PLATFORM + ")")
     log("Game: " + APP)
     log("Mods: " + MODS)
+    if patched_without_backup():
+        already_patched_help()
+        return 1
     files = load_game_files()  # Backups, if present, are the clean baseline.
     log("Loaded " + str(len(files)) + " game scripts (using available backups)")
     replacements, scripts, copy_js = [], [], []
@@ -886,6 +915,10 @@ def restore_originals():
     problem = preflight()
     if problem:
         say(problem)
+        return 1
+    if patched_without_backup():
+        say("This game copy was patched, but " + BACKUP + " has no clean backup to put back.")
+        say("To get an unmodded game, unzip a fresh copy of TiTS. Nothing was changed.")
         return 1
     if not os.path.isdir(BACKUP):
         say("No backups yet, so the game has never been patched by NestPatcher. Nothing to restore.")

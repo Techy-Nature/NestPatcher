@@ -1,19 +1,25 @@
-# NestPatcher for Trials in Tainted Space, Windows 10/11 edition.
+#!/usr/bin/env python3
+# NestPatcher for Trials in Tainted Space, Linux edition (Debian, Ubuntu, Mint,
+# Fedora, Nobara and friends).
 # Based on KittyPatcher by LibraKitty (the original Windows patcher).
 # Same .mod format, flags and safety rules as the Desktop, Android and Mac patchers:
 # Replace / With still swaps exact text. Hashed bundles such as
 # content_first14.<hash>.js are found from the plain name content_first14.js.
 # Add Javascript blocks load from mods/nest/nest-inline.js.
 #
-# Windows differences:
-#   * The game folder (the one with TiTS.exe and resources\) can live anywhere.
-#     The patcher looks next to itself, on the Desktop, in Downloads, Documents,
-#     C:\Games and Program Files, or you point at it once with --game.
-#   * Program Files is write-protected, so the patcher explains how to move the
-#     game to C:\Games if Windows blocks it.
-#   * Double-click NestPatcher_Windows_v1.9.bat for a numbered menu.
-#   * --export-mac makes a macOS TiTS.app (as a zip) from the patched game.
-#   * Mods live in nestmods\ next to this script, outside the game, so a game
+# Linux differences:
+#   * The game folder can live anywhere (~/Games/TiTS is a good spot). The patcher
+#     looks next to itself, in ~/Games, ~/Downloads, ~/Desktop and /opt, or you
+#     point at it once with --game and it is remembered.
+#   * A TiTS .AppImage is unpacked once with --extract-appimage into a normal
+#     folder; you then start the game from that folder's AppRun.
+#   * If the game ships packed as resources/app.asar, --unpack-asar extracts it
+#     (pure Python, no npm needed) and keeps the original as app.asar.nest-original.
+#   * Node.js install hints match your distro (apt on Debian/Ubuntu, dnf on
+#     Fedora/Nobara).
+#   * --export-appimage packs the patched game into one .AppImage file, and
+#     --export-mac makes a macOS TiTS.app (as a zip) from the same game.
+#   * Mods live in nestmods/ next to this script, outside the game, so a game
 #     update cannot wipe them.
 
 import os
@@ -30,13 +36,13 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.10.py'
-TOOL_VERSION = '1.10'
-PLATFORM_DEFAULT = 'windows'
-PLATFORM_LABEL = 'Windows 10/11'
+TOOL_NAME = 'NestPatcher_TiTS_Linux_v1.11.py'
+TOOL_VERSION = '1.11'
+PLATFORM_DEFAULT = 'linux'
+PLATFORM_LABEL = 'Linux'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
 # No version in the settings name, so a newer patcher keeps your saved folders.
-SETTINGS_NAME = 'NestPatcher_TiTS_Windows.settings.json'
+SETTINGS_NAME = 'NestPatcher_TiTS_Linux.settings.json'
 
 # --------------------------------------------------------------------------
 # Where things live
@@ -535,6 +541,32 @@ def clean_index(source):
     )
 
 
+def patched_without_backup():
+    """True when index.html already loads NestPatcher or KittyPatcher scripts but the mods
+    folder has no clean index.html backup. Then the game's .js files are already modded and
+    there is no clean copy to patch from: patching again would MISS (or apply mods twice),
+    and the modded files would be saved as the "original" backup."""
+    index_path = os.path.join(APP, "index.html")
+    if not os.path.isfile(index_path) or os.path.isfile(os.path.join(BACKUP, "index.html")):
+        return False
+    with open(index_path, encoding="utf-8", errors="replace") as handle:
+        source = handle.read()
+    return clean_index(source) != source
+
+
+def already_patched_help():
+    log("STOP: this game copy was already patched, but " + BACKUP + " has no clean backup of it.")
+    log("The game's files already contain mods, so the patcher can't find the text it looks for.")
+    log("This happens with a game folder that was patched somewhere else and then shared or")
+    log("copied, or when the nestmods folder (with its backup folder) was replaced.")
+    log("Fix:")
+    log("  1. Unzip a fresh copy of TiTS into a new folder.")
+    log("  2. Delete this backup folder if it exists: " + BACKUP)
+    log("  3. Point the patcher at the fresh game and patch again.")
+    log("If this copy already has the mods you want, you can also just play it as it is.")
+    log("Nothing was changed.")
+
+
 def make_runtime(blocks):
     parts = ["/* NestPatcher runtime: generated; do not edit. */"]
     for block in blocks:
@@ -730,6 +762,9 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
     log("NestPatcher " + TOOL_VERSION + " (" + PLATFORM + ")")
     log("Game: " + APP)
     log("Mods: " + MODS)
+    if patched_without_backup():
+        already_patched_help()
+        return 1
     files = load_game_files()  # Backups, if present, are the clean baseline.
     log("Loaded " + str(len(files)) + " game scripts (using available backups)")
     replacements, scripts, copy_js = [], [], []
@@ -913,6 +948,10 @@ def restore_originals():
     problem = preflight()
     if problem:
         say(problem)
+        return 1
+    if patched_without_backup():
+        say("This game copy was patched, but " + BACKUP + " has no clean backup to put back.")
+        say("To get an unmodded game, unzip a fresh copy of TiTS. Nothing was changed.")
         return 1
     if not os.path.isdir(BACKUP):
         say("No backups yet, so the game has never been patched by NestPatcher. Nothing to restore.")
