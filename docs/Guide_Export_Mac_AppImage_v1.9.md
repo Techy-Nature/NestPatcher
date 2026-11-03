@@ -40,7 +40,7 @@ The AppImage is packed with `mksquashfs` when it's installed. Everywhere else (A
 
 ## Using the GUI (easiest)
 
-1. Start NestPatcher GUI 0.10 and check the **Setup** tab: game found, mods found.
+1. Start NestPatcher GUI 0.11 and check the **Setup** tab: game found, mods found.
 2. Go to **2. Patch** and press **Patch the game**. Wait for `DONE`.
 3. In the card **Make an app to play on another computer**, choose **Computer it is for**:
    - **Intel or AMD (x64)**: works on every Mac (Apple Silicon runs it through Rosetta) and on normal Linux PCs.
