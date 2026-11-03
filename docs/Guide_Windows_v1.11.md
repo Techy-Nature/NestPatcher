@@ -38,16 +38,16 @@ Your Desktop, Documents or Downloads also work.
 
 1. Make a folder, for example `C:\Games\NestPatcher`.
 2. Put these two files in it:
-   - `NestPatcher_TiTS_Windows_v1.10.py`
-   - `NestPatcher_Windows_v1.10.bat`
+   - `NestPatcher_TiTS_Windows_v1.11.py`
+   - `NestPatcher_Windows_v1.11.bat`
 3. Copy your mods folder in next to them and **rename it to `nestmods`**. Inside it you should see `enabled.txt` and lots of `.mod` and `.js` files.
 
 It should look like this:
 
 ```
 C:\Games\NestPatcher\
-    NestPatcher_TiTS_Windows_v1.10.py
-    NestPatcher_Windows_v1.10.bat
+    NestPatcher_TiTS_Windows_v1.11.py
+    NestPatcher_Windows_v1.11.bat
     nestmods\
         enabled.txt
         AndroidModMenu.js
@@ -60,7 +60,7 @@ C:\Games\NestPatcher\
 ## Step 4: test your mods
 
 1. **Close TiTS** if it is open.
-2. Double-click **`NestPatcher_Windows_v1.10.bat`**.
+2. Double-click **`NestPatcher_Windows_v1.11.bat`**.
 3. Type **1** (Test my mods) and press **Enter**.
 4. The first time it looks for the game in the usual places. If it asks which one, type its number.
    - If it says *Could not find the game*, see "Pointing it at the game" below.
@@ -91,7 +91,7 @@ If it can't find the game by itself:
 2. Open PowerShell in the NestPatcher folder (in File Explorer: **File > Open Windows PowerShell**, or Shift + right-click > **Open PowerShell window here**).
 3. Run (paste your own path between the quotes):
    ```
-   py NestPatcher_TiTS_Windows_v1.10.py --game "C:\Games\TiTS" --dry-run
+   py NestPatcher_TiTS_Windows_v1.11.py --game "C:\Games\TiTS" --dry-run
    ```
 4. It remembers that path. From now on the `.bat` just works.
 
@@ -108,6 +108,8 @@ Use `--mods "D:\somewhere\TITS-Mods"` the same way if your mods live somewhere e
 | `packed as app.asar` | Run option **6** once, then patch. |
 | `Missing enabled files` | A name in `enabled.txt` has no file. Fix the spelling or put a `#` in front. |
 | `MISS SomeMod.mod` | That mod doesn't fit this TiTS version, or needs another mod that is turned off. |
+| `this game copy was already patched` | The game folder already has mods in it and no clean backup (often a pre-patched copy someone shared). Unzip a fresh TiTS into a new folder and patch that. |
+| Hundreds of `MISS` lines | Usually an already-patched game or an old mod pack. Use a fresh game and the newest mod pack (mod names ending in `_v2.x`), and delete `nestmods\backup` first. |
 | Windows Defender pops up | Python is allowed to edit the game. Click **Allow**. |
 
 ## Making a Mac app from your patched game
@@ -115,10 +117,10 @@ Use `--mods "D:\somewhere\TITS-Mods"` the same way if your mods live somewhere e
 After patching, NestPatcher can pack the game as a macOS app for a friend's Mac (or your own):
 
 ```bat
-py NestPatcher_TiTS_Windows_v1.10.py --export-mac
+py NestPatcher_TiTS_Windows_v1.11.py --export-mac
 ```
 
-Menu option **7** does the same. The zip lands in `NestExports\` inside your mods folder. Unzip it **on the Mac**, not on Windows. Full steps: [Guide_Export_Mac_AppImage_v1.10.md](Guide_Export_Mac_AppImage_v1.10.md).
+Menu option **7** does the same. The zip lands in `NestExports\` inside your mods folder. Unzip it **on the Mac**, not on Windows. Full steps: [Guide_Export_Mac_AppImage_v1.11.md](Guide_Export_Mac_AppImage_v1.11.md).
 
 ## After a TiTS update
 
@@ -129,5 +131,5 @@ Menu option **7** does the same. The zip lands in `NestExports\` inside your mod
 ## Full command list
 
 ```
-py NestPatcher_TiTS_Windows_v1.10.py --help
+py NestPatcher_TiTS_Windows_v1.11.py --help
 ```

@@ -1,6 +1,6 @@
 """Checks the Windows "is TiTS running?" test without Windows, using fake tasklist/PowerShell output.
 
-    python tests/test_windows_running.py patchers/NestPatcher_TiTS_Windows_v1.10.py
+    python tests/test_windows_running.py patchers/NestPatcher_TiTS_Windows_v1.11.py
 """
 import os
 import sys

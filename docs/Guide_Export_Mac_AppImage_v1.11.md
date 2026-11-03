@@ -40,7 +40,7 @@ The AppImage is packed with `mksquashfs` when it's installed. Everywhere else (A
 
 ## Using the GUI (easiest)
 
-1. Start NestPatcher GUI 0.12 and check the **Setup** tab: game found, mods found.
+1. Start NestPatcher GUI 0.13 and check the **Setup** tab: game found, mods found.
 2. Go to **2. Patch** and press **Patch the game**. Wait for `DONE`.
 3. In the card **Make an app to play on another computer**, choose **Computer it is for**:
    - **Intel or AMD (x64)**: works on every Mac (Apple Silicon runs it through Rosetta) and on normal Linux PCs.
@@ -50,7 +50,7 @@ The AppImage is packed with `mksquashfs` when it's installed. Everywhere else (A
 
 ## On a Mac, or from the Android app, with only the Windows game
 
-The Mac patcher (1.6 or newer) takes the Windows game folder (the one with `TiTS.exe`) directly: it patches it and makes TiTS.app in one go. Steps are in [NestPatcher_Mac_Guide_v1.7.md](NestPatcher_Mac_Guide_v1.7.md), section "Only have the Windows game". In the Android app, pick the Mac patcher and choose the Windows game folder.
+The Mac patcher (1.6 or newer) takes the Windows game folder (the one with `TiTS.exe`) directly: it patches it and makes TiTS.app in one go. Steps are in [NestPatcher_Mac_Guide_v1.8.md](NestPatcher_Mac_Guide_v1.8.md), section "Only have the Windows game". In the Android app, pick the Mac patcher and choose the Windows game folder.
 
 ## Using the command line
 
@@ -59,20 +59,20 @@ Open a terminal in your NestPatcher folder (where `nestmods` is).
 **Linux:**
 ```bash
 # 1. Patch
-python3 NestPatcher_TiTS_Linux_v1.10.py
+python3 NestPatcher_TiTS_Linux_v1.11.py
 # 2a. Make the AppImage
-python3 NestPatcher_TiTS_Linux_v1.10.py --export-appimage
+python3 NestPatcher_TiTS_Linux_v1.11.py --export-appimage
 # 2b. Make the Mac app
-python3 NestPatcher_TiTS_Linux_v1.10.py --export-mac
+python3 NestPatcher_TiTS_Linux_v1.11.py --export-mac
 ```
 
 **Windows:**
 ```bat
-py NestPatcher_TiTS_Windows_v1.10.py
-py NestPatcher_TiTS_Windows_v1.10.py --export-mac
+py NestPatcher_TiTS_Windows_v1.11.py
+py NestPatcher_TiTS_Windows_v1.11.py --export-mac
 ```
 
-Or use the menu (`./nestpatcher_linux_v1.10.sh` or `NestPatcher_Windows_v1.10.bat`): option **7** makes the Mac app, option **8** the AppImage.
+Or use the menu (`./nestpatcher_linux_v1.11.sh` or `NestPatcher_Windows_v1.11.bat`): option **7** makes the Mac app, option **8** the AppImage.
 
 The file goes into `NestExports` inside your mods folder (for example `nestmods/NestExports`). Extra options:
 
