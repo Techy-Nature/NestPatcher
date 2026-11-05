@@ -6,10 +6,10 @@ Author: Neston
 #   - Stacked river rock, a bubbling spring, koi fish and dwarf banana plants. It bubbles
 #     along while people sit on the benches talking (random flavor each visit).
 #   - "Make a Wish" button: toss a credit in.
-#   - Amber (crew) has a new "Geocaching" talk: she hides little caches on every station she
-#     visits, and she's the one who put the koi and banana plants in the fountain (a cutting
-#     from her greenhouse). She feeds the fish every other day. Afterwards you can check her
-#     cache at the fountain.
+#   - Aina (the centaur mare on the residential deck): her "Astrocaching" talk gets a new
+#     ending. She's the one who put the koi and banana plants in the fountain (a cutting from
+#     one of her own plants), feeds the fish every other day, and hid her own astrocache
+#     there, which you can then check at the fountain.
 #   - Hand So's Redemption mentions it in the moth scene when this mod is on.
 # Toggle: Options -> Android Mods -> "Wishing Fountain". In-game author: Neston.
 
@@ -18,10 +18,10 @@ window.fisiAtResDeckAddendum(0),!1}
 With:
 window.tnFountainRoom&&window.tnFountainRoom(),window.fisiAtResDeckAddendum(0),!1}
 
-Replace [content_follower.js]:
-,addButton(14,"Back",window.amberInTheHold)}function @@g@@(){if(clearOutput(),amber.header(),output("<i>“Do you wanna talk about your past, Amber?”</i>
+Replace [content_tavros.js]:
+you could sort of say that,”</i> you cough."),processTime(5),@@e@@(@@s@@)}
 With:
-,window.tnAmberGeoButton&&window.tnAmberGeoButton(7),addButton(14,"Back",window.amberInTheHold)}function @@g@@(){if(clearOutput(),amber.header(),output("<i>“Do you wanna talk about your past, Amber?”</i>
+you could sort of say that,”</i> you cough."),window.tnAinaFountain&&window.tnAinaFountain(),processTime(5),@@e@@(@@s@@)}
 
 Add Javascript:
 (function () {
@@ -44,7 +44,7 @@ Add Javascript:
             id: MOD_ID,
             name: "Wishing Fountain",
             author: "Neston",
-            description: "A little rock wishing fountain with koi and banana plants on Tavros' residential deck (North-East Plaza), plus Amber's Geocaching talk about how it got its fish.",
+            description: "A little rock wishing fountain with koi and banana plants on Tavros' residential deck (North-East Plaza), plus a new part of Aina's Astrocaching talk about how it got its fish.",
             supportsToggle: true
         });
         return true;
@@ -83,9 +83,9 @@ Add Javascript:
         var t = "\n\nPast the palms, beside the benches farthest from the elevators, sits a small wishing fountain built from rough, stacked river rock. A spring bubbles up through the stones at its center and spills over the lip into a shallow pool, where a handful of fat koi, orange and white and ink-spotted, drift lazily in the shade of a pair of dwarf banana plants growing right up out of the rocks. Coins glint on the bottom.";
         t += " " + rnd(BUBBLES);
         t += feedingDay()
-            ? " The koi are crowding the near edge today, mouths popping at the surface. A little hand-painted sign wedged between two rocks reads: <i>PLEASE DON’T FEED THE FISH, I DO IT! (every other day) - Amber</i>"
-            : " A little hand-painted sign wedged between two rocks reads: <i>PLEASE DON’T FEED THE FISH, I DO IT! (every other day) - Amber</i>";
-        if (flags.TN_AMBER_GEO === 1) t += " You know there’s a geocache tucked under the flattest rock on the far side.";
+            ? " The koi are crowding the near edge today, mouths popping at the surface. A little hand-painted sign wedged between two rocks reads: <i>PLEASE DON’T FEED THE FISH, I DO IT! (every other day) - Aina</i>"
+            : " A little hand-painted sign wedged between two rocks reads: <i>PLEASE DON’T FEED THE FISH, I DO IT! (every other day) - Aina</i>";
+        if (flags.TN_AINA_FOUNTAIN === 1) t += " You know Aina’s astrocache is tucked under the flattest rock on the far side.";
         return t;
     };
     window.tnFountainRoom = function () {
@@ -93,7 +93,7 @@ Add Javascript:
         try {
             output(F.describe());
             addButton(1, "Make a Wish", F.wish, "Make a Wish", "Toss a credit into the fountain.");
-            if (flags.TN_AMBER_GEO === 1) addButton(2, "Amber’s Cache", F.cache, "Amber’s Cache", "Check the geocache Amber hid under the rocks.");
+            if (flags.TN_AINA_FOUNTAIN === 1) addButton(2, "Aina’s Cache", F.cache, "Aina’s Cache", "Check the astrocache Aina hid under the rocks.");
         } catch (err) { console.warn("[TN] Wishing fountain", err); }
     };
     F.wish = function () {
@@ -130,13 +130,13 @@ Add Javascript:
                 biped: "You crouch down by the far side of the fountain",
                 taur: "You fold your forelegs and kneel down by the far side of the fountain",
                 naga: "You lower your coils beside the far side of the fountain"
-            }) + " and tip up the flattest rock. Underneath, sealed in a little waterproof capsule, is Amber’s geocache: a tiny logbook, a stub of pencil, and a handful of trinkets people have swapped in and out."
+            }) + " and tip up the flattest rock. Underneath, sealed in a little waterproof capsule, is Aina’s astrocache: a little digital logbook and a handful of swag people have traded in and out."
         ];
-        if (n === 0) lines.push("The first page has a doodle of a koi and Amber’s loopy handwriting: <i>You found it!! Sign the log and leave something nice. Take something nice. Don’t feed my fish.</i> You sign your name under a dozen others and swap in a spare button for a polished bit of sea glass.");
+        if (n === 0) lines.push("The logbook’s first entry is from Aina, with a little koi doodle: <i>One star! Welcome, treasure hunter! Take some swag, leave some swag of equal value. Please don’t feed my fish!</i> You sign your name under a dozen others and swap in a spare button for a polished bit of sea glass.");
         else lines.push(rnd([
             "There are three new names in the log since you were last here. One of them has drawn a very detailed fish.",
             "Someone has left a tiny folded paper crane in the capsule. You leave it where it is.",
-            "The log has a new entry in Amber’s handwriting: <i>fed the fish. they were SO hungry. (they were not hungry)</i>",
+            "The log has a new entry from Aina: <i>fed the fish!! they acted SO hungry. (they were not hungry)</i>",
             "Someone has swapped in a glittery sticker of a moth. You smile and put it back."
         ]));
         say(lines);
@@ -146,38 +146,21 @@ Add Javascript:
         addButton(0, "Next", mainGameMenu);
     };
 
-    /* ---------- Amber: Geocaching ---------- */
-    window.tnAmberGeoButton = function (slot) {
+    /* ---------- Aina: Astrocaching talk, new ending ---------- */
+    window.tnAinaFountain = function () {
         if (!on() || typeof flags === "undefined") return;
         try {
-            if (window.amber && typeof amber.dumbfuckDoses === "function" && amber.dumbfuckDoses() >= 3) {
-                addDisabledButton(slot, "Geocaching", "Geocaching", "Amber’s head isn’t really in a hobby-talking place right now.");
-                return;
+            var lines = [];
+            if (flags.TN_AINA_FOUNTAIN !== 1) {
+                lines.push("Aina’s tail swishes, and she taps another blue dot on her CPS, this one just around the corner from her apartment. " + q("Oh! A-and this one’s mine. My very first one. It’s only one star, but I’m really proud of it."));
+                lines.push(q("You know the little rock fountain in the north-east plaza? By the benches way past the elevators?") + " She shifts her weight between her forehooves, a little shy. " + q("When I moved in, it was just... bubbling away with nothing in it. It seemed so sad. So I took a cutting from one of my own banana plants and planted it right between the rocks, and it took! There are two of them now."));
+                lines.push(q("And a pond needs fish, right? So I added some koi.") + " She giggles, cheeks pink. " + q("Nobody ever asked who put them there. I think everyone just figures the station did it. I-I feed them every other day. Not every day! They’ll act like they’re starving, but they are <i>so</i> fat, [pc.name]."));
+                lines.push(q("My cache is under the flattest rock on the far side,") + " she whispers, like it’s a state secret. " + q("Go sign the log sometime, okay? Leave some swag. And please don’t feed my fish."));
+            } else {
+                lines.push("Aina swipes back to the dot by the fountain and beams. " + q("My cache is getting so popular! Somebody left a little paper crane in it. And somebody drew one of my koi in the log, and it looked just like Biscuit. That’s the fat orange one.") + " She sighs happily. " + q("Every other day, [pc.name]. It’s a whole system."));
             }
-        } catch (err) {}
-        addButton(slot, "Geocaching", F.amberGeo, "Geocaching", "Ask Amber about the little hidden caches she keeps mentioning.");
-    };
-    F.amberGeo = function () {
-        clearOutput();
-        try { amber.header(); } catch (err) { try { showName("AMBER"); } catch (e2) {} }
-        author("Neston");
-        var first = flags.TN_AMBER_GEO !== 1;
-        var lines = [
-            "You ask Amber about the geocaches she keeps mentioning.",
-            "Her ears shoot straight up and her tail starts flicking. " + q("Oh! Okay, so, geocaching is like... a treasure hunt that never ends,") + " she gushes. " + q("You hide a little waterproof box somewhere neat, with a logbook and some trinkets, and you post where it is, kinda. Not exactly. Just a hint. Then people find it, sign the log, swap a trinket, and hide it again for the next person!") + " She bounces a little on all four hooves. " + q("I’ve got one on almost every station we’ve docked at."),
-            q("Okay, but my favorite one is on Tavros,") + " she goes on, lowering her voice like she’s sharing a secret. " + q("On the residential deck, in the corner past the palm trees, way past the elevators. There was this sad little rock fountain there by the benches. Like, it bubbled and everything, but there was nothing <i>in</i> it."),
-            q("So I took a cutting off one of the banana plants in my greenhouse,") + " she says proudly, " + q("and I planted it right in the rocks, and it took! It’s two now. And then I thought, a pond needs fish, so I got some koi.") + " She giggles. " + q("Nobody ever asked me who put them there. I think everybody figures the station did it."),
-            q("I feed them every other day,") + " she adds, very seriously. " + q("Not every day. They’ll tell you they’re starving. They are lying. They are <b>so</b> fat, [pc.name]."),
-            q("Oh, and my cache is under the flattest rock on the far side,") + " she whispers, nudging you. " + q("Go sign the log next time you’re there, okay? And don’t feed my fish.")
-        ];
-        if (!first) lines = [
-            "You ask Amber how her geocaches are doing.",
-            q("The Tavros one’s super popular now!") + " she beams. " + q("Somebody left a little paper crane in it. And somebody else drew one of my koi in the logbook, and honestly? It looked just like Biscuit. That’s the fat orange one.") + " She sighs happily. " + q("I fed them yesterday. Or the day before. Every other day, [pc.name]. It’s a whole system.")
-        ];
-        say(lines);
-        flags.TN_AMBER_GEO = 1;
-        processTime(10);
-        clearMenu();
-        addButton(0, "Next", function () { if (typeof window.amberInTheHold === "function") window.amberInTheHold(); else mainGameMenu(); });
+            for (var i = 0; i < lines.length; i++) output("\n\n" + lines[i]);
+            flags.TN_AINA_FOUNTAIN = 1;
+        } catch (err) { console.warn("[TN] Wishing fountain (Aina)", err); }
     };
 })();
