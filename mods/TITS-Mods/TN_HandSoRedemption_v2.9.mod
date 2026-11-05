@@ -538,6 +538,9 @@ Add Javascript:
             q("It chose that,") + " Hand So whispers. " + q("We did not tell it to. It chose the light, and the light is here, and it is staying.") + " Her voice wavers, all her voices at once. " + q("Is this what it feels like, Captain? To make something, and then watch it choose?"),
             q("Every time,") + " you tell her."
         ];
+        var fountain = false;
+        try { fountain = typeof window.tnFountainOn === "function" && !!window.tnFountainOn(); } catch (err) {}
+        if (fountain) lines.splice(5, 0, "For a moment it hovers over the little rock wishing fountain by the far benches, wings flickering above the banana leaves, while the koi rise to stare up at it and the water bubbles away under the murmur of people talking. Then it’s off again.");
         if (fisi) lines.push("On her usual bench, Fisianna has been watching the moth too, ears perked and tail curled around her ankles. When she notices you holding up your Codex, she gives you a tiny, shy wave, then goes back to watching it, smiling.");
         lines.push("You stay until the lamp’s light cycles to evening, the moth still opening and closing its wings on top of it. Hand So doesn’t ask you to call it back.");
         lines.push(q("I never let my children look at the light,") + " she says finally. " + (tarkusGone() ? q("Tarkus is gone. They are gone. But I would like to say goodbye to them anyway.") + "\n\n<b>(Talk to her again to <i>Remember</i> them.)</b>" : q("Captain, take me back to Tarkus. There are things I need to say to them.") + "\n\n<b>(Take her to her old factory on Tarkus.)</b>"));
