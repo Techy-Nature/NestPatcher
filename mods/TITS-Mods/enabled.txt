@@ -1,4 +1,4 @@
-# TN mod pack load list (Modv2.8). One file per line; # turns a line off.
+# TN mod pack load list (Modv2.9). One file per line; # turns a line off.
 AndroidModMenu_v2.5.js
 TN_Desktop_Menu_v2.5.js
 ShellyRecruit.mod
@@ -53,3 +53,5 @@ TN_QuadBatPop_v2.8.mod
 TN_QuadDracoPop_v2.8.mod
 TN_Holoboard_v2.8.mod
 TN_SaveFixer_v2.8.js
+TN_HandSoRedemption_v2.9.mod
+TN_ResDeckFountain_v2.9.mod
