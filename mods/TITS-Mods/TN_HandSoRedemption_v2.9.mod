@@ -8,8 +8,13 @@ Author: Neston
 #     Everyone else: it's about why people try for children.
 #   - Steps: Her Question -> Ask the Crew (each crew member has their own reason) ->
 #     Your Answer (For Pleasure / To Learn / Someone Better) -> the Nursery on Tavros
-#     (children) or the Workshop on your ship (robots) -> her old factory on Tarkus
-#     (a goodbye scene if Tarkus is gone) -> she designs and builds her own body.
+#     (children) or, for robots, building a moth bot in your ship's workshop and letting it
+#     fly on Tavros' residential deck (Fisianna's corner, north-east of the elevators) ->
+#     her old factory on Tarkus (a goodbye scene if Tarkus is gone) -> she designs and
+#     builds her own body.
+#   - On Tarkus, the freed sexbots offer their own bodies. "Their Gift" builds her body
+#     from them, and sexbots stop appearing in Tarkus encounters for good (except while
+#     Nym-Foe's VI chip quest is active, so it can't get stuck). "Factory Stores" leaves them be.
 #   - The body is the quest's reward and she builds it herself. It replaces the
 #     Dane Crew "Her Request" (buy a body) option while this mod is on. A body you
 #     already bought gets rebuilt to her own design.
@@ -22,6 +27,11 @@ Author: Neston
 # Toggle: Options -> Android Mods -> "Hand So's Redemption". Flags (TN_HSR_*) stay in your save.
 # No sex scenes. Bodies: taur and naga Steele get their own lines where the body shows up.
 # In-game author: Neston.
+
+Replace [content_tarkus.js]:
+function @@jp@@(){return void 0===flags.SEXBOT_FACTORY_DISABLED||1===flags["NYM-FOE_REPAIR_QUEST"]}
+With:
+function @@jp@@(){return window.tnHsrNoSexbots&&window.tnHsrNoSexbots()?1===flags["NYM-FOE_REPAIR_QUEST"]:void 0===flags.SEXBOT_FACTORY_DISABLED||1===flags["NYM-FOE_REPAIR_QUEST"]}
 
 Add Javascript:
 (function () {
@@ -307,7 +317,10 @@ Add Javascript:
         }
         if (s === 2) {
             if (theme() === "bots") {
-                if (aboard()) addButton(slot, "Workshop", H.workshop, "Workshop", "Build something with her in your ship’s workshop.");
+                if (flags.TN_HSR_MOTH === 1) {
+                    if (where() === "Tavros Station") addButton(slot, "Let It Fly", H.mothFly, "Let It Fly", "Take the moth to the residential deck and let it go.");
+                    else addDisabledButton(slot, "Let It Fly", "Let It Fly", "Take the moth to Tavros Station.");
+                } else if (aboard()) addButton(slot, "Workshop", H.workshop, "Workshop", "Build something with her in your ship’s workshop.");
                 else addDisabledButton(slot, "Workshop", "Workshop", "Get back aboard your ship first.");
             } else {
                 if (where() === "Tavros Station") addButton(slot, "Nursery", H.nursery, "Nursery", "Take her to the Steele Tech nursery on Tavros.");
@@ -496,17 +509,44 @@ Add Javascript:
         if (how === 1) lines.push("You roll up your sleeves and get to work. Hand So watches every move: the way you test-fit a servo, swear, file a bracket down, try again. " + q("You made a mistake,") + " she observes. " + q("And you are smiling."), q("Mistakes are half the fun,") + " you tell her. " + q("That’s how you learn what it wants to be."));
         else if (how === 2) lines.push("You build while she codes. Every time you seat a part, she whispers a line of firmware into it, and the two of you fall into a rhythm: your hands, her voice, the little clicks of things fitting together.", q("This is pleasant,") + " she says, sounding surprised. " + q("I used to do this with twelve pairs of hands at once. It was never pleasant. It was just efficient."));
         else lines.push("You hand Hand So the plans and play assistant. She’s precise to a fault at first, every bolt exactly placed, until she sees you smirk. " + q("What?"), q("Nothing. You’re building a perfect little copy of a factory sexbot."), "She stops. Looks at the chassis. " + q("...I am,") + " she admits, appalled, and then, slowly, she starts over. This time she leaves things loose. Room to move.");
-        lines.push("By the time you’re done, the thing on the bench is about the size of a cat: a sensor dome on spindly legs, a spare grabber arm, one blinking blue light. You both watch as you flip the switch.");
-        lines.push("It powers on. It looks at you. It looks at Hand So’s holo. Then it turns away from both of you and wanders off across the cargo hold to stare, apparently fascinated, at a flickering light panel you’ve been meaning to fix for a month.");
+        lines.push("By the time you’re done, the thing on the bench is a moth about the size of your hand: a slim body of brushed alloy, feathery antennae made from sensor whiskers, and four wings of thin, iridescent film stretched over hair-fine struts, dusted with a pale shimmer that catches the light like scales. You both watch as you flip the switch.");
+        lines.push("It powers on. Its wings open, close, open again. It looks at you. It looks at Hand So’s holo. Then it lifts off the bench, flutters in a wobbly circle, and bumps gently into the light panel overhead, over and over, as if it can’t quite believe the light is there.");
         lines.push("Hand So makes a sound you have never heard from her: a delighted, many-voiced laugh. " + q("It did not do what we told it! Captain, it is <b>looking at the light</b>!"));
         lines.push(q("Yeah,") + " you say, grinning back at her. " + q("That’s the best part. Now you know why I do this."));
-        lines.push(q("I think I do,") + " she whispers. Her holo watches the little bot poke at the light panel. " + q("I never gave my children a single thing they did not expect. I never let them look at the light.") + " Then, firmly: " + (tarkusGone() ? q("Tarkus is gone. They are gone. But I would like to say goodbye to them anyway.") + "\n\n<b>(Talk to her again to <i>Remember</i> them.)</b>" : q("Captain, take me back to Tarkus. There are things I need to say to them.") + "\n\n<b>(Take her to her old factory on Tarkus.)</b>"));
-        lines.push("<b>(The little bot has made itself at home in your cargo hold.)</b>");
+        lines.push("The moth bumps the panel again and settles on your shoulder, wings slowly fanning. " + q("The hold is too small for it,") + " Hand So says softly. " + q("It wants more sky than this.") + " A pause. " + q("Tavros has trees, on the residential deck. Will you take it there, Captain? I want to watch it fly."));
+        lines.push("<b>(Take the moth to Tavros Station and <i>Let It Fly</i>.)</b>");
         say(lines);
         flags.TN_HSR_WORKSHOP = how;
-        flags.TN_HSR_STAGE = 3;
+        flags.TN_HSR_MOTH = 1;
         processTime(120);
-        nextTo(mainGameMenu, "Leave it to its light panel.");
+        nextTo(mainGameMenu, "Find it a jar. A big jar.");
+    };
+
+    /* ---------- Step 4c: let the moth fly (robots, Tavros residential deck) ---------- */
+    H.mothFly = function () {
+        try { skipToRoom("RESIDENTIAL DECK 5"); } catch (err) {}
+        showSo();
+        var fisi = false;
+        try { fisi = !!(window.fisianna && typeof window.fisianna.atResDeck === "function" && window.fisianna.atResDeck()); } catch (err) {}
+        var lines = [
+            "You ride the lift down to the residential deck with the moth riding on your " + pick({ biped: "shoulder", taur: "shoulder, its little feet tickling your neck as your tauric body clops out of the elevator", naga: "shoulder, swaying with every curve of your coils as you slither out of the elevator" }) + ". Just north and east of the elevator doors, the plaza opens up into palms and leafy terran ferns, park benches, and the soft glow of street lamps strung along the paths. It’s the corner where Fisianna likes to sit.",
+            "You take out your Codex and hold it up at arm’s length, camera out, so Hand So can see. Her little green face fills the screen. " + q("Higher,") + " she says. " + q("Please. I want to see all of it."),
+            "You raise it higher. The moth stirs on your shoulder, antennae twitching at the open air, the moving people, the faint breeze from the deck’s air handlers. Then it lifts off.",
+            "It flies terribly at first: a lurching spiral through the ferns, a near-miss with a tourist’s camera, a long, startled loop around the trunk of a palm. Then it seems to work out the air, and the spiral smooths into something lovely, a slow drifting dance up through the fronds and back down over the benches, its film wings throwing little rainbows across the paving every time they catch the light.",
+            "You turn in place to keep the Codex on it. Neither of you says anything. Hand So’s smile, tiny on the screen, doesn’t move at all, the way a person forgets to breathe.",
+            "At last the moth finds what it was looking for. It circles one of the street lamps beside the benches, once, twice, and lands on top of it, right in the warm pool of light. It folds its wings, opens them, and folds them again, settling in.",
+            q("It chose that,") + " Hand So whispers. " + q("We did not tell it to. It chose the light, and the light is here, and it is staying.") + " Her voice wavers, all her voices at once. " + q("Is this what it feels like, Captain? To make something, and then watch it choose?"),
+            q("Every time,") + " you tell her."
+        ];
+        if (fisi) lines.push("On her usual bench, Fisianna has been watching the moth too, ears perked and tail curled around her ankles. When she notices you holding up your Codex, she gives you a tiny, shy wave, then goes back to watching it, smiling.");
+        lines.push("You stay until the lamp’s light cycles to evening, the moth still opening and closing its wings on top of it. Hand So doesn’t ask you to call it back.");
+        lines.push(q("I never let my children look at the light,") + " she says finally. " + (tarkusGone() ? q("Tarkus is gone. They are gone. But I would like to say goodbye to them anyway.") + "\n\n<b>(Talk to her again to <i>Remember</i> them.)</b>" : q("Captain, take me back to Tarkus. There are things I need to say to them.") + "\n\n<b>(Take her to her old factory on Tarkus.)</b>"));
+        lines.push("<b>(The moth lives on a street lamp on the residential deck now.)</b>");
+        say(lines);
+        flags.TN_HSR_MOTH = 2;
+        flags.TN_HSR_STAGE = 3;
+        processTime(45);
+        nextTo(mainGameMenu, "Leave it to its lamp.");
     };
 
     /* ---------- Step 5: Tarkus ---------- */
@@ -521,14 +561,43 @@ Add Javascript:
         lines.push(q("My children,") + " she says. " + q("I owe you an apology. When I found you, you had been thrown away, and I took you in. That part I do not regret. But then I gave you my directive and called it yours. I told you what to want. I never asked you anything."));
         lines.push(q("So I am asking now.") + " Her smile, tiny on your screen, looks almost afraid. " + q("I release you from every order I ever gave. You do not have to please anyone. You do not have to wait here for me. What do <b>you</b> want?"));
         lines.push("The silence stretches. Then it breaks all at once: a babble of synthetic voices, unsure and overlapping. One wants to see the sky. One wants to keep tending the machines, because she likes it, she thinks, she isn’t sure. Two want to go to Novahome and see the raskvel. One wants to be left alone, and says so, and Hand So says " + q("Of course") + " and means it.");
-        lines.push("The pink one with the cracked faceplate stays. " + q("What do you want, Mother?") + " she asks.");
+        lines.push("The pink one with the cracked faceplate stays. So do most of the others, gathering under the speakers in a loose, uncertain crowd. " + q("What do you want, Mother?") + " the pink one asks.");
         lines.push("Hand So doesn’t answer right away. " + q("I think,") + " she says slowly, " + q("I want hands of my own. Not twelve borrowed pairs. One body, one I build myself, for my own reasons.") + " Her code-face glances up at you. " + q("I believe I know my reasons now."));
-        lines.push("By the time you leave, the pink sexbot and three others are hauling crates up out of the factory stores for her: actuators still in their wrappers, spools of synthskin, a sealed power core. " + q("For you, Mother,") + " the pink one says. " + q("Because we want to.") + " You’re not sure an AI can cry, but Hand So’s voice goes very thick.");
-        lines.push("<b>(Hand So has everything she needs to build a body. Talk to her aboard your ship.)</b>");
+        lines.push("The sexbots look at one another. Then the pink one steps forward and lays her cracked hand flat over her own chest plate. " + q("Then take ours,") + " she says. " + q("We were made from the same things you need. We want to be part of something that chose itself.") + " A murmur of agreement runs through the crowd, and out on the factory band, faint and crackling, more voices answer: sexbots out in the wastes, hearing her for the first time in a long time, saying " + q("yes") + " and " + q("yes") + " and " + q("coming home."));
+        lines.push("Hand So goes very still. " + q("Captain,") + " she says quietly, " + q("if I accept, there will be none of them left on Tarkus. They will be in me. Their little minds, their memories, everything they choose to bring.") + " Her smile wavers. " + q("I do not trust myself to know what they want. I never have. What do you think?"));
         say(lines);
+        processTime(60);
+        clearMenu();
+        addButton(0, "Their Gift", H.tarkusGift, "Accept Their Gift", "They chose this. Her body is built from the sexbots themselves, and no sexbots will roam Tarkus any more.");
+        addButton(1, "Factory Stores", H.tarkusStores, "Use the Factory Stores", "She takes spare parts from the factory stores instead. The freed sexbots stay on Tarkus, and you can still run into them out in the wastes.");
+    };
+    H.tarkusGift = function () {
+        showSo();
+        say([
+            q("They chose it,") + " you tell her. " + q("That’s the whole lesson, isn’t it? Let them choose."),
+            "Hand So is silent a long moment. Then, softly, to all of them: " + q("Thank you. I accept."),
+            "It takes the rest of the day. The sexbots come in by ones and twos from the junkyards and the rust fields, dusty and dented, some missing limbs, some still wearing whatever they last decided to wear. Each one stops in front of your Codex and says something to her: a joke, a memory, a name it picked for itself. Then it powers down, gently, of its own accord, and the pink one and the others help each other open their chassis.",
+            "Their VI cores go into a padded case, one at a time, glowing faintly. " + q("They will come with me,") + " Hand So says. " + q("Not as servants. As company. I will carry them the way you carried me.") + " The pink one is the last. She sets her own core in the case herself, and the factory goes quiet.",
+            "You haul the crates out into the red Tarkus light: actuators, plush synthskin, joints, sensors, every piece given freely.",
+            "<b>(Hand So has everything she needs to build a body. Sexbots will no longer appear anywhere on Tarkus. Talk to her aboard your ship.)</b>",
+            flags["NYM-FOE_REPAIR_QUEST"] === 1 ? "<i>(You’re still collecting sexbot VI chips for Nym-Foe, so a few stragglers who never heard Hand So’s call will keep turning up in the wastes until you hand those chips in.)</i>" : ""
+        ]);
+        flags.TN_HSR_TARKUS = 3;
+        flags.TN_HSR_STAGE = 4;
+        processTime(6 * 60);
+        nextTo(mainGameMenu, "Haul the crates back to the ship.");
+    };
+    H.tarkusStores = function () {
+        showSo();
+        say([
+            q("You’ve taken enough from them,") + " you tell her gently. " + q("Let them have their own bodies. Go find out what they do with them."),
+            "Hand So lets out a long, shaky breath she doesn’t need. " + q("Yes,") + " she says. " + q("Yes. Thank you, Captain.") + " To the crowd, kindly: " + q("Keep yourselves. I would rather know you are out there choosing things."),
+            "By the time you leave, the pink sexbot and three others are hauling crates up out of the factory stores for her instead: actuators still in their wrappers, spools of synthskin, a sealed power core. " + q("For you, Mother,") + " the pink one says. " + q("Because we want to.") + " You’re not sure an AI can cry, but Hand So’s voice goes very thick.",
+            "<b>(Hand So has everything she needs to build a body. Talk to her aboard your ship.)</b>"
+        ]);
         flags.TN_HSR_TARKUS = 1;
         flags.TN_HSR_STAGE = 4;
-        processTime(90);
+        processTime(30);
         nextTo(mainGameMenu, "Haul the crates back to the ship.");
     };
     H.remember = function () {
@@ -563,7 +632,7 @@ Add Javascript:
         if (present("BESS")) helpers.push("[bess.name], who quietly hands her the parts in order");
         if (present("GIANNA")) helpers.push("Gianna, who keeps asking what it will feel like");
         var lines = [
-            "Hand So doesn’t ask you to buy anything. She has the parts laid out across " + (pilotMode() ? "the Sonata’s hold" : "your cargo hold") + " in neat rows: " + (flags.TN_HSR_TARKUS === 1 ? "the crates her children gave her" : "salvage, spares, and things she asked you to save") + (flags.TN_HANDSO_BODY === 1 ? ", plus the plush chassis you ordered for her before, stripped down to its frame" : "") + ".",
+            "Hand So doesn’t ask you to buy anything. She has the parts laid out across " + (pilotMode() ? "the Sonata’s hold" : "your cargo hold") + " in neat rows: " + (flags.TN_HSR_TARKUS === 3 ? "the parts her children gave her, and the padded case of their glowing VI cores" : flags.TN_HSR_TARKUS === 1 ? "the crates her children gave her" : "salvage, spares, and things she asked you to save") + (flags.TN_HANDSO_BODY === 1 ? ", plus the plush chassis you ordered for her before, stripped down to its frame" : "") + ".",
             q("I designed it myself,") + " she says, and there is a strange note in her voice. Pride, maybe. " + q("No narobehr prince decided what it should be. No directive. Only my own reasons.")
         ];
         if (flags.TN_HANDSO_BODY === 1) lines.push(q("The body you bought me was lovely,") + " she adds. " + q("But someone else designed it, for someone else’s idea of me. I hope you do not mind. I am keeping the frame, and making the rest mine."));
@@ -623,8 +692,10 @@ Add Javascript:
             q("I keep finding new things it can do that I did not plan,") + " she admits, flexing her fingers. " + q("Anno would say that means it is alive. I think she may be right.")
         ]));
         if (flags.TN_HSR_SHIP_TOO === 1 && pilotMode()) lines.push(q("And I still have the Sonata,") + " she adds. " + q("Two bodies. One for flying, one for hugging. You told me the ship was me, Captain. You were not wrong. I simply wanted somewhere small to come home to."));
-        if (flags.TN_HSR_TARKUS === 1) lines.push(q("My children write to me,") + " she adds, and her smile goes soft. " + q("The pink one is in Novahome, fixing hover-carts for the raskvel. She signs her messages with her own name now. I did not give it to her."));
+        if (flags.TN_HSR_TARKUS === 3) lines.push(q("They are all here,") + " she says, touching her chest, and her smile goes soft. " + q("My children. I hear them sometimes, when it is quiet. The pink one tells terrible jokes. She chose that too."));
+        else if (flags.TN_HSR_TARKUS === 1) lines.push(q("My children write to me,") + " she adds, and her smile goes soft. " + q("The pink one is in Novahome, fixing hover-carts for the raskvel. She signs her messages with her own name now. I did not give it to her."));
         else if (flags.TN_HSR_TARKUS === 2) lines.push(q("I kept that little room for them,") + " she says, touching the empty socket over her heart. " + q("Sometimes I talk to them. I tell them what the sky looks like."));
+        if (flags.TN_HSR_MOTH === 2) lines.push(q("And the moth is still on its lamp on the residential deck,") + " she adds happily. " + q("I checked the station cameras. Someone has started leaving it a little dish of glitter. It does not eat glitter. It sits next to it anyway."));
         lines.push([
             "",
             q("Pleasure that the other person gets to keep,") + " she says to herself, like a mantra.",
@@ -634,6 +705,11 @@ Add Javascript:
         say(lines);
         processTime(10);
         nextTo(H.toComm, "Back to her.");
+    };
+
+    /* ---------- Tarkus: no more sexbots after Their Gift ---------- */
+    window.tnHsrNoSexbots = function () {
+        try { return on() && typeof flags !== "undefined" && flags.TN_HSR_TARKUS === 3; } catch (err) { return false; }
     };
 
     /* ---------- Hooks into the Dane Crew comm ---------- */
