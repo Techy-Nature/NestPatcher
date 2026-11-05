@@ -1,11 +1,12 @@
-/* TN Sex Scene Gallery v2.8 (Techy-Nest, 2026-11-02)
+/* TN Sex Scene Gallery v2.9 (Techy-Nest, 2026-11-02; main menu button 2026-11-05)
    A gallery of every sex scene in the game, with a summary of each one, that fills in as you
    play, plus four achievements for filling it:
      25%  Sex Hound
      50%  The Law of Sexual Exchange
      75%  Nymphomaniac
      100% Sexy Salacious Steele
-   Open it from the Info section of the main menu sidebar (Sex Gallery), from the mod menu
+   Open it from the game's main menu (a Sex Gallery button next to Credits while a save is loaded),
+   from the Info section of the main menu sidebar (Sex Gallery), from the mod menu
    (Android Mods or TN Mod Settings), or with window.TnSexGallery.open().
 
    Needs TN_SexGalleryScenes_v2.8.js (the scene list). The scene list is made by
@@ -23,7 +24,9 @@
     window.__tnSexGalleryLoaded = true;
 
     var MOD_ID = "tn-sex-gallery";
-    var VERSION = "2.8";
+    var VERSION = "2.9";
+    var SCENES_FILE = "TN_SexGalleryScenes_v2.8.js";
+    var MAIN_MENU_SLOT = 5;   // the main menu uses 0-4, 7, 13 and 14
     var SEEN_FLAG = "TN_SEXGAL_SEEN";
     var ACH_FLAG = "TN_SEXGAL_ACH";
     var SETTINGS_KEY = "tnSexGallery.settings";
@@ -295,9 +298,43 @@
             }
         } catch (err) {}
     }
+    // A "Sex Gallery" button on the game's own main menu (New Game, Data, Gallery, Options,
+    // Credits, ...) while a save is loaded, so it can be reached from inside a game.
+    function saveLoaded() {
+        try { if (typeof window.getGameState === "function") return !!window.getGameState() && inGame(); } catch (err) {}
+        return inGame();
+    }
+    function addMainMenuButton() {
+        if (!modOn() || !saveLoaded() || typeof window.addButton !== "function") return;
+        var p = progress();
+        window.addButton(MAIN_MENU_SLOT, "Sex Gallery", function () { openGallery(); }, "Sex Scene Gallery",
+            "Every sex scene in the game, and the ones you’ve seen in this save (" + p.seen + " of " + p.total + ", " + p.pct.toFixed(1) + "%).");
+    }
+    function wrapMainMenu() {
+        var host = (typeof ui !== "undefined" && ui) ? ui : null;
+        if (!host || typeof host.generateMainMenuButtons !== "function") return false;
+        if (host.generateMainMenuButtons.__tnSexGallery) return true;
+        var orig = host.generateMainMenuButtons;
+        var w = function () {
+            var r = orig.apply(this, arguments);
+            try { addMainMenuButton(); } catch (err) { debug("main menu button failed: " + err); }
+            return r;
+        };
+        w.__tnSexGallery = true;
+        w.__tnOriginal = orig;
+        host.generateMainMenuButtons = w;
+        // the menu may already be on screen
+        try {
+            if (host.state && host.state.mainElement === 0 && saveLoaded()) addMainMenuButton();
+        } catch (err) {}
+        debug("main menu button added");
+        return true;
+    }
+
     function wrapAll() {
         wrapOutput();
         wrapClear();
+        wrapMainMenu();
         wrapOrgasm();
         try {
             if (orgasmWrapped && typeof chars !== "undefined" && chars && !wrapAll.charsDone) {
@@ -454,7 +491,7 @@
         var list = root.querySelector(".sg-list");
         var cat = loadCatalog();
         if (!cat) {
-            list.innerHTML = '<div class="sg-note">The scene list is missing. Put <b>TN_SexGalleryScenes_v' + VERSION + '.js</b> in your mods folder, add it to <b>enabled.txt</b>, and patch again.</div>';
+            list.innerHTML = '<div class="sg-note">The scene list is missing. Put <b>' + SCENES_FILE + '</b> in your mods folder, add it to <b>enabled.txt</b>, and patch again.</div>';
             return;
         }
         var seen = readSeen();
@@ -647,6 +684,7 @@
             var cat = loadCatalog();
             return {
                 version: VERSION, enabled: modOn(), scenes: cat ? cat.scenes.length : 0, game: cat ? cat.data.game : "",
+                mainMenu: !!(typeof ui !== "undefined" && ui && ui.generateMainMenuButtons && ui.generateMainMenuButtons.__tnSexGallery),
                 watching: { output: !!(window.output && window.output.__tnSexGallery), clearOutput: !!(window.clearOutput && window.clearOutput.__tnSexGallery), orgasm: orgasmWrapped },
                 counts: stats, lastMatch: lastMatch, progress: this.progress()
             };
