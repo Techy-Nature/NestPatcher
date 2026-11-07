@@ -4,8 +4,12 @@ Author: Neston
 # Dr. Badger can flip your bimbo-domme Siegwulfe's code around: same body, same stats, same
 # hardlight cock, but now she's the one who's infatuated. She's submissive to Steele and
 # nobody else, and anyone who threatens Steele gets a faceful of her whip-tail.
-#   - Dr. Badger's shop on Tarkus: "Sub Code" button (bimbo-domme Siegwulfe with you).
-#     Free. "Domme Code" flips her back the same way, as often as you like.
+#   - Dr. Badger's first upgrade now asks: domme (the original) or sub. Sub skips the domme
+#     reveal and gets its own.
+#   - Already have a domme? Dr. Badger's shop on Tarkus: "Sub Code" button (free).
+#     "Domme Code" flips her back, as often as you like.
+#   - Tech Specialists, or anyone with 15+ Intelligence: Codex > Extra > "Siegwulfe Code"
+#     hacks her code yourself, either direction (she must be with you, or you on the ship).
 #   - She asks what to call you (Master/Mistress, Captain, your name, or Beloved).
 #     Change it any time with Talk > Call Me.
 #   - Her menu: Pet, Sex (Worship, Take Her Knot, Fuck Her), Talk (New Code, Others?, Call Me).
@@ -16,7 +20,8 @@ Author: Neston
 #   - Her domme extras (leash, belly ride, custom collar, treats) wait until she's flipped back.
 # Toggle: Options -> Android Mods -> "Bimbo-Sub Siegwulfe". Turned off, she acts like her
 # domme self again (her sub setting is kept for when you turn it back on).
-# Flags: TN_WULFE_SUB (1 = sub code), TN_WULFE_SUB_NAME, TN_WULFE_SUB_TS, TN_WULFE_SUB_SEXED.
+# Flags: TN_WULFE_SUB (1 = sub code), TN_WULFE_SUB_PENDING, TN_WULFE_SUB_NAME, TN_WULFE_SUB_TS,
+# TN_WULFE_SUB_SEXED, TN_WULFE_HACKED.
 
 # --- Siegwulfe menus (content_follower) ---
 
@@ -60,6 +65,17 @@ window.siegwulfeLeashBlurbs=function(){wulfe.isDom()&&
 With:
 window.siegwulfeLeashBlurbs=function(){!(window.tnWulfeSubOn&&window.tnWulfeSubOn())&&wulfe.isDom()&&
 
+# First Badger upgrade: pick domme or sub before she goes into the lab.
+Replace [content_follower.js]:
+addButton(0,"Do It",(function(){clearMenu(),clearOutput(),author("Wsan"),showName("Doctor Badger")
+With:
+addButton(0,"Do It",(function tnWulfeDoIt(){if(window.tnWulfeSubChoose&&window.tnWulfeSubChoose(tnWulfeDoIt))return;clearMenu(),clearOutput(),author("Wsan"),showName("Doctor Badger")
+
+Replace [content_follower.js]:
+return function(@@e@@){clearMenu(),clearOutput(),author("Wsan"),showName("Doctor Badger"),showBust(drbadger.bustString(!1),wulfe.bustString()),processTime(160+rand(41)),
+With:
+return function(@@e@@){if(window.tnWulfeSubPending&&window.tnWulfeSubPending())return window.tnWulfeSubReveal(@@e@@);clearMenu(),clearOutput(),author("Wsan"),showName("Doctor Badger"),showBust(drbadger.bustString(!1),wulfe.bustString()),processTime(160+rand(41)),
+
 # --- Combat lines and interact tooltip (main) ---
 
 Replace [main.js]:
@@ -76,6 +92,12 @@ Replace [main.js]:
 tooltip:"Check in with your ".concat(wulfe.isDom()?"domineering":"loyal"," wulfe-bot.")
 With:
 tooltip:"Check in with your ".concat(window.tnWulfeSubOn&&window.tnWulfeSubOn()?"devoted":wulfe.isDom()?"domineering":"loyal"," wulfe-bot.")
+
+# Codex > Extra: "Siegwulfe Code" (Tech Specialists and 15+ Intelligence can flip her themselves).
+Replace [main.js]:
+@@a@@.push(@@d@@)}if("MedImplants"===pc.inventory.combatImplant.getClassName()){
+With:
+@@a@@.push(@@d@@)}if(window.tnWulfeCodexAddon&&window.tnWulfeCodexAddon(@@a@@),"MedImplants"===pc.inventory.combatImplant.getClassName()){
 
 # --- Dr. Badger's shop button (content_tarkus) ---
 
@@ -510,6 +532,136 @@ Add Javascript:
             "[wulfe.name] rears up over you protectively, claws out, and her tail lashes " + foe + " across the face before they can get any closer to you!"
         ]);
     };
+
+    // ---------- first Badger upgrade: domme or sub ----------
+    var choiceMade = false;
+    window.tnWulfeSubChoose = function (resume) {
+        if (!on()) return false;
+        if (choiceMade) { choiceMade = false; return false; }
+        clearMenu();
+        clearOutput();
+        author("Neston");
+        showName("Doctor Badger");
+        showBust(drbadger.bustString(false), wulfe.bustString());
+        say([
+            "Before you can say yes, Badger holds up a claw. " + q("Actually, one thing. The big subroutine switchup. I wrote it two ways, because I couldn’t decide which was funnier."),
+            q("Two ways?"),
+            q("She’s gonna want you. A </i>lot<i>. That part’s not optional.") + " Badger grins. " + q("What I can pick is which way it points. Either she wants to </i>own<i> you, or she wants to be owned by you. Same body, same hardware, same everything. One’s a mistress and one’s a devoted little bitch who’ll take the face off anybody who looks at you wrong. Your call."),
+            "[wulfe.name] glances between the two of you, ears twitching, as if she isn’t sure she’s allowed to have an opinion."
+        ]);
+        processTime(1);
+        addButton(0, "Domme", function () { flags.TN_WULFE_SUB_PENDING = 0; choiceMade = true; resume(); }, "Domme", "She’ll want to own you. (The original upgrade.)");
+        addButton(1, "Sub", function () { flags.TN_WULFE_SUB_PENDING = 1; choiceMade = true; resume(); }, "Sub", "She’ll want to be owned by you, and only you, and she’ll protect you fiercely.");
+        addButton(14, "Back", mainGameMenu);
+        return true;
+    };
+    window.tnWulfeSubPending = function () { return on() && typeof flags !== "undefined" && flags.TN_WULFE_SUB_PENDING === 1; };
+    window.tnWulfeSubReveal = function (wasBimbo) {
+        delete flags.TN_WULFE_SUB_PENDING;
+        flags.TN_WULFE_SUB = 1;
+        flags.TN_WULFE_SUB_TS = GetGameTimestamp();
+        clearMenu();
+        clearOutput();
+        author("Neston");
+        showName("Doctor Badger");
+        showBust(drbadger.bustString(false), wulfe.bustString());
+        processTime(160 + rand(41));
+        var lines = [
+            "After a few hours and a lot of mechanical noise, the lab door hisses open and Badger strolls out, wiping her paws on a rag.",
+            q("She’s coming. Give her a second. She’s, uh, nervous.") + " Badger seems to find this hilarious. " + q("First time I’ve ever made something nervous on purpose.")
+        ];
+        if (wasBimbo) lines.push("[wulfe.name] steps out after her. She looks almost identical: the bronze synthskin, the enormous breasts, the blonde ponytail. But the way she moves isn’t the same at all.");
+        else lines.push("[wulfe.name] steps out after her, and she looks completely different. Her slender frame has been rebuilt into a pair of huge, curvaceous milk jugs, broodmare hips and an impossibly thin waist, her pale synthskin now a sun-kissed bronze. A mane of dark blonde hair flows from her helm into a high ponytail, and her pouty black lips have gone glossy and plump, her eyes ringed in dark mascara. Little pink hearts decorate her chrome, and the highlights of her armor have turned violet. She’s a bonafide bimbo from top to very impressively rounded bottom.");
+        lines.push("Something heavy sways beneath her as she walks: a thick, orange, two-foot canine cock, projected in hardlight from a port under her belly. She notices you looking and the hardlight flickers off at once, like she’s embarrassed she didn’t ask first.");
+        lines.push("She crosses the room with her eyes fixed on your face, ears tilted forward, and folds her forelegs to sink down in front of you until she’s looking up.");
+        lines.push(q("Hi,") + " she breathes. " + q("You’re... wow. I think you were always this pretty, and I just wasn’t, like, </i>looking<i> right."));
+        lines.push(q("She had an unused underslung weapon mount, so I stuck a projector there,") + " Badger says cheerfully, reaching out to pat the taur’s rump. " + q("Self-replenishing synth-cum, too. Have fun with-"));
+        lines.push("[wulfe.name]’s tail cracks out so fast you barely see it. The three tendrils snap an inch from Badger’s snout, hard enough to ruffle her fur. Your Siegwulfe didn’t even turn her head.");
+        lines.push(q("Only my...") + " [wulfe.name] stops, suddenly anxious. " + q("Um. What do I call you? Please?"));
+        say(lines);
+        try { pc.removeStatusEffect("Siegwulfe's Leash"); } catch (err) {}
+        nameButtons(badgerOutro);
+    };
+
+    // ---------- Codex > Extra: hack her code yourself ----------
+    function canHack() {
+        try { return pc.characterClass === GLOBAL.CLASS_ENGINEER || Number(pc.intelligence()) >= 15; } catch (err) { return false; }
+    }
+    function wulfeNear() {
+        try { return window.hasSiegwulfeOnSelf() || (wulfe.isCrew() && InShipInterior()); } catch (err) { return false; }
+    }
+    window.tnWulfeCodexAddon = function (list) {
+        try {
+            if (!on() || !hasWulfe() || !wulfe.isDom() || !list || typeof list.push !== "function") return;
+            var sub = flags.TN_WULFE_SUB === 1;
+            var item = { name: "Siegwulfe Code", desc: "Dr. Badger’s personality code in " + wulfe.short + "’s core. " + (sub ? "Currently: sub." : "Currently: domme."), txt: "Wulfe Code",
+                f: hackStart, ttH: "Siegwulfe Code", ttB: sub ? "Hack her back into a domme." : "Hack her into a sub, devoted only to you." };
+            var blocked = (typeof inCombat === "function" && inCombat()) || (window.ui && typeof ui.disableExtraCodexActions === "function" && ui.disableExtraCodexActions());
+            if (blocked) { item.f = null; item.ttB = "You cannot use this at this time."; }
+            else if (!canHack()) { item.f = null; item.ttB = "Badger’s code is a mess. You’d need to be a Tech Specialist, or have at least 15 Intelligence, to make sense of it."; }
+            else if (!wulfeNear()) { item.f = null; item.ttB = "[wulfe.name] needs to be with you, or you need to be on your ship with her."; }
+            list.push(item);
+        } catch (err) {}
+    };
+    function codexBack() { try { window.showCodexExtra(); } catch (err) { mainGameMenu(); } }
+    function hackStart() {
+        var sub = flags.TN_WULFE_SUB === 1;
+        var eng = pc.characterClass === GLOBAL.CLASS_ENGINEER;
+        clearMenu();
+        clearOutput();
+        author("Neston");
+        wulfe.showAll();
+        processTime(5);
+        say([
+            "You call [wulfe.name] over and ask her to hold still. " + (sub
+                ? "She does it instantly, folding down and tilting her head forward to bare the maintenance port under the back of her helm. " + q("Whatever you need, " + N() + ".")
+                : "She arches an eyebrow, but lowers her head and lets you at the maintenance port under the back of her helm. " + q("Ooh, poking around in my head, [wulfe.pcname]? Kinky.")),
+            "Your Codex finds the Fenrir Robotics service handshake right away. Getting past it into Dr. Badger’s additions takes longer. " + (eng
+                ? "It’s nothing a Tech Specialist hasn’t seen before: unsigned modules, half the comments in all caps, a subroutine literally named bitchbreaker.exe. You skim past the worst of it and find what you came for."
+                : "Badger codes like she lives: no documentation, variables named things like THE_GOOD_STUFF, a subroutine literally called bitchbreaker.exe. It takes some careful reasoning, but there’s a pattern under the mess, and you follow it straight to what you came for."),
+            "It’s one block, absurdly small for what it does. Everything [wulfe.name] wants routes through it, and one value decides which way it points: at owning you, or at being owned by you. Badger even left a comment beside it. <i>// flip this for funsies.</i>",
+            sub ? "Right now it points at you as her owner." : "Right now it points at you as her pet."
+        ]);
+        addButton(0, sub ? "Make Domme" : "Make Sub", hackDo, sub ? "Make Her a Domme" : "Make Her a Sub", sub ? "Flip the value back. She’ll want to own you again." : "Flip the value. She’ll want to belong to you, and only you.");
+        addButton(14, "Back", codexBack, "Back", "Leave her code alone.");
+    }
+    function hackDo() {
+        var toSub = flags.TN_WULFE_SUB !== 1;
+        clearMenu();
+        clearOutput();
+        author("Neston");
+        wulfe.showAll();
+        processTime(10 + rand(6));
+        IncrementFlag("TN_WULFE_HACKED");
+        if (toSub) {
+            flags.TN_WULFE_SUB = 1;
+            if (!flags.TN_WULFE_SUB_TS) flags.TN_WULFE_SUB_TS = GetGameTimestamp();
+            try { pc.removeStatusEffect("Siegwulfe's Leash"); } catch (err) {}
+            say([
+                "You flip it. Your Codex chirps, [wulfe.name]’s whole frame goes rigid, and her eyes flicker dark for one long, terrible second.",
+                "Then they light back up, and she’s looking at you like she’s never seen you before and can’t believe her luck.",
+                q("Oh,") + " she whispers. Her forelegs fold under her and she sinks down until she’s looking up at you. " + q("Oh, wow. Hi. Was it always like this? You, I mean. Were you always </i>this<i>...?") + " She trails off, cheeks darkening under her makeup, and her tail curls protectively around you, warning off a world that isn’t even there.",
+                q("What... um. What should I call you?") + " she asks, very softly."
+            ]);
+            nameButtons(function () {
+                clearOutput();
+                author("Neston");
+                wulfe.showAll();
+                output("<b>[wulfe.name] is now a bimbo-sub. Her stats haven’t changed. You can flip her back from your Codex, or Dr. Badger can.</b>");
+                clearMenu();
+                addButton(0, "Next", mainGameMenu);
+            });
+        } else {
+            flags.TN_WULFE_SUB = 0;
+            say([
+                "You flip it back. Your Codex chirps, [wulfe.name]’s frame goes rigid, and her eyes flicker dark for a second.",
+                "When they come back up, she rolls her shoulders and stretches, slow and satisfied, then hooks a finger under your chin and tips your face up to hers.",
+                q("Missed me, [wulfe.pcname]?") + " she purrs.",
+                "<b>[wulfe.name] is your bimbo domme again. You can flip her back from your Codex, or Dr. Badger can.</b>"
+            ]);
+            addButton(0, "Next", mainGameMenu);
+        }
+    }
 
     // ---------- Dr. Badger ----------
     function badgerScene() {
