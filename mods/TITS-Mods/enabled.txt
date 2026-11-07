@@ -55,3 +55,4 @@ TN_Holoboard_v2.8.mod
 TN_SaveFixer_v2.8.js
 TN_HandSoRedemption_v2.9.mod
 TN_ResDeckFountain_v2.9.mod
+TN_SiegwulfeSub_v2.9.mod
