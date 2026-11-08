@@ -1048,12 +1048,26 @@ Add Javascript:
         },
         syri: function () {
             showCrew("syri");
-            say([
-                "Syri is sprawled in the corridor outside with a handheld game, and she sits up the second you come out. " + q("Dude. You’ve been in there for like two days. You okay?"),
-                "You tell her you’re fine, just reliving some stuff. She sets the handheld down, which is how you know she’s serious.",
-                q("Look, I know what addiction to tech feels like,") + " she says. " + q("I’ve done the three-day raid binges. Forgot to eat, forgot what day it was, got real mad when somebody pulled the plug.") + " She scratches behind one ear. " + q("That thing’s cool, I get it. Just... don’t get overly reliant on it, okay? The past’s a save file. You can load it, but you can’t live in it."),
-                "You promise. She punches your shoulder, not very hard, and goes back to her game. She keeps glancing up at you, though."
-            ]);
+            var lover = false, valden = Number(flags.SYRIQUEST_STATE) >= 10, body = Number(flags.SYRIQUEST_VALDEN_BODY_CHOICE) || 0;
+            try { lover = !!(window.syri && typeof window.syri.isLover === "function" ? window.syri.isLover() : flags.SYRIQUEST_POST_GAME_TALK_LOVE === 1); } catch (err) { lover = flags.SYRIQUEST_POST_GAME_TALK_LOVE === 1; }
+            var wulfeName = flags.SYRIQUEST_SIEGWULFE_NAME && flags.SYRIQUEST_SIEGWULFE_NAME !== "Siegwulfe" ? flags.SYRIQUEST_SIEGWULFE_NAME : "your old Siegwulfe";
+            var whereValden = body === 1 ? "off in some droid body he scrounged up, being all vague in his emails"
+                : (body === 2 || body === 3) ? "walking around in " + wulfeName + "’s body, of all things"
+                : "out there somewhere, free";
+            var lines = [
+                "Syri is sprawled in the corridor outside with a handheld game, and she sits up the second you come out. " + q(lover ? "Babe. You’ve been in there for like two days. You okay?" : "Dude. You’ve been in there for like two days. You okay?"),
+                "You tell her you’re fine, just reliving some stuff. She sets the handheld down, which is how you know she’s serious."
+            ];
+            if (valden) lines.push(q("Look, I know what addiction to tech feels like,") + " she says. " + q("Not just the three-day raid binges. Valden. I carried his whole mind around in the implants in my head for " + (flags.SYRIQUEST_STATE >= 21 ? "years" : "ages") + ", plugged into anything that might bring him back. Kept chasing it, kept telling myself one more lead. We busted him out of Akkadi, he’s " + whereValden + ", I got fired with extreme prejudice, and I’m still not sure I know how to <i>not</i> be plugged into something.") + " She scratches behind one ear. " + q("Now I’m gonna win that holo-shooter tourney and live like a queen. Out here. In the real world."));
+            else lines.push(q("Look, I know what addiction to tech feels like,") + " she says. " + q("I’ve done the three-day raid binges. Forgot to eat, forgot what day it was, got real mad when somebody pulled the plug."));
+            if (lover) {
+                lines.push("She reaches up and hooks a finger in your collar, tugging you down until you’re nose to nose. Her ears are flat. " + q("And I don’t want my lover falling into the same hole I did,") + " she says, quieter. " + q("I mean it, [pc.name]. That thing’s cool, and the past is fun to visit. But you’re the best thing that happened to me after all that shit, and you happened <i>out here</i>. Don’t go getting overly reliant on a headset, okay? I’d have to come in there and drag you out, and I’m way better at games than you."));
+                lines.push("You promise. She kisses you, a little too hard, like she’s checking you’re really there, then flops back down with her game, tail thumping the deck. She keeps glancing up at you, though.");
+            } else {
+                lines.push(q("That thing’s cool, I get it. Just... don’t get overly reliant on it, okay? The past’s a save file. You can load it, but you can’t live in it."));
+                lines.push("You promise. She punches your shoulder, not very hard, and goes back to her game. She keeps glancing up at you, though.");
+            }
+            say(lines);
             return 10;
         },
         anno: function () {
