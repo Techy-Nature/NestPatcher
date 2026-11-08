@@ -8,8 +8,9 @@
  *   Go with him as his wingman to ask Syri and/or Anno. Each one has to be aboard your ship.
  *
  * Odds: 10% for every full month since he last saw his old harem, capped at 120% at a year.
- *   His harem left while he was working for your cousin, before your quest began, so the clock
- *   is the game's day counter (30 days = 1 month). Anything at 100% or more is a sure yes.
+ *   The clock starts when Steele's ship lands at FIRST-14 in the intro (day 1, 6:32 AM game
+ *   time; the intro sets the clock, so it's the same in every save). 30 days = 1 month.
+ *   Anything at 100% or more is a sure yes.
  *   A "no" can be tried again after 7 days.
  * Also: "Pep Talk" (dating in general) and "How's Dating?" once someone says yes.
  * No sex scenes. Taur and naga Steele get their own lines where your body shows up.
@@ -41,7 +42,7 @@
             id: MOD_ID,
             name: "Dane's Wingman",
             author: "Neston",
-            description: "Ask Dane what's stopping him from asking Syri and Anno out, then go with him as his wingman. His odds go up 10% a month since his old harem left (120% at a year). Needs the Dane Crew mod.",
+            description: "Ask Dane what's stopping him from asking Syri and Anno out, then go with him as his wingman. His odds go up 10% a month since Steele landed at FIRST-14 (120% at a year). Needs the Dane Crew mod.",
             supportsToggle: true
         });
         return true;
@@ -112,7 +113,15 @@
     }
 
     /* ---------- Odds ---------- */
-    function months() { return Math.max(0, Math.floor(dayNow() / 30)); }
+    // Clock starts when Steele lands at FIRST-14: the intro sets days=1, hours=6, minutes=2,
+    // then the engine fire scene adds 30 minutes before the landing (main.js, intro sequence).
+    var FIRST14_ARRIVAL = 1440 + 6 * 60 + 32;
+    var MONTH = 30 * 1440;
+    function nowStamp() {
+        try { if (typeof GetGameTimestamp === "function") return Number(GetGameTimestamp()) || 0; } catch (err) {}
+        return dayNow() * 1440;
+    }
+    function months() { return Math.max(0, Math.floor((nowStamp() - FIRST14_ARRIVAL) / MONTH)); }
     function chance() { return Math.min(120, months() * 10); }
     W.months = months;
     W.chance = chance;
@@ -124,7 +133,7 @@
     }
     function oddsTip() {
         var c = chance();
-        return "Dane’s odds: " + c + "%" + (c > 100 ? " (a sure thing)" : "") + ". It’s been " + monthsText() + " since he last saw his old harem; every month adds 10%, up to 120% at a year.";
+        return "Dane’s odds: " + c + "%" + (c > 100 ? " (a sure thing)" : "") + ". It’s been " + monthsText() + " since you landed at FIRST-14; every month adds 10%, up to 120% at a year.";
     }
     function flagKey(id) { return id === "syri" ? "TN_DDATE_SYRI" : "TN_DDATE_ANNO"; }
     function status(id) { return Number(flags[flagKey(id)]) || 0; }
