@@ -11,6 +11,7 @@ Author: Neston
 #     remembered in your save. Each time you put it on, the new memories sync.
 #   - No taint. Unlike Dr. Badger's Mindwash Visor it doesn't beam anything into your brain:
 #     it fogs your eyes and mind into a flashback, then shows you the memory you picked.
+#   - Each memory you relive takes one hour (a Both memory's fight and sex share that hour).
 #   - Menus: Sex (Sub or Domme -> who -> what went where -> the memory), Battle (who -> the
 #     fight), Both (a fight and the sex right after it). Every fight memory remembers whether
 #     you won or lost and opens with a two-paragraph "how it went" intro.
@@ -738,7 +739,7 @@ Add Javascript:
     F.fightIntro = fightIntro;
 
     /* ---------- Replay a sex memory ---------- */
-    F.playSex = function (m, back) {
+    F.playSex = function (m, back, sameHour) {
         visorShow();
         try { if (m.bu && m.bu.length) showBust.apply(null, m.bu); } catch (err) {}
         try { if (m.who && m.who[0] && m.who[0] !== "Yourself" && m.who[0] !== "Someone") showName(m.who[0].toUpperCase()); } catch (err) {}
@@ -750,7 +751,7 @@ Add Javascript:
         if (m.f || !m.txt) output("\n\nBut the memory is faded, more fog than picture. You can just make out shapes. <i>(This memory faded to make room for newer ones. Live it again in the game to refresh it.)</i>");
         else output(DIV + safeText(m.txt));
         output(DIV + "The fog drifts back in, and the memory softens and lets you go.");
-        spend(30);
+        if (!sameHour) spend(60); // each memory = one hour (a Both fight already spent it)
         clearMenu();
         addButton(0, "Again", function () { F.playSex(m, back); }, "Again", "Relive it one more time.");
         addButton(1, "Re-file", function () { F.refile(m, back); }, "Re-file", "File this memory as " + (m.role === "sub" ? "Domme" : "Sub") + " instead.");
@@ -937,8 +938,7 @@ Add Javascript:
         var fl = F.flash || {}, b = fl.b, back = fl.back || function () { F.menu(); };
         F.restore();
         F.busy = true;
-        processTime(20);
-        flags.TN_FBV_SESSION = sessionMin() + 20;
+        spend(60); // each memory = one hour
         IncrementFlag(won ? "TN_FBV_MOCK_WINS" : "TN_FBV_MOCK_LOSSES");
         var same = b && (!!b.win === !!won);
         var lines = [];
@@ -954,7 +954,7 @@ Add Javascript:
                 visorShow();
                 if (same) output("The memory doesn’t stop at the fight. It rolls right on into what happened next...");
                 else output("The memory stutters. It didn’t happen like this. The fog shivers, then shows you what <i>really</i> happened next...");
-                nextTo(function () { F.playSex(s, back); }, "Remember what came after.");
+                nextTo(function () { F.playSex(s, back, true); }, "Remember what came after.");
             } else F.menu();
         };
         if (won) window.CombatManager.genericVictory(cont);
