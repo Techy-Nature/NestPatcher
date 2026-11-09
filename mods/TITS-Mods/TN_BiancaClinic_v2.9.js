@@ -527,9 +527,13 @@
         if (!pregnant()) addDisabledButton(2, "Prenatal", "Prenatal Scan", "You aren’t pregnant right now.");
         else if (num("TN_BXC_RW_SCAN_DAY") === today() + 1) addDisabledButton(2, "Prenatal", "Prenatal Scan", "Dr. Rewell already scanned you today.");
         else addButton(2, "Prenatal", rewellScan, "Prenatal Scan", "Have Dr. Rewell look over your pregnancy. He won’t take a credit for it.");
+        // Other mods can add a button here (slot 3+), e.g. Shekka's Gene Talk. They get the slot and
+        // a function that brings the player back to this menu.
+        safe(function () { if (typeof window.tnRewellMenuExtra === "function") window.tnRewellMenuExtra(3, rewellReturn); });
         addButton(14, "Leave", rewellLeave);
     }
-    function rewellBack() { addButton(0, "Next", function () { startNpc("Dr. Rewell"); output("Dr. Rewell refills his tea. " + q("Now, what else?")); rewellMenu(); }); }
+    function rewellReturn() { startNpc("Dr. Rewell"); output("Dr. Rewell refills his tea. " + q("Now, what else?")); rewellMenu(); }
+    function rewellBack() { addButton(0, "Next", rewellReturn); }
 
     var RW_TOPICS = [
         { l: "Victor", tip: "Ask about your father.", f: function () {
