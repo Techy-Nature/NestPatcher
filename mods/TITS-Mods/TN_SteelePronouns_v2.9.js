@@ -25,7 +25,8 @@
  *   the verb next to each marked "they" (is -> are, was -> were, wants -> want,
  *   he's got -> they've got, "Is he...?" -> "Are they...?") and removes the markers.
  *   An NPC's own "they" has no marker, so it is never touched.
- * - The mod overrides the game's "Force Male/Female/It Gender" effects (on purpose).
+ * - By default the mod overrides the game's "Force Male/Female/It Gender" effects.
+ *   A menu switch lets those effects win instead.
  *
  * Settings: Android Mods / TN Mod Settings -> "Steele Pronouns".
  * Saved in localStorage (tn.steelePronouns.v1), so they apply to every save.
@@ -42,7 +43,8 @@
     var SP = window.tnSteelePronouns = {};
 
     /* ---------- Settings ---------- */
-    var DEFAULTS = { mode: "ranges", mascMax: 30, femMin: 61, reflexive: "themself" };
+    // respectForce: false = the mod beats the game's Force Male/Female/It Gender effects (default).
+    var DEFAULTS = { mode: "ranges", mascMax: 30, femMin: 61, reflexive: "themself", respectForce: false };
     // Neutral titles for the they range. Players can change each one in the mod menu.
     var TITLES = [
         { key: "sir", label: "Sir / Ma’am", def: "mir" },
@@ -83,6 +85,7 @@
                         TITLES.forEach(function (t) { var v = cleanTitle(o.titles[t.key]); if (v) c.titles[t.key] = v; });
                     }
                     c.parentRace = o.parentRace === true;
+                    c.respectForce = o.respectForce === true;
                     if (o.raceTitles && typeof o.raceTitles === "object") {
                         Object.keys(o.raceTitles).forEach(function (k) {
                             var v = cleanTitle(o.raceTitles[k]), key = raceKey(k);
@@ -244,6 +247,12 @@
     }
     SP.plainDescription = plainDescription;
 
+    function forced(pc) {
+        try {
+            return pc.hasStatusEffect("Force Fem Gender") || pc.hasStatusEffect("Force Male Gender") || pc.hasStatusEffect("Force It Gender");
+        } catch (err) { return false; }
+    }
+
     function patchPlayer() {
         var pc = window.pc;
         if (!pc || typeof pc.getClassName !== "function" || pc.getClassName() !== "PlayerCharacter") return false;
@@ -251,10 +260,12 @@
         if (!proto || typeof proto.mfn !== "function") return false;
         if (proto.mfn.__tnSteelePronouns) return true;
         var base = proto.mfn;
-        // The game's Force Male/Female/It Gender effects are overridden on purpose (Neston's choice).
-        var wrapped = function (m, f) {
+        // The game's Force Male/Female/It Gender effects are overridden unless the player
+        // turns on "Force effects win" (the 4th argument to mfn skips them, like the game does).
+        var wrapped = function (m, f, n, ignoreForce) {
             try {
-                if (typeof m === "string" && typeof f === "string" && this.getClassName() === "PlayerCharacter") {
+                if (typeof m === "string" && typeof f === "string" && this.getClassName() === "PlayerCharacter"
+                    && !(cfg.respectForce && !ignoreForce && forced(this))) {
                     var p = pick(this);
                     if (p && known(m, f)) {
                         if (p === "m") return m;
@@ -452,6 +463,9 @@
                 h += '<button type="button" data-mod-act="fem:5">She from +5</button>';
                 h += '<button type="button" data-mod-act="refl">Use ' + (cfg.reflexive === "themself" ? "themselves" : "themself") + '</button>';
                 h += '<button type="button" data-mod-act="reset">Reset to 30 / 61</button>';
+                h += "\n\nGame’s Force Male/Female/It Gender effects: <b>"
+                    + (cfg.respectForce ? "they win while active" : "this mod wins") + "</b>";
+                h += '<button type="button" data-mod-act="force">' + (cfg.respectForce ? "Let this mod win" : "Let Force effects win") + '</button>';
                 h += "\n\n<b>Neutral titles</b> (used in the they range). Type a word and tap outside the box to save it.";
                 TITLES.forEach(function (t) {
                     h += '<label style="display:block;margin:6px 0">' + t.label + ' → '
@@ -526,6 +540,7 @@
                 else if (a[0] === "fem") { cfg.femMin += Number(a[1]) || 0; if (cfg.femMin <= cfg.mascMax) cfg.mascMax = cfg.femMin - 1; }
                 else if (a[0] === "refl") cfg.reflexive = cfg.reflexive === "themself" ? "themselves" : "themself";
                 else if (a[0] === "reset") { cfg.mascMax = DEFAULTS.mascMax; cfg.femMin = DEFAULTS.femMin; }
+                else if (a[0] === "force") cfg.respectForce = !cfg.respectForce;
                 else if (a[0] === "parent") cfg.parentRace = a[1] === "race";
                 else if (a[0] === "titles-reset") TITLES.forEach(function (t) { cfg.titles[t.key] = t.def; });
                 else return false;
