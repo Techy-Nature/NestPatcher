@@ -159,6 +159,8 @@
             addButton(slot, "Gene Plans", function () { geneTalk(talkMenu); }, "Gene Plans", tip);
             // Once she's fertile, her old Infertility talk (slot 2) no longer fits.
             if (fertile()) addButton(2, "Fertility", function () { fertilityTalk(talkMenu); }, "Fertility", "Talk to Shekka about being fertile again.");
+            // Other mods can add to Shekka's Talk menu from slot 6 (e.g. Shekka's Eggs).
+            if (typeof window.tnShekkaTalkExtra === "function") window.tnShekkaTalkExtra(6, talkMenu);
         } catch (err) {}
     };
 
