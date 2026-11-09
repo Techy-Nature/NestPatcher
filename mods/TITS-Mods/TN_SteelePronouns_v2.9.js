@@ -11,9 +11,10 @@
  * - Every third-person pronoun for Steele ([pc.heShe], [pc.himHer], [pc.hisHer],
  *   [pc.hisHers] and the game's own pc.mf("he","she") style calls) goes through
  *   PlayerCharacter.mfn(). This mod wraps mfn() for the player only, and only for
- *   pronoun and title pairs. Everything else mf() decides (descriptions, mister/miss)
+ *   pronoun and title pairs. Everything else mf() decides (descriptions, daddy/mommy)
  *   is left to the game. Titles follow the same ranges: sir/ma'am -> "mir" and
- *   man/woman -> "person", Mr./Ms. -> "Mx." in the they range.
+ *   mister/miss -> "mir", Mr./Ms. -> "Mx.", man/woman -> "person",
+ *   guy/girl -> "enby" in the they range. Each title can be changed in the mod menu.
  * - "they" needs plural verbs. Each "they" this mod hands out carries an invisible
  *   marker (U+2063). After the game's parser finishes a block of text, the mod fixes
  *   the verb next to each marked "they" (is -> are, was -> were, wants -> want,
@@ -37,11 +38,24 @@
 
     /* ---------- Settings ---------- */
     var DEFAULTS = { mode: "ranges", mascMax: 30, femMin: 61, reflexive: "themself" };
+    // Neutral titles for the they range. Players can change each one in the mod menu.
+    var TITLES = [
+        { key: "sir", label: "Sir / Ma’am", def: "mir" },
+        { key: "mister", label: "Mister / Miss", def: "mir" },
+        { key: "mr", label: "Mr. / Ms.", def: "Mx" },
+        { key: "man", label: "Man / Woman", def: "person" },
+        { key: "guy", label: "Guy / Girl", def: "enby" }
+    ];
+    function cleanTitle(v) {
+        return String(v == null ? "" : v).replace(/[<>\[\]{}"\\]/g, "").replace(/\s+/g, " ").trim().slice(0, 24);
+    }
     var cfg = load();
 
     function load() {
         var c = {};
         for (var k in DEFAULTS) c[k] = DEFAULTS[k];
+        c.titles = {};
+        TITLES.forEach(function (t) { c.titles[t.key] = t.def; });
         try {
             var raw = window.localStorage && window.localStorage.getItem(STORE);
             if (raw) {
@@ -51,6 +65,9 @@
                     if (typeof o.mascMax === "number") c.mascMax = o.mascMax;
                     if (typeof o.femMin === "number") c.femMin = o.femMin;
                     if (o.reflexive === "themselves" || o.reflexive === "themself") c.reflexive = o.reflexive;
+                    if (o.titles && typeof o.titles === "object") {
+                        TITLES.forEach(function (t) { var v = cleanTitle(o.titles[t.key]); if (v) c.titles[t.key] = v; });
+                    }
                 }
             }
         } catch (err) {}
@@ -99,17 +116,31 @@
         "he has|she has": "they have",
         "he's|she's": "they're",
         "he’s|she’s": "they’re",
-        // Titles (Neston's picks): sir/ma'am -> mir, man/woman -> person
-        "sir|ma’am": "mir", "sir|ma'am": "mir", "sir|madam": "mir", "sir|madame": "mir", "sir|miss": "mir",
-        "man|woman": "person", "man|lady": "person",
-        // Mr./Ms. -> Mx.
-        "mr.|ms.": "mx.", "mr|ms": "mx", "mr.|miss": "mx.", "mr|miss": "mx", "mr.|miss.": "mx.",
-        "mr.|mrs.": "mx.", "mr|mrs": "mx", "mr.|mizz": "mx."
+        // Titles: "@t:<key>" uses the player's word for that title (defaults in TITLES).
+        "sir|ma’am": "@t:sir", "sir|ma'am": "@t:sir", "sir|madam": "@t:sir", "sir|madame": "@t:sir",
+        "sir|miss": "@t:sir", "sir|missy": "@t:sir",
+        "mister|miss": "@t:mister", "mister|missy": "@t:mister", "mister|missus": "@t:mister", "mister|misses": "@t:mister",
+        "mr.|ms.": "@t:mr", "mr|ms": "@t:mr", "mr.|miss": "@t:mr", "mr|miss": "@t:mr", "mr.|miss.": "@t:mr",
+        "mr.|mrs.": "@t:mr", "mr|mrs": "@t:mr", "mr.|mizz": "@t:mr",
+        "man|woman": "@t:man", "man|lady": "@t:man", "man|gal": "@t:man",
+        "guy|girl": "@t:guy"
     };
+    function titleFor(key, a) {
+        var t = cfg.titles[key];
+        if (!t) for (var i = 0; i < TITLES.length; i++) if (TITLES[i].key === key) t = TITLES[i].def;
+        // "Mr." -> "Mx.": keep the game's full stop.
+        if (/\.$/.test(a) && !/\.$/.test(t)) t += ".";
+        if (!/\.$/.test(a)) t = t.replace(/\.$/, "");
+        var upper = a.charAt(0) !== a.charAt(0).toLowerCase();
+        if (upper) t = t.charAt(0).toUpperCase() + t.slice(1);
+        else if (t.length < 2 || t.charAt(1) === t.charAt(1).toLowerCase()) t = t.charAt(0).toLowerCase() + t.slice(1);
+        return t;
+    }
     function theyFor(a, b) {
         if (typeof a !== "string" || typeof b !== "string") return null;
         var t = PAIRS[a.toLowerCase() + "|" + b.toLowerCase()];
         if (!t) return null;
+        if (t.indexOf("@t:") === 0) return titleFor(t.slice(3), a);
         if (t === "@refl") t = cfg.reflexive;
         if (a.charAt(0) !== a.charAt(0).toLowerCase()) t = t.charAt(0).toUpperCase() + t.slice(1);
         if (t === "they" || t === "They") t += MARK;   // subject form: verb gets fixed later
@@ -308,10 +339,10 @@
             id: MOD_ID,
             name: "Steele Pronouns",
             author: "Neston",
-            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match; sir/ma’am becomes mir and man/woman becomes person, and Mr./Ms. becomes Mx.",
+            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match; sir/ma’am becomes mir and Mr./Ms. becomes Mx., man/woman becomes person and guy/girl becomes enby (all editable).",
             supportsToggle: true,
             getHtml: function () {
-                var h = "Pick how other characters refer to Steele: he/she/they, and in the they range sir/ma’am becomes <b>mir</b> and man/woman becomes <b>person</b>, and Mr./Ms. becomes <b>Mx.</b>";
+                var h = "Pick how other characters refer to Steele: he/she/they, plus neutral titles in the they range.";
                 h += "\n\nMode: <b>" + MODE_TEXT[cfg.mode] + "</b>";
                 h += "\nHe / him up to femininity <b>" + cfg.mascMax + "</b>, she / her from <b>" + cfg.femMin + "</b>, they / them in between.";
                 h += "\nReflexive: <b>" + cfg.reflexive + "</b>";
@@ -326,7 +357,37 @@
                 h += '<button type="button" data-mod-act="fem:5">She from +5</button>';
                 h += '<button type="button" data-mod-act="refl">Use ' + (cfg.reflexive === "themself" ? "themselves" : "themself") + '</button>';
                 h += '<button type="button" data-mod-act="reset">Reset to 30 / 61</button>';
+                h += "\n\n<b>Neutral titles</b> (used in the they range). Type a word and tap outside the box to save it.";
+                TITLES.forEach(function (t) {
+                    h += '<label style="display:block;margin:6px 0">' + t.label + ' → '
+                        + '<input type="text" data-tn-pron-title="' + t.key + '" maxlength="24" value="' + cfg.titles[t.key].replace(/&/g, "&amp;")
+                        + '" style="width:9em"></label>';
+                });
+                h += '<button type="button" data-mod-act="titles-reset">Reset titles</button>';
                 return h;
+            },
+            onBind: function (root) {
+                if (!root || !root.querySelectorAll) return;
+                var boxes = root.querySelectorAll("[data-tn-pron-title]");
+                Array.prototype.forEach.call(boxes, function (box) {
+                    var key = box.getAttribute("data-tn-pron-title");
+                    function commit() {
+                        var v = cleanTitle(box.value), def = "";
+                        TITLES.forEach(function (t) { if (t.key === key) def = t.def; });
+                        cfg.titles[key] = v || def;
+                        box.value = cfg.titles[key];
+                        save();
+                    }
+                    // Keep typing from reaching the game's keyboard shortcuts.
+                    ["keydown", "keyup", "keypress"].forEach(function (ev) {
+                        box.addEventListener(ev, function (e) {
+                            e.stopPropagation();
+                            if (ev === "keydown" && e.key === "Enter") { commit(); box.blur(); }
+                        });
+                    });
+                    box.addEventListener("change", commit);
+                    box.addEventListener("blur", commit);
+                });
             },
             onAct: function (act) {
                 var a = String(act || "").split(":");
@@ -335,6 +396,7 @@
                 else if (a[0] === "fem") { cfg.femMin += Number(a[1]) || 0; if (cfg.femMin <= cfg.mascMax) cfg.mascMax = cfg.femMin - 1; }
                 else if (a[0] === "refl") cfg.reflexive = cfg.reflexive === "themself" ? "themselves" : "themself";
                 else if (a[0] === "reset") { cfg.mascMax = DEFAULTS.mascMax; cfg.femMin = DEFAULTS.femMin; }
+                else if (a[0] === "titles-reset") TITLES.forEach(function (t) { cfg.titles[t.key] = t.def; });
                 else return false;
                 save();
                 return true;
