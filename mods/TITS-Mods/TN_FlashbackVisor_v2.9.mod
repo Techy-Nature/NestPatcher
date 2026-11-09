@@ -24,8 +24,9 @@ Author: Neston
 #     Dane, Reaha (cured), Feruze, Syri or Anno. Dane borrows it the first time; ask him about
 #     it later in his Talk menu ("The Visor").
 # Toggle: Options -> Android Mods -> "Flashback Visor". Memories (TN_FBV_*) stay in your save.
-# Memories keep the text as it showed back then. A save holds up to 80 sex and 120 fight
-# memories; the oldest fade first. Replaying a scene the game shows again refreshes it.
+# Memories keep the text as it showed back then. A save keeps the newest 80 sex scenes, every
+# fight that ended in sex, the newest win and loss against each named enemy (Taivra, Kane...)
+# and the newest 250 wins and 250 losses against generic enemies (zil, raskvel...). Replaying a scene the game shows again refreshes it.
 # Bodies: taur and naga Steele get their own lines where the body shows up.
 # In-game author: Neston.
 
@@ -53,7 +54,7 @@ Add Javascript:
     var MOD_ID = "tn.flashback-visor";
     var KEY = "Flashback Visor";
     var PRICE = 5000;
-    var MAX_SEX = 80, MAX_FIGHTS = 120, TEXT_BUDGET = 300000, PAGE_CAP = 9000;
+    var MAX_SEX = 80, MAX_GENERIC = 250, TEXT_BUDGET = 300000, PAGE_CAP = 9000;
     var CHECKIN_MINUTES = 48 * 60;
     var DIV = "\n\n<center>~</center>\n\n";
     var F = {};
@@ -160,22 +161,41 @@ Add Javascript:
         return store;
     }
     function trim(s) {
-        var sex = s.m.filter(function (m) { return m.k === "s"; });
-        var fights = s.m.filter(function (m) { return m.k === "b"; });
+        /* Sex: newest 80, but a sex scene that follows a fight ("Both") is always kept.
+           Fights: "Both" fights are always kept. Unique fights (named characters like Taivra or
+           Kane) keep their newest win and newest loss. Generic enemies (zil, raskvel, ...) keep
+           the newest 250 wins and 250 losses. */
+        var sex = s.m.filter(function (m) { return m.k === "s" && !m.b; });
         var drop = {};
         sex.slice(0, Math.max(0, sex.length - MAX_SEX)).forEach(function (m) { drop[m.i] = 1; });
-        fights.slice(0, Math.max(0, fights.length - MAX_FIGHTS)).forEach(function (m) { drop[m.i] = 1; });
+        var seen = {}, gw = 0, gl = 0;
+        for (var j = s.m.length - 1; j >= 0; j--) {
+            var b = s.m[j];
+            if (b.k !== "b" || b.s) continue;
+            if (fightGeneric(b)) {
+                if (b.win ? ++gw > MAX_GENERIC : ++gl > MAX_GENERIC) drop[b.i] = 1;
+            } else {
+                var key = fightKey(b) + (b.win ? "|w" : "|l");
+                if (seen[key]) drop[b.i] = 1; else seen[key] = 1;
+            }
+        }
         if (Object.keys(drop).length) {
             s.m = s.m.filter(function (m) { return !drop[m.i]; });
             s.m.forEach(function (m) { if (m.k === "b" && drop[m.s]) m.s = 0; if (m.k === "s" && drop[m.b]) m.b = 0; });
         }
         var total = 0;
         s.m.forEach(function (m) { if (m.k === "s" && m.txt) total += m.txt.length; });
-        for (var i = 0; i < s.m.length && total > TEXT_BUDGET; i++) {
-            var m = s.m[i];
-            if (m.k === "s" && m.txt) { total -= m.txt.length; m.txt = ""; m.f = 1; }
+        for (var pass = 0; pass < 2 && total > TEXT_BUDGET; pass++) {
+            for (var i = 0; i < s.m.length && total > TEXT_BUDGET; i++) {
+                var m = s.m[i];
+                if (m.k === "s" && m.txt && (pass === 1 || !m.b)) { total -= m.txt.length; m.txt = ""; m.f = 1; }
+            }
         }
     }
+    function foeGeneric(f) { return f.g !== undefined ? !!f.g : /^(an?|the) [a-z]/.test(f.tx || ""); }
+    function fightGeneric(b) { return (b.foes || []).length > 0 && b.foes.every(foeGeneric); }
+    function fightKey(b) { return (b.foes || []).map(function (f) { return f.c; }).sort().join("+"); }
+    F.fightGeneric = fightGeneric;
     function save() {
         trim(store);
         storeRaw = JSON.stringify(store);
@@ -355,7 +375,11 @@ Add Javascript:
         var g = gear(e), nm = "", tx = "";
         try { nm = nice(e.short || (e.getCombatName && e.getCombatName()) || ""); } catch (err) {}
         try { tx = String((typeof e.a === "string" ? e.a : "") + (e.short || "")).replace(/\s+/g, " ").trim(); } catch (err) {}
-        return { c: e.getClassName(), nm: nm || "Someone", tx: tx || nm || "someone", lvl: Number(e.level) || 1, st: statsOf(e), hp: Number(e.HPRaw) || 1, sh: Number(e.shieldsRaw) || 0,
+        /* Generic enemies have an article and a lowercase name ("the female zil"); named ones
+           have neither ("Kane", "Taivra") or a capitalized title ("the Sky Mother"). */
+        var generic = false;
+        try { generic = /^(an?|the) $/i.test(String(e.a || "")) && /^[a-z]/.test(String(e.short || "")); } catch (err) {}
+        return { c: e.getClassName(), nm: nm || "Someone", tx: tx || nm || "someone", g: generic ? 1 : 0, lvl: Number(e.level) || 1, st: statsOf(e), hp: Number(e.HPRaw) || 1, sh: Number(e.shieldsRaw) || 0,
             en: Number(e.energyRaw) || 0, lu: Number(e.lustRaw) || 0, mw: g.mw, mwn: g.mwn, rw: g.rw, rwn: g.rwn };
     }
     function recordStart() {
