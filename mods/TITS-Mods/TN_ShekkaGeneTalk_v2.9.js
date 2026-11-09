@@ -14,9 +14,9 @@
  *     the plans, scans her and tells her what he can and can't do. He'll fix her body and give her
  *     the kids' body chemistry, but he won't rewrite her mind. He needs a few weeks to work up a plan.
  *   - Three weeks after the consult Dr. Rewell emails that her plan is ready. The treatment is
- *     three sessions in his office, at least a week apart: The Mend (her inherited sterility),
- *     The Quiet (the kids' egg drive, turned down at the receptor; her mind is left alone) and
- *     The Years (the kids' long-life genes, plus a final scan). No charge.
+ *     two visits to his office: The Mend (her inherited sterility) followed straight away by
+ *     The Quiet (the kids' egg drive, turned down at the receptor; her mind is left alone), then
+ *     a week or more later The Years (the kids' long-life genes, plus a final scan). No charge.
  *   - After the last session Shekka is fertile: her "Sterile" perk is removed and her fertility
  *     set to 1. Her Infertility talk becomes "Fertility". She isn't ready for eggs yet, and the
  *     game has no pregnancy for Shekka herself, so nothing else changes.
@@ -115,7 +115,7 @@
     var MAIL_ID = "tn_shekka_gene_plan";
     var mailEntry = {
         content: function () {
-            var t = "Dear [pc.name],\n\nI said three weeks, and for once in my life I'm on time. Shekka's plan is ready.\n\nThree sessions in my office, a week or more apart, so her body has time to settle between each one. Nothing that needs a hospital bed, and nothing she can't walk out of on her own two feet. I'll walk you both through all of it before we start, and if she changes her mind at any point, even halfway through, we stop. That's not a formality.\n\nAnd before either of you asks: no, there's no bill. I've been waiting forty years for someone to bring me a sterile gene line I could actually mend. I should be paying her.\n\nBring her by whenever you're on Tavros. Office hours as always, eight to six. Nest has already cleared my afternoons, apparently without asking me.\n\nWarmly,\nCharles Rewell\n\nP.S. Please tell her I read all forty pages. And the attachments. Twice.";
+            var t = "Dear [pc.name],\n\nI said three weeks, and for once in my life I'm on time. Shekka's plan is ready.\n\nThree treatments over two visits to my office. The first two go in together, the same afternoon; the last one a week or more later, once her body has settled. Nothing that needs a hospital bed, and nothing she can't walk out of on her own two feet. I'll walk you both through all of it before we start, and if she changes her mind at any point, even halfway through, we stop. That's not a formality.\n\nAnd before either of you asks: no, there's no bill. I've been waiting forty years for someone to bring me a sterile gene line I could actually mend. I should be paying her.\n\nBring her by whenever you're on Tavros. Office hours as always, eight to six. Nest has already cleared my afternoons, apparently without asking me.\n\nWarmly,\nCharles Rewell\n\nP.S. Please tell her I read all forty pages. And the attachments. Twice.";
             return typeof ParseText === "function" ? ParseText(t) : t;
         },
         subject: "Shekka's plan",
@@ -349,8 +349,8 @@
             "Dr. Rewell already has the holos up: Shekka’s genome on one side, the Cure’s gene map on the other, and between them a third chart you haven’t seen before, tidy and branching, labeled in his small, careful hand: <i>SHEKKA - PLAN A.</i>",
             q("Sit, sit,") + " he says, beaming. " + q("Plan A. There was a plan B, but it was worse. And a plan C, but Nest read it and made a face, so we’re not talking about plan C."),
             "He walks you both through it, one branch at a time.",
-            q("Three sessions. A week or more apart, so your body can settle between each one.") + " He touches the first branch. " + q("<b>The Mend.</b> This is your family’s broken gene set. I send in a carrier, a harmless little virus that does exactly one thing: it carries a working copy of those genes in, and swaps it for the broken one. You’ll sleep a lot that day. You may run warm for a few days after. That’s normal."),
-            q("<b>The Quiet.</b>") + " The second branch. " + q("This is the receptor work from your own Cure. Your egg drive will still be there. It’s yours, and I’m not taking it. But it’ll be a whisper instead of a shout, like the children’s. Your mind stays your own. I’m changing what your body says to it, not how you listen."),
+            q("Three treatments, two visits. The first two go in together, one right after the other. The last one waits a week or more, so your body can settle.") + " He touches the first branch. " + q("<b>The Mend.</b> This is your family’s broken gene set. I send in a carrier, a harmless little virus that does exactly one thing: it carries a working copy of those genes in, and swaps it for the broken one. You’ll sleep a lot that day. You may run warm for a few days after. That’s normal."),
+            q("<b>The Quiet.</b>") + " The second branch. " + q("Straight after the Mend, while the carrier’s still working; the receptors take best that way. This is the receptor work from your own Cure. Your egg drive will still be there. It’s yours, and I’m not taking it. But it’ll be a whisper instead of a shout, like the children’s. Your mind stays your own. I’m changing what your body says to it, not how you listen."),
             q("<b>The Years.</b>") + " The last branch. " + q("The children’s long-life genes. Joints, heart, the slow repair work that keeps a body going. And a full scan afterwards, so we can see whether it all took.") + " He folds his hands. " + q("At the end of it, if all goes well, you’ll be fertile. Whether you ever do anything about that is entirely up to you."),
             "Shekka has been very quiet. She looks at the chart for a long moment, then at you.",
             q("If I change my mind,") + " she says slowly. " + q("Halfway through. What then?"),
@@ -385,13 +385,16 @@
                 q("The big things usually do,") + " Dr. Rewell says.",
                 "About twenty minutes in, she yawns. Ten minutes after that she’s fast asleep, still holding your hand, snoring very softly. Dr. Rewell pulls the blanket up to her chin and keeps a quiet eye on the monitors, humming.",
                 q("She’ll be tired today and tomorrow,") + " he murmurs to you. " + q("Warm, maybe a little achy. Plenty of water, plenty of rest. If she runs a fever over forty, call me. She won’t.") + " He watches her sleep for a moment. " + q("Victor slept through his first gene mod, too. Drooled on my good chair."),
-                "When the drip runs out, she wakes just long enough to be carried back to the ship. She mumbles something about the coolant pumps the whole way, and falls asleep again before you’ve even put her down on her bunk.",
-                "<b>The Mend is done. Shekka’s next session can be in a week.</b>"
+                "When the drip runs dry, he unhooks it and hangs a second bag in its place. " + q("The Mend’s in,") + " he tells you quietly. " + q("Now The Quiet, while the carrier’s still awake to take it.")
             ]);
-            safe(function () { processTime(120); });
+            safe(function () { processTime(60); });
+            clearMenu();
+            addButton(0, "Next", function () { sessionScene(1, back); }, "The Quiet", "Stay with Shekka for The Quiet.");
+            return;
         } else if (idx === 1) {
             say([
-                "Shekka is a lot calmer this time. She hops up onto the recliner by herself, kicks her feet and tells Dr. Rewell all about her week: she ran hot for three days, slept for one, and then felt better than she has in years. She even shows him a chart she made of her own temperature, which he studies with great seriousness and pronounces <i>exemplary.</i>",
+                "Shekka stirs as the new line starts, blinking up at the ceiling. " + q("Did I fall asleep? I fell asleep.") + " She yawns hugely. " + q("Is it done? Am I fixed?"),
+                q("The first part is,") + " Dr. Rewell says. " + q("This is the second. Stay put."),
                 "The Quiet takes longer. It’s a slow drip, then a second one, and Dr. Rewell watches the monitors closely the whole time, adjusting a dial here and there. " + sitBeside() + ", and Shekka leans her head against you and talks about engines until she runs out of engines.",
                 "And then, about an hour in, she stops talking mid-sentence.",
                 q("Shekka?") + " Dr. Rewell leans in. " + q("How are you feeling?"),
@@ -399,7 +402,8 @@
                 q("It’s the first of it.") + " He checks a reading and nods. " + q("It’ll settle in over the next week or so. Tell me what you notice."),
                 "Shekka is quiet for a long time. When she talks again, her voice wobbles. " + q("There’s this... noise. In the back of my head. My whole life. Like an engine idling. And I always thought, that’s just me, that’s just being a raskvel, everybody hears it.") + " She lets out a breath. " + q("It’s still there. But I can hear the room over it now. I can hear <i>you.</i>"),
                 "She cries a bit, then, very quietly. Dr. Rewell passes over a box of tissues without a word and goes back to watching his monitors, so she can do it in peace.",
-                "<b>The Quiet is done. Shekka’s last session can be in a week.</b>"
+                "When the second drip runs out, she’s asleep again. You carry her back to the ship. She mumbles something about the coolant pumps the whole way, and doesn’t wake up when you put her down on her bunk.",
+                "<b>The Mend and The Quiet are done. Shekka’s last session, The Years, can be in a week.</b>"
             ]);
             safe(function () { processTime(150); });
         } else {
@@ -407,7 +411,7 @@
             say([
                 "Shekka marches into the office for her last session like she owns it. She climbs onto the recliner, pulls the blanket up herself, and holds out her arm for the line. " + q("Hit me, doc."),
                 "Dr. Rewell laughs. " + q("Yes, ma’am."),
-                "The Years is the easiest of the three. One drip, an hour long, and Shekka spends the whole of it telling Dr. Rewell, in great detail, everything wrong with his gene sequencer. By the end of the hour she has the side panel off and is elbow-deep in it. He looks delighted.",
+                "The Years is the easiest of the three treatments. One drip, an hour long, and Shekka spends the whole of it telling Dr. Rewell, in great detail, everything wrong with his gene sequencer. By the end of the hour she has the side panel off and is elbow-deep in it. He looks delighted.",
                 "Then comes the scan. The arm hums down from the ceiling and passes over her, slow and blue, and her genome blooms up in the air again, turning.",
                 "Dr. Rewell doesn’t say anything for a while. He just looks. Then he reaches up and turns the holo, very gently, to a small cluster of new light near the bottom of it.",
                 q("There,") + " he says softly. " + q("See that? That’s you, working."),
@@ -423,7 +427,7 @@
             flags.TN_SKG_FERTILE = 1;
             applyFertility();
         }
-        flags.TN_SKG_STAGE = idx + 3;
+        flags.TN_SKG_STAGE = idx + 3; // the Mend runs straight into the Quiet, so this lands on 4 or 5
         flags.TN_SKG_SESSION_TS = now();
         backBtn(back);
     }
@@ -452,8 +456,9 @@
             ]);
         } else {
             say([
-                "You ask Shekka how she’s feeling after The Quiet.",
-                "She doesn’t answer right away. She’s sitting at her workbench with a half-built drone in front of her, and you realize she’s been working on the same panel, carefully and steadily, for the entire time you’ve been standing there. No wandering off. No fidgeting. Just work.",
+                "You ask Shekka how she’s feeling after The Mend and The Quiet.",
+                q("Well, I ran a fever for three days, which doc said was normal, and slept for a whole one, which doc <i>also</i> said was normal.") + " She fans herself with a wrench. " + q("But that’s not the part you’re asking about, is it?"),
+                "She doesn’t say anything else for a moment. She’s sitting at her workbench with a half-built drone in front of her, and you realize she’s been working on the same panel, carefully and steadily, for the entire time you’ve been standing there. No wandering off. No fidgeting. Just work.",
                 q("It’s still there,") + " she says at last. " + q("The itch. I still want things. I still want <i>you,</i> trust me.") + " She grins over her shoulder. " + q("But I get to decide when. It doesn’t just grab the wheel any more."),
                 q("I finished three projects this week. Three! I haven’t finished three projects in a <i>row</i> since I was a kid.") + " She sets down her tools and looks at her hands. " + q("Is this what it’s like for everybody? The whole time? Is this what my kids get?"),
                 "She doesn’t seem to want an answer. She just smiles, and goes back to work."
