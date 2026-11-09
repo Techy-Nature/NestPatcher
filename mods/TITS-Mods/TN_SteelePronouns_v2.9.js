@@ -10,17 +10,22 @@
  * How it works:
  * - Every third-person pronoun for Steele ([pc.heShe], [pc.himHer], [pc.hisHer],
  *   [pc.hisHers] and the game's own pc.mf("he","she") style calls) goes through
- *   PlayerCharacter.mfn(). This mod wraps mfn() for the player only, and only for
- *   pronoun and title pairs. Everything else mf() decides (descriptions, daddy/mommy)
- *   is left to the game. Titles follow the same ranges: sir/ma'am -> "mir" and
- *   mister/miss -> "mir", Mr./Ms. -> "Mx.", man/woman -> "person",
- *   guy/girl -> "enby" in the they range. Each title can be changed in the mod menu.
+ *   PlayerCharacter.mfn(). This mod wraps mfn() for the player only.
+ * - Titles follow the same ranges. In the they range (defaults, all editable in the
+ *   mod menu): sir/ma'am and mister/miss -> "mir", Mr./Ms. -> "Mx.", man/woman ->
+ *   "person", guy/girl -> "enby", daddy/mommy and dad/mom -> "moddy", father/mother ->
+ *   "parent". Parent titles can instead come from Steele's race: the first 4 letters
+ *   of the race + "ther" (drakongaru -> "drakther", half-ausar -> "ausather"), with a
+ *   per-race spelling the player can change.
+ * - In the they range, descriptions that only differ by an intensifier lose it:
+ *   "very pronounced" / "extremely pronounced" -> "pronounced". Other descriptions
+ *   are left to the game.
  * - "they" needs plural verbs. Each "they" this mod hands out carries an invisible
  *   marker (U+2063). After the game's parser finishes a block of text, the mod fixes
  *   the verb next to each marked "they" (is -> are, was -> were, wants -> want,
  *   he's got -> they've got, "Is he...?" -> "Are they...?") and removes the markers.
  *   An NPC's own "they" has no marker, so it is never touched.
- * - The game's "Force Male/Female/It Gender" effects still win when they are on.
+ * - The mod overrides the game's "Force Male/Female/It Gender" effects (on purpose).
  *
  * Settings: Android Mods / TN Mod Settings -> "Steele Pronouns".
  * Saved in localStorage (tn.steelePronouns.v1), so they apply to every save.
@@ -44,8 +49,15 @@
         { key: "mister", label: "Mister / Miss", def: "mir" },
         { key: "mr", label: "Mr. / Ms.", def: "Mx" },
         { key: "man", label: "Man / Woman", def: "person" },
-        { key: "guy", label: "Guy / Girl", def: "enby" }
+        { key: "guy", label: "Guy / Girl", def: "enby" },
+        { key: "daddy", label: "Daddy / Mommy", def: "moddy" },
+        { key: "dad", label: "Dad / Mom", def: "moddy" },
+        { key: "father", label: "Father / Mother", def: "parent" }
     ];
+    // Words that only say how strong a description is: "very pronounced" / "extremely pronounced".
+    var INTENSIFIERS = {};
+    ("very extremely lightly slightly quite really rather fairly incredibly highly super so more most somewhat "
+        + "especially exceptionally remarkably particularly truly utterly totally hugely").split(" ").forEach(function (w) { INTENSIFIERS[w] = 1; });
     function cleanTitle(v) {
         return String(v == null ? "" : v).replace(/[<>\[\]{}"\\]/g, "").replace(/\s+/g, " ").trim().slice(0, 24);
     }
@@ -56,6 +68,8 @@
         for (var k in DEFAULTS) c[k] = DEFAULTS[k];
         c.titles = {};
         TITLES.forEach(function (t) { c.titles[t.key] = t.def; });
+        c.parentRace = false;      // true: parent titles come from Steele's race ("drakther")
+        c.raceTitles = {};         // player spellings per race, e.g. { ausar: "ausather" }
         try {
             var raw = window.localStorage && window.localStorage.getItem(STORE);
             if (raw) {
@@ -67,6 +81,13 @@
                     if (o.reflexive === "themselves" || o.reflexive === "themself") c.reflexive = o.reflexive;
                     if (o.titles && typeof o.titles === "object") {
                         TITLES.forEach(function (t) { var v = cleanTitle(o.titles[t.key]); if (v) c.titles[t.key] = v; });
+                    }
+                    c.parentRace = o.parentRace === true;
+                    if (o.raceTitles && typeof o.raceTitles === "object") {
+                        Object.keys(o.raceTitles).forEach(function (k) {
+                            var v = cleanTitle(o.raceTitles[k]), key = raceKey(k);
+                            if (v && key) c.raceTitles[key] = v;
+                        });
                     }
                 }
             }
@@ -83,6 +104,32 @@
         clampCfg(cfg);
         try { if (window.localStorage) window.localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (err) {}
     }
+    /* ---------- Race-based parent titles ---------- */
+    // "half-ausar" -> "ausar", "amazonian gryvain" -> "gryvain", "kaithrit-morph" -> "kaithrit"
+    function raceKey(race) {
+        var r = String(race || "").toLowerCase().replace(/<[^>]*>/g, "").trim();
+        var prev;
+        do {
+            prev = r;
+            r = r.replace(/^(half|part|amazonian|pure|full)(?:[-\s]+|$)/, "").trim();
+        } while (r !== prev);
+        r = r.replace(/-(morph|taur|blooded)$/, "");
+        var word = r.split(/[\s-]+/)[0] || "";
+        return word.replace(/[^a-z]/g, "");
+    }
+    function autoRaceTitle(key) { return key ? key.slice(0, 4) + "ther" : ""; }
+    function steeleRaceKey() {
+        try { return raceKey(window.pc && typeof window.pc.race === "function" ? window.pc.race() : ""); }
+        catch (err) { return ""; }
+    }
+    function raceTitle() {
+        var key = steeleRaceKey();
+        if (!key) return "";
+        return cfg.raceTitles[key] || autoRaceTitle(key);
+    }
+    SP.raceKey = raceKey;
+    SP.raceTitle = raceTitle;
+
     SP.config = function () { return JSON.parse(JSON.stringify(cfg)); };
 
     /* ---------- Mod menu switch ---------- */
@@ -123,7 +170,13 @@
         "mr.|ms.": "@t:mr", "mr|ms": "@t:mr", "mr.|miss": "@t:mr", "mr|miss": "@t:mr", "mr.|miss.": "@t:mr",
         "mr.|mrs.": "@t:mr", "mr|mrs": "@t:mr", "mr.|mizz": "@t:mr",
         "man|woman": "@t:man", "man|lady": "@t:man", "man|gal": "@t:man",
-        "guy|girl": "@t:guy"
+        "guy|girl": "@t:guy",
+        // Parents: "@p:<key>" uses the player's word, or the race title when that is on.
+        "daddy|mommy": "@p:daddy", "daddy|momma": "@p:daddy", "papa|mama": "@p:daddy", "papa|momma": "@p:daddy",
+        "dad|mom": "@p:dad", "dad|mum": "@p:dad",
+        "father|mother": "@p:father", "father|parent": "@p:father", "father|sire": "@p:father",
+        "fatherly|motherly": "parental", "fatherly|parental": "parental",
+        "fatherhood|motherhood": "parenthood", "fathered|sired": "parented"
     };
     function titleFor(key, a) {
         var t = cfg.titles[key];
@@ -131,28 +184,65 @@
         // "Mr." -> "Mx.": keep the game's full stop.
         if (/\.$/.test(a) && !/\.$/.test(t)) t += ".";
         if (!/\.$/.test(a)) t = t.replace(/\.$/, "");
-        var upper = a.charAt(0) !== a.charAt(0).toLowerCase();
-        if (upper) t = t.charAt(0).toUpperCase() + t.slice(1);
-        else if (t.length < 2 || t.charAt(1) === t.charAt(1).toLowerCase()) t = t.charAt(0).toLowerCase() + t.slice(1);
+        return matchCase(a, t);
+    }
+    // Split "S-sir!" into stutter "S-", core "sir", end "!" so stuttered and shouted forms match too.
+    function split(m, f) {
+        var end = "";
+        var em = /[.!?,…]+$/.exec(m), ef = /[.!?,…]+$/.exec(f);
+        if (em && ef && em[0] === ef[0]) { end = em[0]; m = m.slice(0, -end.length); f = f.slice(0, -end.length); }
+        var sm = /^((?:[A-Za-z]-)+)(?=[A-Za-z])/.exec(m), sf = /^((?:[A-Za-z]-)+)(?=[A-Za-z])/.exec(f);
+        var stut = "";
+        if (sm && sf) { stut = sm[1]; m = m.slice(stut.length); f = f.slice(sf[1].length); }
+        return { m: m, f: f, key: m.toLowerCase() + "|" + f.toLowerCase(), stut: stut, end: end };
+    }
+    function known(m, f) {
+        if (typeof m !== "string" || typeof f !== "string") return null;
+        var sp = split(m, f);
+        return PAIRS.hasOwnProperty(sp.key) ? sp : null;
+    }
+    function matchCase(src, t) {
+        if (!t) return t;
+        if (src.charAt(0) !== src.charAt(0).toLowerCase()) return t.charAt(0).toUpperCase() + t.slice(1);
+        if (t.length < 2 || t.charAt(1) === t.charAt(1).toLowerCase()) return t.charAt(0).toLowerCase() + t.slice(1);
         return t;
     }
     function theyFor(a, b) {
-        if (typeof a !== "string" || typeof b !== "string") return null;
-        var t = PAIRS[a.toLowerCase() + "|" + b.toLowerCase()];
-        if (!t) return null;
-        if (t.indexOf("@t:") === 0) return titleFor(t.slice(3), a);
-        if (t === "@refl") t = cfg.reflexive;
-        if (a.charAt(0) !== a.charAt(0).toLowerCase()) t = t.charAt(0).toUpperCase() + t.slice(1);
+        var sp = known(a, b);
+        if (!sp) return null;
+        var t = PAIRS[sp.key], core = sp.m;
+        if (t.indexOf("@t:") === 0) t = titleFor(t.slice(3), core);
+        else if (t.indexOf("@p:") === 0) t = cfg.parentRace && raceTitle() ? matchCase(core, raceTitle()) : titleFor(t.slice(3), core);
+        else {
+            if (t === "@refl") t = cfg.reflexive;
+            t = matchCase(core, t);
+        }
+        if (sp.stut) {
+            // "S-s-sir" -> "M-m-mir": repeat the new first letter, keeping the stutter's case.
+            var parts = sp.stut.split("-").slice(0, -1).map(function (ch) {
+                var c = t.charAt(0);
+                return ch === ch.toUpperCase() ? c.toUpperCase() : c.toLowerCase();
+            });
+            t = parts.join("-") + "-" + (sp.stut.charAt(0) === sp.stut.charAt(0).toUpperCase() ? t : t.charAt(0).toLowerCase() + t.slice(1));
+        }
         if (t === "they" || t === "They") t += MARK;   // subject form: verb gets fixed later
-        return t;
+        return t + sp.end;
     }
     SP.theyFor = theyFor;
 
-    function forcedGender(pc) {
-        try {
-            return pc.hasStatusEffect("Force Fem Gender") || pc.hasStatusEffect("Force Male Gender") || pc.hasStatusEffect("Force It Gender");
-        } catch (err) { return false; }
+    // "very pronounced" / "extremely pronounced" -> "pronounced"; "toned" / "lightly toned" -> "toned".
+    function plainDescription(m, f) {
+        if (typeof m !== "string" || typeof f !== "string" || m === f) return null;
+        function strip(x) {
+            var w = x.split(" ");
+            while (w.length > 1 && INTENSIFIERS[w[0].toLowerCase()]) w.shift();
+            return w.join(" ");
+        }
+        var a = strip(m), b = strip(f);
+        if (!a || a.toLowerCase() !== b.toLowerCase() || (a === m && b === f)) return null;
+        return matchCase(m, a);
     }
+    SP.plainDescription = plainDescription;
 
     function patchPlayer() {
         var pc = window.pc;
@@ -161,15 +251,20 @@
         if (!proto || typeof proto.mfn !== "function") return false;
         if (proto.mfn.__tnSteelePronouns) return true;
         var base = proto.mfn;
-        var wrapped = function (m, f, n, ignoreForce) {
+        // The game's Force Male/Female/It Gender effects are overridden on purpose (Neston's choice).
+        var wrapped = function (m, f) {
             try {
-                if (this.getClassName() === "PlayerCharacter" && typeof m === "string" && typeof f === "string"
-                    && PAIRS.hasOwnProperty(m.toLowerCase() + "|" + f.toLowerCase())
-                    && (ignoreForce || !forcedGender(this))) {
+                if (typeof m === "string" && typeof f === "string" && this.getClassName() === "PlayerCharacter") {
                     var p = pick(this);
-                    if (p === "m") return m;
-                    if (p === "f") return f;
-                    if (p === "n") return theyFor(m, f);
+                    if (p && known(m, f)) {
+                        if (p === "m") return m;
+                        if (p === "f") return f;
+                        return theyFor(m, f);
+                    }
+                    if (p === "n") {
+                        var plain = plainDescription(m, f);
+                        if (plain) return plain;
+                    }
                 }
             } catch (err) { console.warn("[TN] Steele Pronouns", err); }
             return base.apply(this, arguments);
@@ -339,7 +434,7 @@
             id: MOD_ID,
             name: "Steele Pronouns",
             author: "Neston",
-            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match; sir/ma’am becomes mir and Mr./Ms. becomes Mx., man/woman becomes person and guy/girl becomes enby (all editable).",
+            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match. Neutral titles (mir, Mx., person, enby, moddy or race-based parent titles like drakther) are all editable.",
             supportsToggle: true,
             getHtml: function () {
                 var h = "Pick how other characters refer to Steele: he/she/they, plus neutral titles in the they range.";
@@ -364,6 +459,22 @@
                         + '" style="width:9em"></label>';
                 });
                 h += '<button type="button" data-mod-act="titles-reset">Reset titles</button>';
+                h += "\n\n<b>Parent titles</b> (daddy/mommy, dad/mom, father/mother): <b>"
+                    + (cfg.parentRace ? "by Steele’s race" : "the words above") + "</b>";
+                h += '<button type="button" data-mod-act="parent:words">Use the words above</button>';
+                h += '<button type="button" data-mod-act="parent:race">Use Steele’s race</button>';
+                if (cfg.parentRace) {
+                    var rk = steeleRaceKey();
+                    h += "\nRace titles are the first 4 letters of the race plus “ther”. Type your own spelling for any race; clear the box to go back to the automatic one.";
+                    var keys = Object.keys(cfg.raceTitles);
+                    if (rk && keys.indexOf(rk) < 0) keys.unshift(rk);
+                    if (!rk) h += "\n<i>Load a save to see Steele’s race.</i>";
+                    keys.forEach(function (k) {
+                        h += '<label style="display:block;margin:6px 0">' + k + (k === rk ? " (Steele now)" : "") + ' → '
+                            + '<input type="text" data-tn-pron-race="' + k + '" maxlength="24" placeholder="' + autoRaceTitle(k)
+                            + '" value="' + (cfg.raceTitles[k] || "").replace(/&/g, "&amp;") + '" style="width:9em"></label>';
+                    });
+                }
                 return h;
             },
             onBind: function (root) {
@@ -388,6 +499,25 @@
                     box.addEventListener("change", commit);
                     box.addEventListener("blur", commit);
                 });
+                var races = root.querySelectorAll("[data-tn-pron-race]");
+                Array.prototype.forEach.call(races, function (box) {
+                    var key = box.getAttribute("data-tn-pron-race");
+                    function commit() {
+                        var v = cleanTitle(box.value);
+                        if (v && v.toLowerCase() !== autoRaceTitle(key)) cfg.raceTitles[key] = v;
+                        else delete cfg.raceTitles[key];
+                        box.value = cfg.raceTitles[key] || "";
+                        save();
+                    }
+                    ["keydown", "keyup", "keypress"].forEach(function (ev) {
+                        box.addEventListener(ev, function (e) {
+                            e.stopPropagation();
+                            if (ev === "keydown" && e.key === "Enter") { commit(); box.blur(); }
+                        });
+                    });
+                    box.addEventListener("change", commit);
+                    box.addEventListener("blur", commit);
+                });
             },
             onAct: function (act) {
                 var a = String(act || "").split(":");
@@ -396,6 +526,7 @@
                 else if (a[0] === "fem") { cfg.femMin += Number(a[1]) || 0; if (cfg.femMin <= cfg.mascMax) cfg.mascMax = cfg.femMin - 1; }
                 else if (a[0] === "refl") cfg.reflexive = cfg.reflexive === "themself" ? "themselves" : "themself";
                 else if (a[0] === "reset") { cfg.mascMax = DEFAULTS.mascMax; cfg.femMin = DEFAULTS.femMin; }
+                else if (a[0] === "parent") cfg.parentRace = a[1] === "race";
                 else if (a[0] === "titles-reset") TITLES.forEach(function (t) { cfg.titles[t.key] = t.def; });
                 else return false;
                 save();
