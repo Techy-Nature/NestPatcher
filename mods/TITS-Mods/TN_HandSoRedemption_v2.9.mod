@@ -25,6 +25,9 @@ Author: Neston
 #     Codex > Extra get a "Hand So" button that plugs the bead into your ship's computer.
 #     (Uses the pilot's chair hook from TN_DaneCrew_v2.8.mod, so keep that mod in the pack.)
 # Toggle: Options -> Android Mods -> "Hand So's Redemption". Flags (TN_HSR_*) stay in your save.
+# Flashback Visor (TN_FlashbackVisor_v2.9.mod): with the visor's Codex Link on, she can ask about
+#   your flashback logs ("Flashbacks" in her comm), and "Victory or Loss" becomes a fourth answer:
+#   you show her a fight you won that ended in sex and a sexual loss, and it leads to the Nursery.
 # No sex scenes. Bodies: taur and naga Steele get their own lines where the body shows up.
 # In-game author: Neston.
 
@@ -303,6 +306,7 @@ Add Javascript:
     };
     H.questButtons = function (slot) {
         if (!on()) return;
+        try { if (window.tnFbv && typeof window.tnFbv.handSoButton === "function") window.tnFbv.handSoButton(slot + 3); } catch (err) {}
         var s = stage();
         if (s === 0) {
             addButton(slot, "Her Question", H.start, "Her Question", "She seems to be thinking about something.");
@@ -420,8 +424,54 @@ Add Javascript:
         addButton(0, "For Pleasure", function () { H.answerPick(1); }, "For Pleasure", "Because it feels good. That’s reason enough.");
         addButton(1, "To Learn", function () { H.answerPick(2); }, "To Learn", "To get to know a whole new being and widen your horizons.");
         addButton(2, "Someone Better", function () { H.answerPick(3); }, "Someone Better", "To make someone better than you’ll ever be.");
+        try {
+            var fbv = window.tnFbv && typeof window.tnFbv.demoState === "function" ? window.tnFbv.demoState() : null;
+            if (fbv && fbv.ok) addButton(3, "Victory or Loss", H.answerVictory, "Victory or Loss", "Sometimes it isn’t a choice. Show her, with your Flashback Visor.");
+            else if (fbv && fbv.show) addDisabledButton(3, "Victory or Loss", "Victory or Loss", fbv.why);
+        } catch (err) {}
         addButton(14, "Not Yet", H.toComm, "Not Yet", "You need to think about it.");
     };
+
+    /* ---------- Step 3 (Flashback Visor): Victory or Loss ---------- */
+    H.answerVictory = function () {
+        var V = window.tnFbv, pair = V.demoPair(), win = pair.win, loss = pair.loss;
+        var winSex = win && win.s ? V.byId(win.s) : null, lossFight = loss && loss.b ? V.byId(loss.b) : null;
+        showSo();
+        var lines = [
+            q("Victory or loss,") + " you tell her. " + q("Out here, that’s half the answer. Sometimes nobody plans it at all."),
+            "Her code-face tilts, puzzled. So you show her. You tap the little swirl of fog in the corner of your Codex, the Flashback Visor’s link, and open your logs to her."
+        ];
+        if (win) {
+            lines.push("<b>The first memory: a fight you won.</b>");
+            lines = lines.concat(V.fightIntro(win));
+            var ex1 = V.excerpt(winSex, 350);
+            if (ex1) lines.push("<i>And afterward...</i>\n\n" + ex1);
+        }
+        if (loss) {
+            lines.push("<b>The second memory: a fight you lost, and what " + joinWho(loss) + " did with you after.</b>");
+            if (lossFight) lines = lines.concat(V.fightIntro(lossFight));
+            var ex2 = V.excerpt(loss, 350);
+            if (ex2) lines.push(ex2);
+        }
+        lines.push("Hand So watches both all the way through without a word. When the logs close, her many voices take a moment to find each other.");
+        lines.push(q("When you win,") + " she says slowly, " + q("you might have the option to leave. Walk away, untouched. But the heat of the fight does not leave with you. You go into the next battle still wanting, and you are at a disadvantage, especially if it comes soon after.") + " A pause. " + q("So sometimes, winning ends the way that first memory did."));
+        lines.push(q("And when you lose,") + " she goes on, more softly, " + q("it is even less your fault, if a child comes of it. Especially if you could not afford any Sterilex at the time."));
+        lines.push(q("It is not your fault that your opponents might not have access to birth control,") + " she says. " + q("Or that they might not want to use it.") + " Her vast green eyes settle on you, very serious. " + q("But it is your duty to take care of any children that result."));
+        lines.push(q("I know,") + " you tell her. " + q("I agree. That’s why I have the nursery. My dad built it on Tavros, and anyone who comes from me, win or lose, has a place there."));
+        lines.push("Hand So’s smile returns, slow and bright. " + q("Then I want to see it,") + " she says. " + q("Take me there, Captain. I want to see where the children of victories and losses go.") + "\n\n<b>(Take her to the <i>Nursery</i> on Tavros Station.)</b>");
+        say(lines);
+        flags.TN_HSR_REASON = 4;
+        flags.TN_HSR_THEME = "kids";
+        flags.TN_HSR_STAGE = 2;
+        processTime(30);
+        nextTo(H.toComm, "Back to her.");
+    };
+    function joinWho(m) {
+        var w = (m && m.who) || [];
+        if (!w.length) return "they";
+        if (w.length === 1) return w[0];
+        return w.slice(0, -1).join(", ") + " and " + w[w.length - 1];
+    }
     H.answerPick = function (r) {
         flags.TN_HSR_REASON = r;
         flags.TN_HSR_STAGE = 2;
@@ -477,6 +527,10 @@ Add Javascript:
         } else {
             lines.push("She stops at the windows into the play area, where a handful of kids from across the station are busy being very loud. You don’t have any of your own here yet, but Hand So doesn’t seem to care. She watches them like they’re the most interesting thing she’s ever seen.");
             lines.push(q("That one is building a tower,") + " she murmurs. " + q("And that one is knocking it down. Neither of them was told to.") + " Her smile glows. " + q("No one is in charge of what they want."));
+        }
+        if (Number(flags.TN_HSR_REASON) === 4) {
+            lines.push("Hand So tells Briget, very seriously, about the visor: the fights Steele won, the fights Steele lost, and what came after. Briget doesn’t blink.");
+            lines.push(q("Sweetheart, half the kids in here came from somebody’s bad day,") + " she says, smoothing a blanket over a sleeping toddler. " + q("A fight on some frontier world, a heat that hit at the worst time, a condom that wasn’t there.") + " She shrugs her big synthetic shoulders. " + q("Doesn’t matter one bit in here. Nobody in this room asked how they got made. They just need somebody to show up for them. And [pc.name] does."));
         }
         lines.push("Hand So turns to Briget. " + q("You were made to raise them. Is that why you love them? Because it is your directive?"));
         lines.push("Briget laughs, a warm mechanical rumble. " + q("I was made to raise them, sweetheart. I stay because I love them. And the hardest part, the part nobody programs for?") + " She watches a toddler totter out of the room on wobbly legs. " + q("They leave. That’s the point. You do your best, and then you let them go be somebody you’d never have dreamed of."));
@@ -624,6 +678,7 @@ Add Javascript:
     function bodyLook() {
         var r = Number(flags.TN_HSR_REASON) || 1;
         if (r === 1) return "soft and plush and warm, all generous curves under silky synthskin, built to hold and be held. Every sensor in it is tuned to what someone else is feeling, not just to giving it, so it knows when to stop as surely as when to start";
+        if (r === 4) return "sturdy and strong, armored where it counts, with careful, gentle hands. A body that can win a fight, and lose one, and still get up and carry someone small home afterward";
         if (r === 2) return "slender and quick, with long sensor-rich fingers and big ears that turn toward every new sound. Its irises shift through a dozen focal settings, and its skin is covered in fine, soft receptors, so that every new thing she touches is something she gets to learn";
         return "unfinished on purpose. Her panels unclip, her joints are standard fittings, and there is an empty socket in her chest for something she hasn’t thought of yet. " + q("Room to grow,") + " she calls it. " + q("I would like to be more than I designed");
     }
@@ -670,7 +725,8 @@ Add Javascript:
             "",
             q("For pleasure. Not the kind I was built to give. The kind you share, that the other person gets to keep."),
             q("To learn. To make someone and then let them teach you something you could never have taught yourself."),
-            q("To make someone better than you. Even if that someone is only yourself, tomorrow.")
+            q("To make someone better than you. Even if that someone is only yourself, tomorrow."),
+            q("Because sometimes it is not a choice at all. Victory or loss, a child can come of it. And then it is a duty, and you take care of them anyway.")
         ][r] + " She pulls back to look at you, her smile soft and real. " + q("I was made. Now I have made something. I made myself. And I will never again tell anyone what they want."));
         if (present("TN_DANE") || (function () { try { return typeof window.tnDaneAboard === "function" && window.tnDaneAboard(); } catch (err) { return false; } })()) lines.push("Somewhere behind you, Dane clears his throat roughly. " + q("Got something in my eye,") + " he growls. Nobody believes him.");
         lines.push("<b>(Hand So’s Question is complete. Hand So has a body she built herself.)</b>");
@@ -703,7 +759,8 @@ Add Javascript:
             "",
             q("Pleasure that the other person gets to keep,") + " she says to herself, like a mantra.",
             q("Every day, something I did not know,") + " she says to herself, like a mantra.",
-            q("Better tomorrow than today,") + " she says to herself, like a mantra."
+            q("Better tomorrow than today,") + " she says to herself, like a mantra.",
+            q("Win or lose, take care of them,") + " she says to herself, like a mantra."
         ][r]);
         say(lines);
         processTime(10);
