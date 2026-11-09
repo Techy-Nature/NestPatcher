@@ -192,7 +192,18 @@ Add Javascript:
             }
         }
     }
-    function foeGeneric(f) { return f.g !== undefined ? !!f.g : /^(an?|the) [a-z]/.test(f.tx || ""); }
+    /* One-time story fights the game names like generic enemies ("the cockvine", "the firewall").
+       They count as unique: newest win and newest loss each. */
+    var UNIQUE = ["FemboySpy", "Goopleganger", "ZaikaEnhancedXO", "ZaikaJaquiFassbinBrightwaterTail", "ZaikaPeer", "ZaikaTechSavant",
+        "ZaikaRiotLeader", "ZaikaSergeant", "ZaikaHydra", "Boshra", "Cleantha", "CockvineAzraQuest", "AkkadiDropship", "CarlsRobot",
+        "GigaGoo", "Ginny", "GooClone", "GrayGooDoubleL", "GrayGooDoubleR", "GrayPrime", "HandSoBot", "HeavyMunitionsBot",
+        "HeavyMunitionsBotRepair", "HeavyMunitionsBotShield", "KQ2Juggernaut", "NaleenBrotherA", "NaleenBrotherB", "Onzia", "Princess",
+        "QueenOfTheDeep", "Roz", "LGBTPilots", "Taursuit", "MilodanFertilityPriestess", "MilodanWarAlpha", "NyreanPraetorians",
+        "ZilChampionBow", "ZilChampionSpear", "DaerWorm", "Goocubator", "BehemothAlpha", "DivraniGardener", "TaintedCultist"];
+    function foeGeneric(f) {
+        if (UNIQUE.indexOf(f.c) >= 0) return false;
+        return f.g !== undefined ? !!f.g : /^(an?|the) [a-z]/.test(f.tx || "");
+    }
     function fightGeneric(b) { return (b.foes || []).length > 0 && b.foes.every(foeGeneric); }
     function fightKey(b) { return (b.foes || []).map(function (f) { return f.c; }).sort().join("+"); }
     F.fightGeneric = fightGeneric;
