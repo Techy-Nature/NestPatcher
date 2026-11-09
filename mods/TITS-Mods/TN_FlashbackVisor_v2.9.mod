@@ -195,11 +195,11 @@ Add Javascript:
     /* One-time story fights the game names like generic enemies ("the cockvine", "the firewall").
        They count as unique: newest win and newest loss each. */
     var UNIQUE = ["FemboySpy", "Goopleganger", "ZaikaEnhancedXO", "ZaikaJaquiFassbinBrightwaterTail", "ZaikaPeer", "ZaikaTechSavant",
-        "ZaikaRiotLeader", "ZaikaSergeant", "ZaikaHydra", "Boshra", "Cleantha", "CockvineAzraQuest", "AkkadiDropship", "CarlsRobot",
+        "ZaikaRiotLeader", "ZaikaSergeant", "Boshra", "Cleantha", "CockvineAzraQuest", "AkkadiDropship", "CarlsRobot",
         "GigaGoo", "Ginny", "GooClone", "GrayGooDoubleL", "GrayGooDoubleR", "GrayPrime", "HandSoBot", "HeavyMunitionsBot",
         "HeavyMunitionsBotRepair", "HeavyMunitionsBotShield", "KQ2Juggernaut", "NaleenBrotherA", "NaleenBrotherB", "Onzia", "Princess",
-        "QueenOfTheDeep", "Roz", "LGBTPilots", "Taursuit", "MilodanFertilityPriestess", "MilodanWarAlpha", "NyreanPraetorians",
-        "ZilChampionBow", "ZilChampionSpear", "DaerWorm", "Goocubator", "BehemothAlpha", "DivraniGardener", "TaintedCultist"];
+        "QueenOfTheDeep", "Roz", "LGBTPilots", "Taursuit", "MilodanWarAlpha", "NyreanPraetorians",
+        "ZilChampionBow", "ZilChampionSpear", "DaerWorm", "Goocubator", "BehemothAlpha", "TaintedCultist"];
     function foeGeneric(f) {
         if (UNIQUE.indexOf(f.c) >= 0) return false;
         return f.g !== undefined ? !!f.g : /^(an?|the) [a-z]/.test(f.tx || "");
