@@ -11,8 +11,9 @@
  * - Every third-person pronoun for Steele ([pc.heShe], [pc.himHer], [pc.hisHer],
  *   [pc.hisHers] and the game's own pc.mf("he","she") style calls) goes through
  *   PlayerCharacter.mfn(). This mod wraps mfn() for the player only, and only for
- *   pronoun pairs. Everything else mf() decides (descriptions, man/woman, sir/ma'am)
- *   is left to the game.
+ *   pronoun and title pairs. Everything else mf() decides (descriptions, Mr/Ms)
+ *   is left to the game. Titles follow the same ranges: sir/ma'am -> "mir" and
+ *   man/woman -> "person" in the they range.
  * - "they" needs plural verbs. Each "they" this mod hands out carries an invisible
  *   marker (U+2063). After the game's parser finishes a block of text, the mod fixes
  *   the verb next to each marked "they" (is -> are, was -> were, wants -> want,
@@ -97,7 +98,10 @@
         "he was|she was": "they were",
         "he has|she has": "they have",
         "he's|she's": "they're",
-        "he’s|she’s": "they’re"
+        "he’s|she’s": "they’re",
+        // Titles (Neston's picks): sir/ma'am -> mir, man/woman -> person
+        "sir|ma’am": "mir", "sir|ma'am": "mir", "sir|madam": "mir", "sir|madame": "mir", "sir|miss": "mir",
+        "man|woman": "person", "man|lady": "person"
     };
     function theyFor(a, b) {
         if (typeof a !== "string" || typeof b !== "string") return null;
@@ -301,10 +305,10 @@
             id: MOD_ID,
             name: "Steele Pronouns",
             author: "Neston",
-            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match.",
+            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match; sir/ma’am becomes mir and man/woman becomes person.",
             supportsToggle: true,
             getHtml: function () {
-                var h = "Pick how other characters refer to Steele. This only changes third-person pronouns (he/she/they); words like sir/ma’am and man/woman stay as the game writes them.";
+                var h = "Pick how other characters refer to Steele: he/she/they, and in the they range sir/ma’am becomes <b>mir</b> and man/woman becomes <b>person</b>.";
                 h += "\n\nMode: <b>" + MODE_TEXT[cfg.mode] + "</b>";
                 h += "\nHe / him up to femininity <b>" + cfg.mascMax + "</b>, she / her from <b>" + cfg.femMin + "</b>, they / them in between.";
                 h += "\nReflexive: <b>" + cfg.reflexive + "</b>";
