@@ -47,7 +47,8 @@
 
     /* ---------- Settings ---------- */
     // respectForce: false = the mod beats the game's Force Male/Female/It Gender effects (default).
-    var DEFAULTS = { mode: "ranges", mascMax: 30, femMin: 61, reflexive: "themself", respectForce: false, itThey: true };
+    var DEFAULTS = { mode: "ranges", mascMax: 30, femMin: 61, reflexive: "themself", respectForce: false, itThey: true, nick: "cutie", nickCustom: "" };
+    // nick: which nickname they/them Steele gets for hunk/cutie lines: "cutie", "hunk" or "custom".
     // itThey: true = while the game's Force It Gender is on, Steele is they/them (default).
     // Neutral titles for the they range. Players can change each one in the mod menu.
     var TITLES = [
@@ -93,6 +94,8 @@
                     c.parentRace = o.parentRace === true;
                     c.respectForce = o.respectForce === true;
                     if (typeof o.itThey === "boolean") c.itThey = o.itThey;
+                    if (["cutie", "hunk", "custom"].indexOf(o.nick) >= 0) c.nick = o.nick;
+                    c.nickCustom = cleanTitle(o.nickCustom);
                     if (o.raceTitles && typeof o.raceTitles === "object") {
                         Object.keys(o.raceTitles).forEach(function (k) {
                             var v = cleanTitle(o.raceTitles[k]), key = raceKey(k);
@@ -194,6 +197,9 @@
         "hunky|pretty": "@t:looks", "strapping|beautiful": "@t:looks",
         "handsomely|beautifully": "@ly:looks",
         "virile|fertile": "@t:fertile",
+        // Nicknames: hunk / cutie -> the player's pick (cutie, hunk or their own word)
+        "hunk|cutie": "@nick", "handsome|cutie": "@nick", "handsome|cutey": "@nick", "hunk|honey": "@nick",
+        "hunks|cuties": "@nicks",
         // "handsome, virile man" / "beautiful, fertile girl" -> "alluringly reproductive person"
         "handsome, virile man|beautiful, fertile girl": "@virile"
     };
@@ -229,11 +235,21 @@
         if (t.length < 2 || t.charAt(1) === t.charAt(1).toLowerCase()) return t.charAt(0).toLowerCase() + t.slice(1);
         return t;
     }
+    function nickWord() {
+        if (cfg.nick === "hunk") return "hunk";
+        if (cfg.nick === "custom") return cfg.nickCustom || "";
+        return "cutie";
+    }
     function theyFor(a, b) {
         var sp = known(a, b);
         if (!sp) return null;
         var t = PAIRS[sp.key], core = sp.m;
         if (t.indexOf("@t:") === 0) t = titleFor(t.slice(3), core);
+        else if (t === "@nick" || t === "@nicks") {
+            var nk = nickWord();
+            if (!nk) return null;
+            t = matchCase(core, nk + (t === "@nicks" ? "s" : ""));
+        }
         else if (t === "@virile") t = matchCase(core, titleFor("looks", "handsome").replace(/\.$/, "") + "ly "
             + titleFor("fertile", "virile") + " " + titleFor("man", "man"));
         else if (t.indexOf("@ly:") === 0) t = titleFor(t.slice(4), core).replace(/\.$/, "") + "ly";
@@ -316,7 +332,8 @@
                     if (p && known(m, f)) {
                         if (p === "m") return m;
                         if (p === "f") return f;
-                        return theyFor(m, f);
+                        var they = theyFor(m, f);
+                        if (they !== null) return they;
                     }
                     if (p === "n") {
                         var phrase = looksPhrase(m, f);
@@ -523,6 +540,15 @@
                         + '" style="width:9em"></label>';
                 });
                 h += '<button type="button" data-mod-act="titles-reset">Reset titles</button>';
+                h += "\n\n<b>Nickname</b> for hunk / cutie lines: <b>"
+                    + (cfg.nick === "custom" ? (cfg.nickCustom ? "“" + cfg.nickCustom + "”" : "your own word (empty, so the game picks)") : cfg.nick) + "</b>";
+                h += '<button type="button" data-mod-act="nick:cutie">Cutie</button>';
+                h += '<button type="button" data-mod-act="nick:hunk">Hunk</button>';
+                h += '<button type="button" data-mod-act="nick:custom">Your own word</button>';
+                if (cfg.nick === "custom") {
+                    h += '<label style="display:block;margin:6px 0">Your word → <input type="text" data-tn-pron-nick="1" maxlength="24" placeholder="e.g. sweetie" value="'
+                        + cfg.nickCustom.replace(/&/g, "&amp;") + '" style="width:9em"></label>';
+                }
                 h += "\n\n<b>Parent titles</b> (daddy/mommy, dad/mom, father/mother): <b>"
                     + (cfg.parentRace ? "by Steele’s race" : "the words above") + "</b>";
                 h += '<button type="button" data-mod-act="parent:words">Use the words above</button>';
@@ -563,6 +589,18 @@
                     box.addEventListener("change", commit);
                     box.addEventListener("blur", commit);
                 });
+                var nickBox = root.querySelector("[data-tn-pron-nick]");
+                if (nickBox) {
+                    var commitNick = function () { cfg.nickCustom = cleanTitle(nickBox.value); nickBox.value = cfg.nickCustom; save(); };
+                    ["keydown", "keyup", "keypress"].forEach(function (ev) {
+                        nickBox.addEventListener(ev, function (e) {
+                            e.stopPropagation();
+                            if (ev === "keydown" && e.key === "Enter") { commitNick(); nickBox.blur(); }
+                        });
+                    });
+                    nickBox.addEventListener("change", commitNick);
+                    nickBox.addEventListener("blur", commitNick);
+                }
                 var races = root.querySelectorAll("[data-tn-pron-race]");
                 Array.prototype.forEach.call(races, function (box) {
                     var key = box.getAttribute("data-tn-pron-race");
@@ -591,6 +629,7 @@
                 else if (a[0] === "refl") cfg.reflexive = cfg.reflexive === "themself" ? "themselves" : "themself";
                 else if (a[0] === "reset") { cfg.mascMax = DEFAULTS.mascMax; cfg.femMin = DEFAULTS.femMin; }
                 else if (a[0] === "force") cfg.respectForce = !cfg.respectForce;
+                else if (a[0] === "nick" && ["cutie", "hunk", "custom"].indexOf(a[1]) >= 0) cfg.nick = a[1];
                 else if (a[0] === "itthey") cfg.itThey = !cfg.itThey;
                 else if (a[0] === "parent") cfg.parentRace = a[1] === "race";
                 else if (a[0] === "titles-reset") TITLES.forEach(function (t) { cfg.titles[t.key] = t.def; });
