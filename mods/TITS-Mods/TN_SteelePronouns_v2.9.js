@@ -14,7 +14,7 @@
  * - Titles follow the same ranges. In the they range (defaults, all editable in the
  *   mod menu): sir/ma'am and mister/miss -> "mir", Mr./Ms. -> "Mx.", man/woman ->
  *   "person", guy/girl -> "enby", daddy/mommy and dad/mom -> "moddy", father/mother ->
- *   "parent". Parent titles can instead come from Steele's race: the first 4 letters
+ *   "parent", handsome/pretty (beautiful, cute, gorgeous...) -> "alluring". Parent titles can instead come from Steele's race: the first 4 letters
  *   of the race + "ther" (drakongaru -> "drakther", half-ausar -> "ausather"), with a
  *   per-race spelling the player can change.
  * - In the they range, descriptions that only differ by an intensifier lose it:
@@ -56,7 +56,8 @@
         { key: "guy", label: "Guy / Girl", def: "enby" },
         { key: "daddy", label: "Daddy / Mommy", def: "moddy" },
         { key: "dad", label: "Dad / Mom", def: "moddy" },
-        { key: "father", label: "Father / Mother", def: "parent" }
+        { key: "father", label: "Father / Mother", def: "parent" },
+        { key: "looks", label: "Handsome / Pretty", def: "alluring" }
     ];
     // Words that only say how strong a description is: "very pronounced" / "extremely pronounced".
     var INTENSIFIERS = {};
@@ -182,7 +183,13 @@
         "dad|mom": "@p:dad", "dad|mum": "@p:dad",
         "father|mother": "@p:father", "father|parent": "@p:father", "father|sire": "@p:father",
         "fatherly|motherly": "parental", "fatherly|parental": "parental",
-        "fatherhood|motherhood": "parenthood", "fathered|sired": "parented"
+        "fatherhood|motherhood": "parenthood", "fathered|sired": "parented",
+        // Looks: handsome / pretty, beautiful, cute... -> "alluring" (editable)
+        "handsome|beautiful": "@t:looks", "handsome|pretty": "@t:looks", "handsome|cute": "@t:looks",
+        "handsome|gorgeous": "@t:looks", "handsome|sexy": "@t:looks", "handsome|lovely": "@t:looks",
+        "handsome|fabulous": "@t:looks", "handsome|stunning": "@t:looks", "handsome-looking|fetching": "@t:looks",
+        "hunky|pretty": "@t:looks", "strapping|beautiful": "@t:looks",
+        "handsomely|beautifully": "@ly:looks"
     };
     function titleFor(key, a) {
         var t = cfg.titles[key];
@@ -197,10 +204,13 @@
         var end = "";
         var em = /[.!?,…]+$/.exec(m), ef = /[.!?,…]+$/.exec(f);
         if (em && ef && em[0] === ef[0]) { end = em[0]; m = m.slice(0, -end.length); f = f.slice(0, -end.length); }
+        var lead = "";
+        var lm = /^[\s,]+/.exec(m), lf = /^[\s,]+/.exec(f);
+        if (lm && lf && lm[0] === lf[0]) { lead = lm[0]; m = m.slice(lead.length); f = f.slice(lead.length); }
         var sm = /^((?:[A-Za-z]-)+)(?=[A-Za-z])/.exec(m), sf = /^((?:[A-Za-z]-)+)(?=[A-Za-z])/.exec(f);
         var stut = "";
         if (sm && sf) { stut = sm[1]; m = m.slice(stut.length); f = f.slice(sf[1].length); }
-        return { m: m, f: f, key: m.toLowerCase() + "|" + f.toLowerCase(), stut: stut, end: end };
+        return { m: m, f: f, key: m.toLowerCase() + "|" + f.toLowerCase(), stut: stut, end: end, lead: lead };
     }
     function known(m, f) {
         if (typeof m !== "string" || typeof f !== "string") return null;
@@ -218,6 +228,7 @@
         if (!sp) return null;
         var t = PAIRS[sp.key], core = sp.m;
         if (t.indexOf("@t:") === 0) t = titleFor(t.slice(3), core);
+        else if (t.indexOf("@ly:") === 0) t = titleFor(t.slice(4), core).replace(/\.$/, "") + "ly";
         else if (t.indexOf("@p:") === 0) t = cfg.parentRace && raceTitle() ? matchCase(core, raceTitle()) : titleFor(t.slice(3), core);
         else {
             if (t === "@refl") t = cfg.reflexive;
@@ -232,7 +243,7 @@
             t = parts.join("-") + "-" + (sp.stut.charAt(0) === sp.stut.charAt(0).toUpperCase() ? t : t.charAt(0).toLowerCase() + t.slice(1));
         }
         if (t === "they" || t === "They") t += MARK;   // subject form: verb gets fixed later
-        return t + sp.end;
+        return sp.lead + t + sp.end;
     }
     SP.theyFor = theyFor;
 
@@ -452,7 +463,7 @@
             id: MOD_ID,
             name: "Steele Pronouns",
             author: "Neston",
-            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match. Neutral titles (mir, Mx., person, enby, moddy or race-based parent titles like drakther) are all editable.",
+            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match. Neutral titles (mir, Mx., person, enby, alluring, moddy or race-based parent titles like drakther) are all editable.",
             supportsToggle: true,
             getHtml: function () {
                 var h = "Pick how other characters refer to Steele: he/she/they, plus neutral titles in the they range.";
