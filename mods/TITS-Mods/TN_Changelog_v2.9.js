@@ -40,7 +40,7 @@
   // ===========================================================================
   //  EDIT HERE
   // ===========================================================================
-  var MOD_VERSION = "2.8";   // the version of THIS build (shown as Modv2.8)
+  var MOD_VERSION = "2.9";   // the version of THIS build (shown as Modv2.9)
 
   // Optional: a hosted Markdown (or JSON) changelog, e.g.
   //   "https://raw.githubusercontent.com/<you>/<repo>/main/changelog.md"
@@ -49,6 +49,27 @@
   var REMOTE_URL = "https://raw.githubusercontent.com/Techy-Nature/NestPatcher/main/changelog.md";
 
   var CHANGELOG = [
+    {
+      version: "2.9",
+      date: "2026-11-11",
+      title: "Crew stories and new faces",
+      changes: [
+        { mod: "Hand So's Redemption", text: "New. Hand So (flying Dane's Sonata, or plugged in from her data bead at your pilot's chair) asks why people make new life. Hear your crew's reasons, give her yours, then visit Briget's nursery on Tavros or build a moth bot in your workshop, and free her old sexbots in the Tarkus factory. In the end she designs and builds her own body. Their Gift takes the sexbots out of Tarkus encounters. File: `TN_HandSoRedemption_v2.9.mod`." },
+        { mod: "Wishing Fountain", text: "New. A rock wishing fountain with koi and dwarf banana plants on Tavros Residential Deck 5. It's Aina's: ask her about Astrocaching to hear why she built it. Make a Wish, or check Amber's Cache. File: `TN_ResDeckFountain_v2.9.mod`." },
+        { mod: "Siegwulfe Sub", text: "New. At Dr. Badger's first upgrade, choose a bimbo domme or a bimbo sub Siegwulfe devoted to you. Switch later with **Sub Code** at Badger's, or hack her from **Codex > Extra** if you're a Tech Specialist or have 15+ Intelligence. Same stats either way; the sub gets her own talks and sex scenes (with taur and naga versions). File: `TN_SiegwulfeSub_v2.9.mod`." },
+        { mod: "Flashback Visor", text: "New. A VR visor sold by Zenn on Dhaal and Luca on Canadia Station (5,000 credits). From **Codex > Extra**, relive sex scenes and fights recorded since you installed it; each memory takes an hour. Crew members check in about it after 48 hours aboard. File: `TN_FlashbackVisor_v2.9.mod`." },
+        { mod: "Dane's Wingman", text: "New. Dane's **Asking Out** talk: find out what holds him back from asking Syri and Anno out, then be his wingman. The longer you've been out in the galaxy, the better his odds. File: `TN_DaneDating_v2.9.js`." },
+        { mod: "Bianca Extras", text: "New. Bianca's love story from William's Part 2 docs, plus missing Part 1 scenes: cuddles, a confrontation, a meeting under the trees on the Residential Deck, then hugs, kisses, bar dates, nights on your ship and a confession. Taur and naga versions throughout. Files: `TN_BiancaExtras_v2.9.mod` + `TN_BiancaExtras_v2.9.js`." },
+        { mod: "Bianca's Clinic", text: "New. Bianca's clinic opens on the Tavros Merchant Deck, west of the Thoroughfare (8 AM to 6 PM). Nest runs the front desk, and Dr. Charles Rewell, the geneticist who helped design you, shares the office with talks, a kids consult and free prenatal scans. Files: `TN_BiancaClinic_v2.9.mod` + `TN_BiancaClinic_v2.9.js`." },
+        { mod: "Steele Pronouns", text: "New. Steele is he, they or she by femininity (1-30, 31-60, 61+), with verbs fixed for they. Neutral titles (mir, Mx., enby and more) are editable in the mod menu, along with the ranges. File: `TN_SteelePronouns_v2.9.js`." },
+        { mod: "Shekka's Gene Talk", text: "New. Crew Shekka's **Gene Plans** talk: she asks if Dr. Rewell could change her like the Cure changed the kids. After a consult and three treatments she's fertile again. He fixes her body, not her mind. Files: `TN_ShekkaGeneTalk_v2.9.mod` + `TN_ShekkaGeneTalk_v2.9.js`." },
+        { mod: "Shekka's Eggs", text: "New. Once Shekka is fertile, try for eggs with her (taur and naga versions). She carries for 14 days aboard, lays the egg, and it goes to Briget's nursery on Tavros, with emails when it arrives and hatches. File: `TN_ShekkaEggs_v2.9.js`." },
+        { mod: "Roo Crew", text: "New. William's Roo crew expansion: once you've won big at her blackjack table and have her panties, recruit her for 50,000 credits. Crew talks, plus a full Sex menu with taur and naga versions. Files: `TN_RooCrew_v2.9.mod` + `TN_RooCrew_v2.9.js`." },
+        { mod: "Shelly Cabin Returns", text: "With Shelly on your crew, her Assist scene happens at her bunk aboard your ship. Now `ShellyCabinReturns_v2.9.mod`; delete `ShellyCabinReturns_v2.8.mod`." },
+        { mod: "Sex Scene Gallery", text: "Fix: the gallery couldn't be reached with a save loaded. **Sex Gallery** is now on the main menu. Now `TN_SexGallery_v2.9.js`; delete `TN_SexGallery_v2.8.js`." },
+        { mod: "Changelog", text: "Shows Modv2.9 as installed. Now `TN_Changelog_v2.9.js`; delete `TN_Changelog_v2.8.js`." }
+      ]
+    },
     {
       version: "2.8",
       date: "2026-11-02",
