@@ -14,7 +14,9 @@
  * - Titles follow the same ranges. In the they range (defaults, all editable in the
  *   mod menu): sir/ma'am and mister/miss -> "mir", Mr./Ms. -> "Mx.", man/woman ->
  *   "person", guy/girl -> "enby", daddy/mommy and dad/mom -> "moddy", father/mother ->
- *   "parent". Parent titles can instead come from Steele's race: the first 4 letters
+ *   "parent", handsome/pretty (beautiful, cute, gorgeous...) -> "alluring",
+ *   "handsome man" / "cute girl" -> "alluring person",
+ *   "handsome, virile man" / "beautiful, fertile girl" -> "alluringly reproductive person". Parent titles can instead come from Steele's race: the first 4 letters
  *   of the race + "ther" (drakongaru -> "drakther", half-ausar -> "ausather"), with a
  *   per-race spelling the player can change.
  * - In the they range, descriptions that only differ by an intensifier lose it:
@@ -45,7 +47,8 @@
 
     /* ---------- Settings ---------- */
     // respectForce: false = the mod beats the game's Force Male/Female/It Gender effects (default).
-    var DEFAULTS = { mode: "ranges", mascMax: 30, femMin: 61, reflexive: "themself", respectForce: false, itThey: true };
+    var DEFAULTS = { mode: "ranges", mascMax: 30, femMin: 61, reflexive: "themself", respectForce: false, itThey: true, nick: "cutie", nickCustom: "" };
+    // nick: which nickname they/them Steele gets for hunk/cutie lines: "cutie", "hunk" or "custom".
     // itThey: true = while the game's Force It Gender is on, Steele is they/them (default).
     // Neutral titles for the they range. Players can change each one in the mod menu.
     var TITLES = [
@@ -56,7 +59,9 @@
         { key: "guy", label: "Guy / Girl", def: "enby" },
         { key: "daddy", label: "Daddy / Mommy", def: "moddy" },
         { key: "dad", label: "Dad / Mom", def: "moddy" },
-        { key: "father", label: "Father / Mother", def: "parent" }
+        { key: "father", label: "Father / Mother", def: "parent" },
+        { key: "looks", label: "Handsome / Pretty", def: "alluring" },
+        { key: "fertile", label: "Virile / Fertile", def: "reproductive" }
     ];
     // Words that only say how strong a description is: "very pronounced" / "extremely pronounced".
     var INTENSIFIERS = {};
@@ -89,6 +94,8 @@
                     c.parentRace = o.parentRace === true;
                     c.respectForce = o.respectForce === true;
                     if (typeof o.itThey === "boolean") c.itThey = o.itThey;
+                    if (["cutie", "hunk", "custom"].indexOf(o.nick) >= 0) c.nick = o.nick;
+                    c.nickCustom = cleanTitle(o.nickCustom);
                     if (o.raceTitles && typeof o.raceTitles === "object") {
                         Object.keys(o.raceTitles).forEach(function (k) {
                             var v = cleanTitle(o.raceTitles[k]), key = raceKey(k);
@@ -182,7 +189,19 @@
         "dad|mom": "@p:dad", "dad|mum": "@p:dad",
         "father|mother": "@p:father", "father|parent": "@p:father", "father|sire": "@p:father",
         "fatherly|motherly": "parental", "fatherly|parental": "parental",
-        "fatherhood|motherhood": "parenthood", "fathered|sired": "parented"
+        "fatherhood|motherhood": "parenthood", "fathered|sired": "parented",
+        // Looks: handsome / pretty, beautiful, cute... -> "alluring" (editable)
+        "handsome|beautiful": "@t:looks", "handsome|pretty": "@t:looks", "handsome|cute": "@t:looks",
+        "handsome|gorgeous": "@t:looks", "handsome|sexy": "@t:looks", "handsome|lovely": "@t:looks",
+        "handsome|fabulous": "@t:looks", "handsome|stunning": "@t:looks", "handsome-looking|fetching": "@t:looks",
+        "hunky|pretty": "@t:looks", "strapping|beautiful": "@t:looks",
+        "handsomely|beautifully": "@ly:looks",
+        "virile|fertile": "@t:fertile",
+        // Nicknames: hunk / cutie -> the player's pick (cutie, hunk or their own word)
+        "hunk|cutie": "@nick", "handsome|cutie": "@nick", "handsome|cutey": "@nick", "hunk|honey": "@nick",
+        "hunks|cuties": "@nicks",
+        // "handsome, virile man" / "beautiful, fertile girl" -> "alluringly reproductive person"
+        "handsome, virile man|beautiful, fertile girl": "@virile"
     };
     function titleFor(key, a) {
         var t = cfg.titles[key];
@@ -197,10 +216,13 @@
         var end = "";
         var em = /[.!?,…]+$/.exec(m), ef = /[.!?,…]+$/.exec(f);
         if (em && ef && em[0] === ef[0]) { end = em[0]; m = m.slice(0, -end.length); f = f.slice(0, -end.length); }
+        var lead = "";
+        var lm = /^[\s,]+/.exec(m), lf = /^[\s,]+/.exec(f);
+        if (lm && lf && lm[0] === lf[0]) { lead = lm[0]; m = m.slice(lead.length); f = f.slice(lead.length); }
         var sm = /^((?:[A-Za-z]-)+)(?=[A-Za-z])/.exec(m), sf = /^((?:[A-Za-z]-)+)(?=[A-Za-z])/.exec(f);
         var stut = "";
         if (sm && sf) { stut = sm[1]; m = m.slice(stut.length); f = f.slice(sf[1].length); }
-        return { m: m, f: f, key: m.toLowerCase() + "|" + f.toLowerCase(), stut: stut, end: end };
+        return { m: m, f: f, key: m.toLowerCase() + "|" + f.toLowerCase(), stut: stut, end: end, lead: lead };
     }
     function known(m, f) {
         if (typeof m !== "string" || typeof f !== "string") return null;
@@ -213,11 +235,24 @@
         if (t.length < 2 || t.charAt(1) === t.charAt(1).toLowerCase()) return t.charAt(0).toLowerCase() + t.slice(1);
         return t;
     }
+    function nickWord() {
+        if (cfg.nick === "hunk") return "hunk";
+        if (cfg.nick === "custom") return cfg.nickCustom || "";
+        return "cutie";
+    }
     function theyFor(a, b) {
         var sp = known(a, b);
         if (!sp) return null;
         var t = PAIRS[sp.key], core = sp.m;
         if (t.indexOf("@t:") === 0) t = titleFor(t.slice(3), core);
+        else if (t === "@nick" || t === "@nicks") {
+            var nk = nickWord();
+            if (!nk) return null;
+            t = matchCase(core, nk + (t === "@nicks" ? "s" : ""));
+        }
+        else if (t === "@virile") t = matchCase(core, titleFor("looks", "handsome").replace(/\.$/, "") + "ly "
+            + titleFor("fertile", "virile") + " " + titleFor("man", "man"));
+        else if (t.indexOf("@ly:") === 0) t = titleFor(t.slice(4), core).replace(/\.$/, "") + "ly";
         else if (t.indexOf("@p:") === 0) t = cfg.parentRace && raceTitle() ? matchCase(core, raceTitle()) : titleFor(t.slice(3), core);
         else {
             if (t === "@refl") t = cfg.reflexive;
@@ -232,7 +267,7 @@
             t = parts.join("-") + "-" + (sp.stut.charAt(0) === sp.stut.charAt(0).toUpperCase() ? t : t.charAt(0).toLowerCase() + t.slice(1));
         }
         if (t === "they" || t === "They") t += MARK;   // subject form: verb gets fixed later
-        return t + sp.end;
+        return sp.lead + t + sp.end;
     }
     SP.theyFor = theyFor;
 
@@ -249,6 +284,26 @@
         return matchCase(m, a);
     }
     SP.plainDescription = plainDescription;
+
+    // "handsome man" / "cute girl" -> "alluring person"; "handsome young stud" / "pretty young thing"
+    // -> "alluring young person". Uses the player's Handsome / Pretty and Man / Woman words.
+    var LOOKS_M = { handsome: 1, hunky: 1, strapping: 1 };
+    var LOOKS_F = { beautiful: 1, pretty: 1, cute: 1, gorgeous: 1, sexy: 1, lovely: 1, stunning: 1 };
+    var NOUN_M = { man: 1, boy: 1, guy: 1, stud: 1, lad: 1, gentleman: 1, hunk: 1, dude: 1, fellow: 1 };
+    var NOUN_F = { girl: 1, woman: 1, gal: 1, lady: 1, lass: 1, thing: 1, babe: 1, lassie: 1 };
+    function looksPhrase(m, f) {
+        if (typeof m !== "string" || typeof f !== "string") return null;
+        var sp = split(m, f);
+        var a = sp.m.split(" "), b = sp.f.split(" ");
+        if (a.length < 2 || a.length !== b.length) return null;
+        if (!LOOKS_M[a[0].toLowerCase()] || !LOOKS_F[b[0].toLowerCase()]) return null;
+        if (!NOUN_M[a[a.length - 1].toLowerCase()] || !NOUN_F[b[b.length - 1].toLowerCase()]) return null;
+        for (var i = 1; i < a.length - 1; i++) if (a[i].toLowerCase() !== b[i].toLowerCase()) return null;
+        var mid = a.slice(1, -1);
+        var out = [titleFor("looks", a[0])].concat(mid, [titleFor("man", "man")]).join(" ");
+        return sp.lead + out + sp.end;
+    }
+    SP.looksPhrase = looksPhrase;
 
     function hasFx(pc, name) {
         try { return !!pc.hasStatusEffect(name); } catch (err) { return false; }
@@ -277,9 +332,12 @@
                     if (p && known(m, f)) {
                         if (p === "m") return m;
                         if (p === "f") return f;
-                        return theyFor(m, f);
+                        var they = theyFor(m, f);
+                        if (they !== null) return they;
                     }
                     if (p === "n") {
+                        var phrase = looksPhrase(m, f);
+                        if (phrase) return phrase;
                         var plain = plainDescription(m, f);
                         if (plain) return plain;
                     }
@@ -452,7 +510,7 @@
             id: MOD_ID,
             name: "Steele Pronouns",
             author: "Neston",
-            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match. Neutral titles (mir, Mx., person, enby, moddy or race-based parent titles like drakther) are all editable.",
+            description: "Other characters call Steele he, they or she based on femininity (1-30 he, 31-60 they, 61+ she). Verbs after \"they\" are fixed to match. Neutral titles (mir, Mx., person, enby, alluring, moddy or race-based parent titles like drakther) are all editable.",
             supportsToggle: true,
             getHtml: function () {
                 var h = "Pick how other characters refer to Steele: he/she/they, plus neutral titles in the they range.";
@@ -482,6 +540,15 @@
                         + '" style="width:9em"></label>';
                 });
                 h += '<button type="button" data-mod-act="titles-reset">Reset titles</button>';
+                h += "\n\n<b>Nickname</b> for hunk / cutie lines: <b>"
+                    + (cfg.nick === "custom" ? (cfg.nickCustom ? "“" + cfg.nickCustom + "”" : "your own word (empty, so the game picks)") : cfg.nick) + "</b>";
+                h += '<button type="button" data-mod-act="nick:cutie">Cutie</button>';
+                h += '<button type="button" data-mod-act="nick:hunk">Hunk</button>';
+                h += '<button type="button" data-mod-act="nick:custom">Your own word</button>';
+                if (cfg.nick === "custom") {
+                    h += '<label style="display:block;margin:6px 0">Your word → <input type="text" data-tn-pron-nick="1" maxlength="24" placeholder="e.g. sweetie" value="'
+                        + cfg.nickCustom.replace(/&/g, "&amp;") + '" style="width:9em"></label>';
+                }
                 h += "\n\n<b>Parent titles</b> (daddy/mommy, dad/mom, father/mother): <b>"
                     + (cfg.parentRace ? "by Steele’s race" : "the words above") + "</b>";
                 h += '<button type="button" data-mod-act="parent:words">Use the words above</button>';
@@ -522,6 +589,18 @@
                     box.addEventListener("change", commit);
                     box.addEventListener("blur", commit);
                 });
+                var nickBox = root.querySelector("[data-tn-pron-nick]");
+                if (nickBox) {
+                    var commitNick = function () { cfg.nickCustom = cleanTitle(nickBox.value); nickBox.value = cfg.nickCustom; save(); };
+                    ["keydown", "keyup", "keypress"].forEach(function (ev) {
+                        nickBox.addEventListener(ev, function (e) {
+                            e.stopPropagation();
+                            if (ev === "keydown" && e.key === "Enter") { commitNick(); nickBox.blur(); }
+                        });
+                    });
+                    nickBox.addEventListener("change", commitNick);
+                    nickBox.addEventListener("blur", commitNick);
+                }
                 var races = root.querySelectorAll("[data-tn-pron-race]");
                 Array.prototype.forEach.call(races, function (box) {
                     var key = box.getAttribute("data-tn-pron-race");
@@ -550,6 +629,7 @@
                 else if (a[0] === "refl") cfg.reflexive = cfg.reflexive === "themself" ? "themselves" : "themself";
                 else if (a[0] === "reset") { cfg.mascMax = DEFAULTS.mascMax; cfg.femMin = DEFAULTS.femMin; }
                 else if (a[0] === "force") cfg.respectForce = !cfg.respectForce;
+                else if (a[0] === "nick" && ["cutie", "hunk", "custom"].indexOf(a[1]) >= 0) cfg.nick = a[1];
                 else if (a[0] === "itthey") cfg.itThey = !cfg.itThey;
                 else if (a[0] === "parent") cfg.parentRace = a[1] === "race";
                 else if (a[0] === "titles-reset") TITLES.forEach(function (t) { cfg.titles[t.key] = t.def; });
