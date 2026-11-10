@@ -15,7 +15,8 @@
  *   mod menu): sir/ma'am and mister/miss -> "mir", Mr./Ms. -> "Mx.", man/woman ->
  *   "person", guy/girl -> "enby", daddy/mommy and dad/mom -> "moddy", father/mother ->
  *   "parent", handsome/pretty (beautiful, cute, gorgeous...) -> "alluring",
- *   "handsome man" / "cute girl" -> "alluring person". Parent titles can instead come from Steele's race: the first 4 letters
+ *   "handsome man" / "cute girl" -> "alluring person",
+ *   "handsome, virile man" / "beautiful, fertile girl" -> "alluringly reproductive person". Parent titles can instead come from Steele's race: the first 4 letters
  *   of the race + "ther" (drakongaru -> "drakther", half-ausar -> "ausather"), with a
  *   per-race spelling the player can change.
  * - In the they range, descriptions that only differ by an intensifier lose it:
@@ -58,7 +59,8 @@
         { key: "daddy", label: "Daddy / Mommy", def: "moddy" },
         { key: "dad", label: "Dad / Mom", def: "moddy" },
         { key: "father", label: "Father / Mother", def: "parent" },
-        { key: "looks", label: "Handsome / Pretty", def: "alluring" }
+        { key: "looks", label: "Handsome / Pretty", def: "alluring" },
+        { key: "fertile", label: "Virile / Fertile", def: "reproductive" }
     ];
     // Words that only say how strong a description is: "very pronounced" / "extremely pronounced".
     var INTENSIFIERS = {};
@@ -190,7 +192,10 @@
         "handsome|gorgeous": "@t:looks", "handsome|sexy": "@t:looks", "handsome|lovely": "@t:looks",
         "handsome|fabulous": "@t:looks", "handsome|stunning": "@t:looks", "handsome-looking|fetching": "@t:looks",
         "hunky|pretty": "@t:looks", "strapping|beautiful": "@t:looks",
-        "handsomely|beautifully": "@ly:looks"
+        "handsomely|beautifully": "@ly:looks",
+        "virile|fertile": "@t:fertile",
+        // "handsome, virile man" / "beautiful, fertile girl" -> "alluringly reproductive person"
+        "handsome, virile man|beautiful, fertile girl": "@virile"
     };
     function titleFor(key, a) {
         var t = cfg.titles[key];
@@ -229,6 +234,8 @@
         if (!sp) return null;
         var t = PAIRS[sp.key], core = sp.m;
         if (t.indexOf("@t:") === 0) t = titleFor(t.slice(3), core);
+        else if (t === "@virile") t = matchCase(core, titleFor("looks", "handsome").replace(/\.$/, "") + "ly "
+            + titleFor("fertile", "virile") + " " + titleFor("man", "man"));
         else if (t.indexOf("@ly:") === 0) t = titleFor(t.slice(4), core).replace(/\.$/, "") + "ly";
         else if (t.indexOf("@p:") === 0) t = cfg.parentRace && raceTitle() ? matchCase(core, raceTitle()) : titleFor(t.slice(3), core);
         else {
