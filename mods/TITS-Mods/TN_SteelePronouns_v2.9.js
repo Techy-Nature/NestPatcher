@@ -14,7 +14,8 @@
  * - Titles follow the same ranges. In the they range (defaults, all editable in the
  *   mod menu): sir/ma'am and mister/miss -> "mir", Mr./Ms. -> "Mx.", man/woman ->
  *   "person", guy/girl -> "enby", daddy/mommy and dad/mom -> "moddy", father/mother ->
- *   "parent", handsome/pretty (beautiful, cute, gorgeous...) -> "alluring". Parent titles can instead come from Steele's race: the first 4 letters
+ *   "parent", handsome/pretty (beautiful, cute, gorgeous...) -> "alluring",
+ *   "handsome man" / "cute girl" -> "alluring person". Parent titles can instead come from Steele's race: the first 4 letters
  *   of the race + "ther" (drakongaru -> "drakther", half-ausar -> "ausather"), with a
  *   per-race spelling the player can change.
  * - In the they range, descriptions that only differ by an intensifier lose it:
@@ -261,6 +262,26 @@
     }
     SP.plainDescription = plainDescription;
 
+    // "handsome man" / "cute girl" -> "alluring person"; "handsome young stud" / "pretty young thing"
+    // -> "alluring young person". Uses the player's Handsome / Pretty and Man / Woman words.
+    var LOOKS_M = { handsome: 1, hunky: 1, strapping: 1 };
+    var LOOKS_F = { beautiful: 1, pretty: 1, cute: 1, gorgeous: 1, sexy: 1, lovely: 1, stunning: 1 };
+    var NOUN_M = { man: 1, boy: 1, guy: 1, stud: 1, lad: 1, gentleman: 1, hunk: 1, dude: 1, fellow: 1 };
+    var NOUN_F = { girl: 1, woman: 1, gal: 1, lady: 1, lass: 1, thing: 1, babe: 1, lassie: 1 };
+    function looksPhrase(m, f) {
+        if (typeof m !== "string" || typeof f !== "string") return null;
+        var sp = split(m, f);
+        var a = sp.m.split(" "), b = sp.f.split(" ");
+        if (a.length < 2 || a.length !== b.length) return null;
+        if (!LOOKS_M[a[0].toLowerCase()] || !LOOKS_F[b[0].toLowerCase()]) return null;
+        if (!NOUN_M[a[a.length - 1].toLowerCase()] || !NOUN_F[b[b.length - 1].toLowerCase()]) return null;
+        for (var i = 1; i < a.length - 1; i++) if (a[i].toLowerCase() !== b[i].toLowerCase()) return null;
+        var mid = a.slice(1, -1);
+        var out = [titleFor("looks", a[0])].concat(mid, [titleFor("man", "man")]).join(" ");
+        return sp.lead + out + sp.end;
+    }
+    SP.looksPhrase = looksPhrase;
+
     function hasFx(pc, name) {
         try { return !!pc.hasStatusEffect(name); } catch (err) { return false; }
     }
@@ -291,6 +312,8 @@
                         return theyFor(m, f);
                     }
                     if (p === "n") {
+                        var phrase = looksPhrase(m, f);
+                        if (phrase) return phrase;
                         var plain = plainDescription(m, f);
                         if (plain) return plain;
                     }
