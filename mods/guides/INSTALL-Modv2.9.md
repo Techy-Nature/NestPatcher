@@ -1,6 +1,6 @@
 # Modv2.9: crew stories and new faces
 
-Modv2.9 adds 11 new mods and updates two. It's for **TiTS 0.9.168**, the same game version as
+Modv2.9 adds 12 new mods and updates five. It's for **TiTS 0.9.168**, the same game version as
 Modv2.8, so you don't need to delete `backup`. All notes are in the in-game **Changelog**.
 
 ## New mods
@@ -18,6 +18,7 @@ Modv2.8, so you don't need to delete `backup`. All notes are in the in-game **Ch
 | `TN_ShekkaGeneTalk_v2.9.mod` + `.js` | Dr. Rewell makes Shekka fertile again. |
 | `TN_ShekkaEggs_v2.9.js` | Shekka carries and lays Steele's egg; it goes to the nursery. |
 | `TN_RooCrew_v2.9.mod` + `.js` | Recruit Roo the blackjack dealer, with a full Sex menu. |
+| `TN_SteeleBody_v2.9.js` | Steele's body in sex scenes: a prehensile cock finds her g-spot and clits, and a tentacle-lined cock on a suula Steele pumps in venom that doubles her pleasure. Our scenes and the game's own. |
 
 ## Renamed (delete the old copy)
 
@@ -26,6 +27,8 @@ Modv2.8, so you don't need to delete `backup`. All notes are in the in-game **Ch
 | `TN_Changelog_v2.9.js` | `TN_Changelog_v2.8.js` |
 | `ShellyCabinReturns_v2.9.mod` | `ShellyCabinReturns_v2.8.mod` |
 | `TN_SexGallery_v2.9.js` | `TN_SexGallery_v2.8.js` |
+| `TN_ShellyCureQuest_v2.9.mod` | `TN_ShellyCureQuest_v2.8.mod` |
+| `StephIrson_v2.9.js` | `StephIrson_v2.7.js` |
 
 NestPatcher stops if it finds an old and a new copy of the same mod in `enabled.txt`, so the
 easiest update is a clean copy:

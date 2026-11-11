@@ -4,7 +4,9 @@
    each with taur and naga versions.
    v2.7 (2026-11-01): dialogue pass. Cut the wall of "Oi, mate!" lines; her New Brisbane
    voice now comes through in word choice (reckon, heaps, arvo, knackered) with only the
-   odd "mate", and varied speech tags (drawls, purrs, teases). Sex scenes trimmed of repeated paragraphs and use the game's quote style. */
+   odd "mate", and varied speech tags (drawls, purrs, teases). Sex scenes trimmed of repeated paragraphs and use the game's quote style.
+   v2.9 (2026-11-11): doggystyle gets Steele's body lines from TN_SteeleBody_v2.9.js
+   (prehensile cock finds her g-spot and clit; suula venom doubles her pleasure). */
 
 window.tnStephBust = function () {
     if (flags.STEPH_DARGONED) return 5;
@@ -247,6 +249,16 @@ window.tnStephBlowjob = function () {
     addButton(0, "Next", window.tnStephMenu, "Next", "Back to Steph.");
 };
 
+/* Steele's own body in her pussy (TN_SteeleBody_v2.9.js): prehensile cock, suula venom.
+   A paragraph with a break in front, or "". Same text for biped, taur and naga (the helper handles it). */
+window.tnStephSteeleBody = function () {
+    try {
+        if (!window.tnSteeleSex) return "";
+        var t = window.tnSteeleSex.vag({ who: "Steph", npc: typeof chars !== "undefined" && chars ? chars.STEPH : null });
+        return t ? "\n\n" + t : "";
+    } catch (err) { return ""; }
+};
+
 window.tnStephDoggy = function () {
     clearOutput();
     author("Savin");
@@ -265,7 +277,7 @@ window.tnStephDoggy = function () {
         "You don’t. You kneel behind her, grab her hips, and guide [pc.cock] to her entrance. She’s already soaked, and she lets out a breathless giggle when your tip presses against her.",
         "One smooth thrust and you sink into her warm, wet depths. Steph gasps loud enough to rattle the bulkhead, her back arching like a drawn bow.",
         "<i>“Oh, bloody hell, yes!”</i> She shoves back against you hard enough to nearly knock you off balance, and then you’re both moving, finding a rhythm that’s more enthusiasm than finesse.",
-        "Sweat beads on your brow as you keep up with her. Every thrust pulls a new noise out of her, each less coherent than the last, and her tail lashes against your side.",
+        "Sweat beads on your brow as you keep up with her. Every thrust pulls a new noise out of her, each less coherent than the last, and her tail lashes against your side." + window.tnStephSteeleBody(),
         "<i>“Harder, mate. C’mon!”</i> You oblige, fingers digging into her hips, and she answers with a happy, wordless cry.",
         "Her whole body starts to tense, muscles quivering as she grinds back onto you. Then she lets out a loud, primal scream and clenches around you, shuddering through her climax.",
         "The feel of her pushes you right over the edge. You thrust into her one last time and erupt inside her, filling her with your seed.",
