@@ -135,8 +135,8 @@
     }
 
     function bar(pct, paused) {
-        var color = paused ? "#53677B" : "#8D31B0";
-        return '<div style="max-width:460px;height:16px;margin:6px 0;background:#2C3649;border:1px solid #53677B;border-radius:4px;overflow:hidden;">'
+        var color = paused ? "var(--paleColor,#53677B)" : "var(--highlightColor,#8D31B0)";
+        return '<div style="max-width:460px;height:16px;margin:6px 0;background:var(--foregroundColorB,#2C3649);border:1px solid var(--paleColor,#53677B);border-radius:4px;overflow:hidden;">'
             + '<div style="width:' + pct + '%;height:100%;background:' + color + ';"></div></div>';
     }
 

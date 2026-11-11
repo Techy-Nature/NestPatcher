@@ -30,6 +30,11 @@ Modv2.8, so you don't need to delete `backup`. All notes are in the in-game **Ch
 | `TN_SexGalleryScenes_v2.9.js` | `TN_SexGalleryScenes_v2.8.js` |
 | `TN_ShellyCureQuest_v2.9.mod` | `TN_ShellyCureQuest_v2.8.mod` |
 | `StephIrson_v2.9.js` | `StephIrson_v2.7.js` |
+| `AndroidModMenu_v2.9.js` | `AndroidModMenu_v2.5.js` |
+| `TN_Desktop_Menu_v2.9.js` | `TN_Desktop_Menu_v2.5.js` |
+| `TN_Save_Editor_v2.9.js` | `TN_Save_Editor_v2.5.js` |
+| `Pregnancy_v2.9.js` | `Pregnancy_v2.4.js` |
+| `TN_taur_naga_bypass_toggle_v2.9.mod` | `TN_taur_naga_bypass_toggle_v2.5.mod` |
 
 NestPatcher stops if it finds an old and a new copy of the same mod in `enabled.txt`, so the
 easiest update is a clean copy:

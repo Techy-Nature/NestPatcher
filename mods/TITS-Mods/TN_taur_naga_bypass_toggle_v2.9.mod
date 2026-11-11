@@ -106,7 +106,7 @@ Add Javascript
       var el = document.createElement("div");
       el.textContent = text;
       el.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99999;padding:6px 10px;" +
-        "border-radius:6px;background:rgba(0,0,0,.8);color:#fff;font:12px sans-serif;pointer-events:none";
+        "border-radius:6px;background:var(--foregroundColorB,#2C3649);color:var(--textColor,#fff);border:1px solid var(--paleColor,#53677B);font:12px sans-serif;pointer-events:none";
       document.body.appendChild(el);
       setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 6000);
     } catch (e) {}

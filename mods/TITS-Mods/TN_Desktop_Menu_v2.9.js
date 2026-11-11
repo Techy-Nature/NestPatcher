@@ -1,4 +1,4 @@
-/* TN Desktop Menu for Trials in Tainted Space (Modv2.5).
+/* TN Desktop Menu for Trials in Tainted Space (Modv2.9).
    The desktop partner of AndroidModMenu. It adds "TN Mod Settings" to the game's Options
    sidebar, where every TN mod's settings page can be opened. It has NO on/off switches:
    on desktop every mod is always on (turn a mod off by putting # in front of it in
@@ -6,7 +6,9 @@
    Desktop only. On Android it does nothing, because AndroidModMenu is the menu there.
    Mods register the same way as with AndroidModMenu:
      registerModMenu({ id, name, author, description, getHtml, onBind, onAct })
-   Settings are saved by each mod itself, so they are the same ones it uses everywhere. */
+   Settings are saved by each mod itself, so they are the same ones it uses everywhere.
+   Modv2.9: the panel uses the game's color theme (Options > Color Scheme, Custom Theme included),
+   through the game's CSS variables, so a theme change shows at once. */
 (function () {
     "use strict";
 
@@ -101,24 +103,26 @@
         style.id = "tn-desktop-menu-style";
         style.textContent =
             "#" + PANEL_ID + "{position:fixed;z-index:2147483000;right:14px;top:51px;bottom:92px;overflow:auto;" +
-            "padding:0 18px 18px;box-sizing:border-box;border-radius:8px;background:#1d2733;color:#eef2f7;" +
-            "border:1px solid #3a4a5c;box-shadow:0 6px 24px rgba(0,0,0,.45);font:inherit;}" +
+            "padding:0 18px 18px;box-sizing:border-box;border-radius:8px;background:var(--backgroundColor,#3D5174);color:var(--textColor,#fff);" +
+            "border:1px solid var(--paleColor,#53677B);box-shadow:0 6px 24px var(--shadowColor,#202735);font:inherit;}" +
             "#" + PANEL_ID + " .tnd-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;" +
-            "justify-content:space-between;gap:12px;margin:0 -18px 14px;padding:14px 18px;background:#1d2733;" +
-            "border-bottom:1px solid #3a4a5c;}" +
-            "#" + PANEL_ID + " h2{margin:0;font-size:1.4em;color:#fff;}" +
-            "#" + PANEL_ID + " .tnd-intro{margin:0 0 16px;color:#c3cdd8;}" +
-            "#" + PANEL_ID + " .tnd-card{background:#273444;border-radius:7px;margin:0 0 12px;padding:14px;}" +
+            "justify-content:space-between;gap:12px;margin:0 -18px 14px;padding:14px 18px;background:var(--foregroundColorB,#2C3649);" +
+            "border-bottom:1px solid var(--paleColor,#53677B);}" +
+            "#" + PANEL_ID + " h2{margin:0;font-size:1.4em;color:var(--textColor,#fff);}" +
+            "#" + PANEL_ID + " .tnd-intro{margin:0 0 16px;opacity:.85;}" +
+            "#" + PANEL_ID + " .tnd-card{background:var(--foregroundColorA,#333E52);border-radius:7px;margin:0 0 12px;padding:14px;}" +
             "#" + PANEL_ID + " .tnd-card strong{font-size:1.15em;}" +
-            "#" + PANEL_ID + " .tnd-author{color:#9fb0c2;font-size:.9em;margin-left:.4em;}" +
-            "#" + PANEL_ID + " .tnd-desc{margin:8px 0 0;color:#d3dbe4;}" +
+            "#" + PANEL_ID + " .tnd-author{opacity:.7;font-size:.9em;margin-left:.4em;}" +
+            "#" + PANEL_ID + " .tnd-desc{margin:8px 0 0;opacity:.85;}" +
             "#" + PANEL_ID + " .tnd-body{margin-top:10px;white-space:pre-line;}" +
-            "#" + PANEL_ID + " button{font:inherit;cursor:pointer;border:0;border-radius:5px;color:#fff;}" +
-            "#" + PANEL_ID + " .tnd-close{padding:8px 15px;background:#5b3a8a;}" +
-            "#" + PANEL_ID + " .tnd-close:hover,#" + PANEL_ID + " .tnd-choice:hover{outline:2px solid #00f5ef;}" +
-            "#" + PANEL_ID + " .tnd-open{margin-top:10px;padding:0;background:transparent;color:#d9b8f5;}" +
-            "#" + PANEL_ID + " .tnd-choice{margin:8px 8px 0 0;padding:8px 12px;background:#3d5a6e;}" +
-            "#" + ROW_ID + ".tn-selected{outline:2px solid #00f5ef;}";
+            "#" + PANEL_ID + " button{font:inherit;cursor:pointer;border:0;border-radius:5px;color:var(--textColor,#fff);}" +
+            "#" + PANEL_ID + " input,#" + PANEL_ID + " select,#" + PANEL_ID + " textarea{font:inherit;background:var(--foregroundColorB,#2C3649);color:var(--textColor,#fff);border:1px solid var(--paleColor,#53677B);border-radius:4px;}" +
+            "#" + PANEL_ID + " a{color:var(--hyperlinkColor,#D982EF);}" +
+            "#" + PANEL_ID + " .tnd-close{padding:8px 15px;background:var(--highlightColor,#8D31B0);}" +
+            "#" + PANEL_ID + " .tnd-close:hover,#" + PANEL_ID + " .tnd-choice:hover{outline:2px solid var(--focusColor,#00F5EF);}" +
+            "#" + PANEL_ID + " .tnd-open{margin-top:10px;padding:0;background:transparent;color:var(--hyperlinkColor,#D982EF);}" +
+            "#" + PANEL_ID + " .tnd-choice{margin:8px 8px 0 0;padding:8px 12px;background:var(--paleColor,#53677B);}" +
+            "#" + ROW_ID + ".tn-selected{outline:2px solid var(--focusColor,#00F5EF);}";
         document.head.appendChild(style);
     }
 
