@@ -308,10 +308,12 @@ def node_install_hint():
 # --------------------------------------------------------------------------
 
 def say(message):
+    # flush: when the output goes to a pipe or a file (a launcher, a log), each line
+    # still shows straight away, e.g. the GUI's "copy this into your browser" address.
     try:
-        print(message)
+        print(message, flush=True)
     except UnicodeEncodeError:
-        print(message.encode("ascii", "replace").decode("ascii"))
+        print(message.encode("ascii", "replace").decode("ascii"), flush=True)
     for hook in LOG_HOOKS:
         hook(message)
 
@@ -3322,6 +3324,7 @@ def export_preflight():
 # --------------------------------------------------------------------------
 
 import secrets
+import socketserver
 import threading
 import webbrowser
 import urllib.parse
@@ -3711,6 +3714,19 @@ class Handler(BaseHTTPRequestHandler):
         return self.send(404, "not found", "text/plain")
 
 
+class Server(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def server_bind(self):
+        # The standard server_bind looks up this computer's network name
+        # (socket.getfqdn), which can hang for half a minute or more on a Mac with
+        # slow name lookups. The panel only ever talks to 127.0.0.1, so skip it.
+        socketserver.TCPServer.server_bind(self)
+        host, port = self.server_address[:2]
+        self.server_name = host
+        self.server_port = port
+
+
 def watchdog():
     """Close the patcher a while after its browser tab is closed (no console to close on a packed exe)."""
     while True:
@@ -3733,7 +3749,7 @@ def gui_main():
         if arg.startswith("--port="):
             port = int(arg.split("=", 1)[1])
     configure(interactive=False)
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = Server(("127.0.0.1", port), Handler)
     SERVER[0] = server
     url = "http://127.0.0.1:" + str(server.server_address[1]) + "/#k=" + KEY
     say("NestPatcher GUI " + TOOL_VERSION + " is running.")

@@ -310,10 +310,12 @@ def node_install_hint():
 # --------------------------------------------------------------------------
 
 def say(message):
+    # flush: when the output goes to a pipe or a file (a launcher, a log), each line
+    # still shows straight away, e.g. the GUI's "copy this into your browser" address.
     try:
-        print(message)
+        print(message, flush=True)
     except UnicodeEncodeError:
-        print(message.encode("ascii", "replace").decode("ascii"))
+        print(message.encode("ascii", "replace").decode("ascii"), flush=True)
     for hook in LOG_HOOKS:
         hook(message)
 
