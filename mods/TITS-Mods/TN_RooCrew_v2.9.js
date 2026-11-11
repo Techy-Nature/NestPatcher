@@ -281,6 +281,7 @@
     var ROWS = {}, LINES = [];
     for (var di = 0; di < DOC.length; di++) { ROWS[DOC[di][0]] = DOC[di]; LINES.push(DOC[di][0]); }
     var COND = {};  // doc line of a "// condition" -> predicate (filled in roo_2+)
+    var FLAV = {};  // doc line -> extra paragraph after it (Steele's body lines, filled in roo_7)
     function M() { return true; }
 
     /* Render doc lines a..b. Condition lines with a COND entry switch paragraphs on/off; other notes are skipped. */
@@ -295,6 +296,7 @@
             if (!on || (skip && skip.indexOf(n) >= 0)) continue;
             var t = txt(r[2], n);
             if (t.trim()) out.push(t.trim());
+            if (FLAV[n]) { var fv = FLAV[n](); if (fv) out.push(txt(fv, 0).trim()); }
         }
         return out;
     }
@@ -1812,6 +1814,14 @@
     k("rooVirginTonight", function () { return !!CTX.rVirgin; });
     k("rooSoaked", function () { return lust() >= 50 || vibesOn(); });
 
+    /* Steele's own body (TN_SteeleBody_v2.9.js): prehensile cock, suula venom. "" when nothing applies. */
+    function steeleBody(mode) {
+        if (!hasCock()) return "";
+        try { return window.tnSteeleSex ? window.tnSteeleSex.vag({ who: "Roo", clits: 1, mode: mode || "thrust" }) : ""; } catch (e) { return ""; }
+    }
+    FLAV[1330] = function () { return steeleBody("ride"); };   // William: the pilot-chair ride
+    FLAV[4985] = function () { return steeleBody("still"); };  // William: keeping warm at bedtime
+
     var RET = null;                        // where Next goes after a scene
     function ret(fn) { RET = fn; }
     function done(o) {
@@ -1916,6 +1926,7 @@
             "{taur: She knows exactly what to do with a [pc.race] like you. Roo hops up onto the bed and plants herself on all fours at its edge, twin tails lifted high and out of the way, and looks back at you with her ears flat and her cheeks red. You rise, step forward, and lower your barrel over her until your forelegs bracket the bed on either side. / naga: She settles back into your coils, facing you now, and your tail winds up around her waist and thighs, holding her in place like the arms of a chair. / else: She turns around in your lap to face you, knees sinking into the bed on either side of your [pc.hips], arms looping around your neck.}",
             "{hasCock: {taur: Your [pc.cock] finds her by feel alone, nudging and sliding through soaking folds until Roo reaches back between her legs and guides it home. She sinks back onto you with a long, shuddering mewl. / else: Roo reaches down, wraps her fingers around your [pc.cock], and lines it up with herself. Then she sinks, slowly, until she’s sitting in your lap with every inch of you buried in her, her mouth hanging open in a silent <i>“oh.”</i>} / else: {taur: Roo reaches back between your hind legs and finds your [pc.vagina] by touch, curling two fingers into you while she grinds her own sex back against your sheath of warm flank. / else: Roo slides a hand down between you and cups your [pc.vagina], fingers curling into you while she grinds her own soaked sex against your thigh.}}",
             "Then she dances again. Slower this time, rolling her hips the same way she did for the music, only now every roll {hasCock: drags her up and down your length / else: grinds her clit against you and pushes her fingers deeper}. {rooPuffy: Her pumped, puffy pussy lips cling and drag with every stroke. / else: } {taur: The bed creaks under your combined weight with every thrust you give back. / naga: Your coils tighten and loosen in time with her, rocking her on you. / else: Your hands find that big, soft bottom and squeeze, helping her bounce.} " + MILKY,
+            steeleBody("ride"),
             "<i>“{slave: [pc.Master], [pc.Master], please, may I...?”</i> / free: Don’t stop, don’t stop, don’t you <b>dare</b> stop!”</i>} Roo’s tails go rigid. She clamps down {hasCock: around you / else: on your fingers} and cums with a wail that would’ve gotten her kicked off the casino floor, shaking from her ears to her toes.",
             "{hasCock: That squeezing, rippling heat drags you right over the edge after her. You bury yourself as deep as she’ll take you and flood her with [pc.cum]{highCum: until it spills back out around you and runs down her thighs}. / else: Her fingers never stop, and with her wailing in your ear you aren’t far behind. You shudder through your own climax, your [pc.girlCum] slicking her hand.}",
             "Afterwards she stays {taur: sprawled across her bed under you / naga: wrapped in your coils / else: in your lap}, purring so hard you can feel it in your chest. <i>“{slave: Best dance I ever did,”</i> she mumbles. <i>“Thank you, [pc.Master].”</i> / free: Best dance I ever did,”</i> she mumbles. <i>“Encore later?”</i>}"
@@ -1962,6 +1973,7 @@
             "{taur: You rear up and step forward, bringing your forelegs down onto the bed on either side of her, the frame groaning in protest. Your barrel blots out the light over her back. She can’t see a thing, and from the way she shivers, she loves it. / naga: You slither up behind her and wind your tail around her legs and waist, pulling her back against you, holding her open and in place. / else: You climb up behind her and take hold of her hips, sinking your fingers into soft, giving flesh.}",
             "{rooPuffy: Her pumped pussy is swollen and slick, its plump lips parting around your [pc.cockHead] like they’ve been waiting for it. / else: She’s already soaking wet, her pink lips parting around your [pc.cockHead] without any resistance.} You push in, and Roo lets out a long, rising yowl that would make an alley cat proud.",
             "Then you fuck her. Her ass ripples with every thrust, that soft, heavy weight {taur: slapping back against your underbelly / naga: bouncing against your scales / else: clapping against your hips}. {multiCock: Your other length slides wet and hot along the cleft of her cheeks with every stroke. / else: } Roo’s tails thrash. Her face drops into the sheets. " + MILKY,
+            steeleBody(),
             "<i>“{slave: [pc.Master]! [pc.Master], I’m going to - may I - please!”</i> / free: Harder! Oh, stars, just like that, harder!”</i>} You give her permission, or you give her harder, and either way she shatters. Her whole body seizes, clenching around you in long rippling waves.",
             "You follow her over, slamming home one last time and pumping her full of [pc.cum]. {highCum: It doesn’t stop. You keep cumming until she’s overflowing, a hot river of it running down her thighs and puddling on the sheets. / else: She mewls at the warmth of it.}",
             "Roo collapses face-down into her bed, ass still in the air, purring loud enough to rattle the frame. <i>“{slave: Thank you, [pc.Master]...”</i> / free: That was... yeah. Yes. Good.”</i>}"
@@ -1976,6 +1988,7 @@
             STRIP + " " + VIBE,
             "{taur: The bed is exactly the right height. You step over her, forelegs braced on the mattress, and lower your barrel until your [pc.cocks] {multiCock: hang / else: hangs} right where you want {multiCock: them / else: it}. / naga: Your coils pile up behind her, raising you to just the right height, and a loop of your tail settles across the backs of her knees to keep her where she is. / else: You step in behind her and press your hips against that big, soft rump.}",
             "Pinned like this, she’s nothing but soft. You sink into her pussy first, and she sighs with her whole body. {multiCock: Then you show her what the rest of you is for. Your second cock slides into the deep valley of her cheeks, and she squeezes them together around it with both hands, giving you a buttjob in time with every stroke. {cockCount>2: Another finds the tight, slick gap between her thighs, and she clamps down on that one too. / else: } / else: When you pull out and slide your [pc.cock] between her thick, sweaty thighs instead, she clamps them together around you, and you fuck the soft gap there for a while just to hear her whine for it back inside.}",
+            steeleBody(),
             "<i>“There’s so much of you,”</i> she whimpers, toes curling against the deck. <i>“{slave: Use all of me, [pc.Master], please! / free: You’re gonna wreck my sheets, and I don’t care!}”</i> Her tails twist together over her back in a knot of pure need.",
             "She cums first, with her face in the mattress and her fists in the sheets. You’re right behind her, {multiCock: unloading everywhere at once, filling her pussy, painting the cleft of her ass and glazing her thighs with [pc.cum] / else: burying yourself inside her and filling her up with [pc.cum]}.",
             "Roo doesn’t move for a long while afterwards. She doesn’t want to. <i>“Just leave me here,”</i> she mumbles happily. <i>“This is where I live now.”</i>"
@@ -2041,6 +2054,7 @@
             "{taur: You don’t exactly have a lap, but Roo has a plan for that. You lie on your side across her bed and she straddles your hind legs, reaching between them with a giggle and pulling herself up onto you. / naga: Your coils make a perfect seat, and she straddles them, sinking down where your tail meets your hips. / else: She straddles your lap, knees sinking into the mattress on either side of your [pc.hips], and grinds down against you.}",
             "{hasCock: She takes your [pc.cock] in her hand and guides it to her pussy, then sinks all the way down in one long, slow slide{cockSize>12: , eyes going wide as it keeps going, and going, until it’s bulging her belly}. / else: She grinds her pussy right against yours, slick lips kissing slick lips, her clit catching against your [pc.clit] with each roll of her hips.}",
             "Then she rides. Roo’s a natural; she rides like she dances, hips rolling in smooth, heavy circles, breasts bouncing right in your face. {milky: Every bounce sends a little spray of milk across your chest, and she laughs breathlessly about it. / else: You catch a nipple in your mouth and she gasps and rides harder.} {taur: Every drop of her weight sends a shiver all the way to your hindquarters. / naga: Your coils tighten around her waist, helping her bounce. / else: You grab her hips and help her slam down.}",
+            steeleBody("ride"),
             "<i>“{slave: [pc.Master], may I - may I cum on you?”</i> / free: I’m gonna cum all over you, I’m gonna -”</i>} She doesn’t finish. She just does, clamping down {hasCock: hard around your cock / else: against you}, grinding through it with her head thrown back and her tails straight up like antennae.",
             "{hasCock: You follow her, pulling her down hard and emptying yourself inside her, [pc.cum] filling her up until she whimpers. / else: The grinding drags you over the edge right behind her, and you shudder against her as your [pc.girlCum] mixes with hers.} Roo slumps forward against your chest, panting and purring. <i>“That,”</i> she says, <i>“was a <b>ride</b>.”</i>"
         ]);
@@ -2087,6 +2101,7 @@
             firstTime ? "You go slowly. You feel the moment you break through, a tiny bit of resistance and then none, and Roo gasps and grabs your shoulders hard, eyes shining wet. You stop. She shakes her head, laughing and crying at once. <i>“No, no, it’s - it’s good. It’s <b>good</b>. It’s mine. Keep going. Please.”</i>"
                 : "You slide into her, slow and deep, and Roo sighs like she’s been holding her breath for days. {rooPuffy: Her pumped lips hug the base of you. / else: }",
             "You move together. It isn’t fast, and it isn’t a show; it’s just the two of you, foreheads {taur: as close as your bodies allow / else: touching}, her legs {taur: wrapped around your forelegs / naga: wrapped around your coils / else: wrapped around your waist}. " + MILKY + " She whispers your name. Not a title. Just your name, over and over, like she’s learning it.",
+            steeleBody(),
             "She cums with her eyes open, looking right at you, her whole body shuddering under you. You bury yourself in her and follow, filling her with [pc.cum] while she clings to you.",
             firstTime ? "Afterwards she lies curled against you, tracing patterns on your [pc.skinFurScales]. <i>“That’s the one that counts,”</i> she says softly. <i>“Okay? Not the other one. This one.”</i> You agree. She falls asleep smiling."
                 : "Afterwards she stays tangled up in you, purring, and doesn’t let go for a long time."
@@ -2122,6 +2137,7 @@
             "{taur: Fitting your body into the ship’s shower takes a little negotiating and a lot of laughing, and in the end the door won’t close behind your hindquarters. Roo declares it a design flaw and gets in anyway, squeezing in against your chest. / naga: You coil up in the shower stall until there’s barely room for her, and she squeezes in against you anyway, standing inside the loops of your tail. / else: The ship’s shower is not built for two, and it is <i>definitely</i> not built for two with a chest like hers, but you manage.} " + STRIP,
             "The water comes on hot. Roo lathers up her hands and then, with a wicked look, lathers up her breasts instead, and washes you with them: rubbing them across your chest, your back, {taur: along your flanks and barrel, / naga: down the length of your coils, / else: down your arms and stomach,} soaping every inch of you with those big, slippery tits. " + MILKY + " She’s very thorough. She’s <i>extremely</i> thorough.",
             "{hasCock: By the time she’s soaping your [pc.cock] between them, you can’t take it anymore. You turn her around and press her against the wet wall, and {taur: rear up behind her, forelegs braced against the tiles above her head, / naga: lift her up in your coils, / else: lift one of her thick thighs,} and slide into her slick heat. You take her slow and sweet under the spray, kissing her neck, her ears, her shoulders, while she moans and reaches back to hold onto you. / else: By the time she’s soaping between your legs, you can’t take it anymore. You pull her close and slide your hand between her thighs while hers keeps working on you, and you get each other off right there under the hot water, foreheads together, slippery and gasping.}",
+            steeleBody(),
             "{hasCock: She cums with her cheek pressed to the tiles, purring so loud you can hear it over the water, and you follow her, filling her with [pc.cum] that runs straight back out and down the drain. / else: She cums first, shivering against you, and you follow a moment later with her name on your lips.}",
             "You actually do get clean in the end. Roo dries you off with a towel, very carefully, as if you’re a precious object, and then shakes herself like an actual cat and gets water everywhere."
         ]);
@@ -2216,6 +2232,7 @@
                 : "You push her up against the nearest wall, kissing her hard, and Roo gasps into your mouth and grabs at you. <i>“Right here?”</i> she breathes. <i>“Right <b>here</b>?”</i> Yes. Right here.",
             "{rooWearingAnyClothes: You don’t bother getting her undressed. You just shove her clothes up and her panties aside. / else: She’s already naked. Convenient.} " + VIBE,
             "{hasCock: {taur: You turn her to face the wall and rear up, forelegs bracing against it above her head, and drive your [pc.cock] into her from behind and below. She cries out and claws at the wall. / naga: Your coils lift her right off her feet and pin her to the wall, legs spread wide, and you sink your [pc.cock] into her. / else: You hike one of her thick thighs up around your hip and drive your [pc.cock] into her, pinning her to the wall.} You fuck her hard, fast and messy, and anyone walking by can hear every slap and every yowl. / else: You pin her to the wall with your thigh between hers and your hand down the front of her, fingers sliding deep, while she grinds against you and reaches into your gear to return the favor. Anyone walking by can hear every wet sound.}",
+            steeleBody(),
             "She cums with her face pressed against the wall, shaking. {hasCock: You pin her there and finish inside her, [pc.cum] running down her thighs onto the deck. / else: You follow a moment later, with her fingers buried in you.}",
             "Roo slides down the wall to sit on the deck, laughing breathlessly. <i>“I think someone heard us,”</i> she says. She doesn’t sound sorry."
         ]);
@@ -2735,6 +2752,7 @@
             "Roo pushes you down onto the guest bed. It’s enormous, soft and silk-sheeted, a bed for kaithrit nobility, and {taur: even you fit on it, sprawled on your side with your legs folded. / naga: even your coils fit, spread across it in loose loops. / else: you sink into it like a cloud.} She climbs over you, slow and deliberate, her uniform hanging open, her heavy breasts swaying.",
             "<i>“Shh,”</i> she whispers, giggling, one finger to your lips. <i>“Mom’s room is right down the hall.”</i> Then she reaches down and takes your [pc.cock] in her hand, and lowers herself onto it {taur: from where she kneels astride your hind leg, reaching back to hold herself steady on your flank / naga: right where your coils begin, your tail curling up her back to hold her / else: in one long, slow, shuddering slide}.",
             "She rides you the way she did everything in that casino: with total confidence and a showman’s rhythm. Hips rolling. Breasts bouncing. Tails swaying behind her in matching, mesmerizing arcs. But her eyes never leave yours, and there’s nothing professional about the way she looks at you.",
+            steeleBody("ride"),
             "It gets harder to stay quiet. Roo clamps a hand over her own mouth, then over yours when you groan, and then gives up and kisses you instead to muffle you both. {taur: The bed creaks under your weight. / naga: Your coils tighten around her, pulling her down harder. / else: You grab her thick hips and pull her down harder.} The silk sheets slide everywhere.",
             "She cums with her face buried in your neck, shaking and biting down on your shoulder to keep from yowling. That squeezing heat drags you right over the edge, and you fill her with [pc.cum], holding her down on you while she trembles.",
             "Afterwards, she lies on top of you, sweaty and purring, and pulls the covers over both of you. <i>“That was the best night of my life,”</i> she mumbles into your chest. <i>“Don’t tell my mom.”</i>"

@@ -206,6 +206,8 @@
                 "You don’t. You rock into her with long, deep, careful strokes, and she meets every one of them, her heels digging into your back, her ears jingling with every thrust. She kisses you between gasps. It doesn’t feel like the rough, greedy fucks the two of you usually share. It feels like something you’re building together."
             );
         }
+        // Steele's own body (TN_SteeleBody_v2.9.js): prehensile cock, suula venom. Shekka is raskvel: two clits.
+        lines.push(safe(function () { return window.tnSteeleSex ? window.tnSteeleSex.vag({ who: "Shekka", npc: shekka, clits: safe(function () { return shekka.vaginas[0].clits; }, 2), cock: x }) : ""; }, ""));
         lines.push(
             "You can feel the difference in her, too. She wants this, achingly, but she’s <i>here</i> with you, not lost somewhere behind her eyes. She talks to you the whole time: telling you how good you feel, asking you to go slower, then faster, laughing when her ears tangle in " + body({ biped: "your hair", taur: "the sheets", naga: "the sheets" }) + ".",
             "When she cums, she cums hard, clamping down around you, her whole body shaking. " + q("Now,") + " she gasps. " + q("Please, [pc.name]. Fill me up. Give me our egg."),
