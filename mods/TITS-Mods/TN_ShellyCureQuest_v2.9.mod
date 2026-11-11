@@ -12,6 +12,7 @@ Author: Neston
 # Cured busts come from TN_ShellyCureBusts.js. List it before this mod in enabled.txt. Without it she keeps her old busts.
 # 2026-10-26: hooks for TN_ShellyFamily.mod (pill line, conception, pregnant text and busts). Harmless without it.
 # 2026-11-02 (Modv2.8 fix): Dr. Lessau now sees the eggs. The inventory check read pc.inventory as an array, but the game keeps items in pc.inventory.storage.
+# 2026-11-11 (Modv2.9): Make Love and She Rides get Steele's body lines from TN_SteeleBody_v2.9.js (prehensile cock finds her g-spot and clit; suula venom doubles her pleasure). Harmless without it.
 
 # Dr. Lash's lab menu (Novahome): quest buttons go in free slots from 7 up.
 Replace [content_tarkus.js]:
@@ -1102,6 +1103,11 @@ Add JS:
     if (q <= 2000) return { size: "extra-large", big: true, huge: false };
     return { size: "huge", big: true, huge: true };
   }
+  // Steele's own body (TN_SteeleBody_v2.9.js): prehensile cock, suula venom. Only for a real cock, not a cockvine.
+  function steeleBody(g, mode) {
+    if (!g.cock || !window.tnSteeleSex) return "";
+    try { return window.tnSteeleSex.vag({ who: "Shelly", npc: typeof chars !== "undefined" && chars ? chars.SHELLY : null, mode: mode || "thrust" }); } catch (err) { return ""; }
+  }
   // A cockvine stands in for a missing cock.
   function cockSwap(text, g) { return g.cock ? text : text.split("[pc.cock]").join("[pc.tailCock]"); }
 
@@ -1201,7 +1207,11 @@ Add JS:
         red: "There’s no candy-shop sweetness in the air anymore, just her, warm and musky, and you like it more than you expected to.",
         blue: "Without the bunny ears, every expression shows on her face, and right now that face is pure bliss.",
         lash: "Her dark-tipped ears fold back flat as she arches into you, gasping at every inch. She’s so sensitive now that even your breath on her nipples makes her clench around you."
-      }),
+      })
+    );
+    var sbLove = steeleBody(g);
+    if (sbLove) t = p(t, sbLove);
+    t = p(t,
       "You find a slow, rolling rhythm together. She kisses you between thrusts, nips your lip, and whispers encouragement until her breath hitches and she clenches around you, cumming with a muffled cry against your neck." + (g.herm ? " Her fingers keep working your [pc.vagina] the whole time, and you cum in both places at once." : "") + " You follow her over soon after" + (g.knot ? ". Your [pc.knot] finally pushes in at the last moment, tying the two of you together intimately as you spill deep inside her." : ", spilling deep inside her.") + " " + pillLine()
     );
     if (g.tailCock && g.cock) t = p(t, "Your [pc.tailCock] isn’t content to stay out of it. It snakes up between you, and Shelly squeaks as it nudges at her. She bites her lip, looks at you, and nods. With a little patience you work it in alongside your [pc.cock], stretching her wonderfully full while she claws at your back.");
@@ -1227,7 +1237,10 @@ Add JS:
     details.push(bunny() ? "Her ears bob with every bounce, and she catches you staring and wiggles them on purpose." : "She tosses her hair back and laughs, enjoying " + (first ? "her newfound lightness and freedom to move." : "how light and free her body feels now."));
     if (cureKind() === "lash") details.push("Every time she comes down she shudders. She’s so sensitive now that she has to stop and catch her breath twice, laughing at herself, before she can keep going.");
     if (g.herm && body === "biped") details.push("She reaches back behind herself and finds your [pc.vagina], rubbing it in rhythm with her bouncing.");
-    t = p(t, details.join(" "),
+    t = p(t, details.join(" "));
+    var sbRide = steeleBody(g, "ride");
+    if (sbRide) t = p(t, sbRide);
+    t = p(t,
       "She rides you until her thighs shake, then grinds down hard and cums, squeezing you so tightly that you let go at the same moment." + (g.knot ? " She sinks down onto your [pc.knot] as you cum, gasping as it locks her in place on top of you." : "") + (g.herm ? " Your [pc.vagina] clenches as you cum in both places." : "") + " " + pillLine()
     );
     if (g.tailCock && g.cock) t = p(t, "While she rides your [pc.cock], your [pc.tailCock] slides around behind her and teases her " + (bunny() ? "tailhole" : "ass") + " until she begs you to push in.");
