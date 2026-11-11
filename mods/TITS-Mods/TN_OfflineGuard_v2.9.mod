@@ -8,6 +8,9 @@ Author: Neston
 #   - The error screen's "Submit Error" button is now "Report Error": it copies the error
 #     message to your clipboard and opens the NestPatcher Error Reports channel on Neston's
 #     Stoat server (https://stt.gg/Fqfsc3bR). Nothing is sent by itself; you paste it there.
+#     The crash text's "create a bug report on the forums here" (Fenoxo's forum) now says to
+#     report it in that channel, and "here" links there too. (The text shows up twice in the
+#     game file, so that patch is listed twice.)
 #   - Online cloud saves (Fenoxo account save slots) are off. The cloud toggle in Save/Load
 #     does nothing, and the cloud save code can't log in, upload, download or delete. Normal
 #     save slots and Save To File / Load From File work as always.
@@ -51,6 +54,21 @@ Replace [main.js]:
 !1===@@t@@.hasPromptedForUpdateCheck&&(@@t@@.hasPromptedForUpdateCheck=!0,window.showDialog(
 With:
 !1===(@@t@@.updateChecking=!1,@@t@@.hasPromptedForUpdateCheck=!0,!0)&&(@@t@@.hasPromptedForUpdateCheck=!0,window.showDialog(
+
+Replace [main.js]:
+A critical error has occurred. Please create a bug report on the forums
+With:
+A critical error has occurred. This game is modded, so please report it in the NestPatcher Error Reports channel on Neston’s Stoat server
+
+Replace [main.js]:
+A critical error has occurred. Please create a bug report on the forums
+With:
+A critical error has occurred. This game is modded, so please report it in the NestPatcher Error Reports channel on Neston’s Stoat server
+
+Replace [main.js]:
+textHyperlink("here","https://forum.fenoxo.com/forums/titsbugs/")
+With:
+textHyperlink("here","https://stt.gg/Fqfsc3bR")
 
 Add Javascript:
 (function () {
