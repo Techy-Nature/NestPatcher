@@ -26,7 +26,8 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 | macOS | [`patchers/NestPatcher_TiTS_Mac_v1.9.py`](patchers/) | [NestPatcher_Mac_Guide_v1.9.md](docs/NestPatcher_Mac_Guide_v1.9.md) |
 | Make a **Mac app** or **Linux AppImage** of the patched game | GUI 0.14 (**Make Mac app** / **Make AppImage**) or `--export-mac` / `--export-appimage` | [Guide_Export_Mac_AppImage_v1.12.md](docs/Guide_Export_Mac_AppImage_v1.12.md) |
 | Android, no Termux (app) | `NestPatcher_Android_App_v0.10.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.10.md](docs/Guide_Android_App_v0.10.md) |
-| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.6.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.14.md](docs/Guide_GUI_v0.14.md) |
+| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.6.py`](patchers/), or the GUI script in Termux | [BUILDING_TITS_ANDROID_MODDED_v1.6.md](docs/BUILDING_TITS_ANDROID_MODDED_v1.6.md) (Termux), [Guide_GUI_v0.14.md](docs/Guide_GUI_v0.14.md) (GUI) |
+| Android: unpack the TiTS APK, then pack, sign and install the modded one | `unzip`, `zip`, `zipalign`, `apksigner` in Termux | [EXTRACTING_TITS_ANDROID_APK_v1.6.md](docs/EXTRACTING_TITS_ANDROID_APK_v1.6.md), then [BUILDING_TITS_ANDROID_MODDED_v1.6.md](docs/BUILDING_TITS_ANDROID_MODDED_v1.6.md) |
 
 Newest versions: **CLI 1.12, GUI 0.14, Mac 1.9** (Android patcher 1.6, Android app 0.10). See [What's new](#whats-new) and [Updating](#updating).
 
@@ -124,7 +125,7 @@ The newest TN mod pack (Modv2.8, for TiTS 0.9.168) is in [`mods/`](mods/): the m
 2. Bump the version in `src/build.py`: `CLI_VERSION` for any change to the shared engine or the CLI (this is the number the release is named after), `GUI_VERSION` for the GUI, `MAC_VERSION` for `src/mac.py`. A change to `src/engine.py` reaches the GUI and Mac builds too, so bump those as well.
 3. Run `python src/build.py`. It writes the new `patchers/*_v<version>.py`. Delete the old-version `.py` files from `patchers/` (`git rm`).
 4. The helper scripts in `patchers/` are hand-made, not built: rename `NestPatcher_Windows_v*.bat`, `nestpatcher_linux_v*.sh`, `install_deps_linux_v*.sh` (CLI version) and `NestPatcher_GUI_Windows_v*.bat`, `nestpatcher_gui_linux_v*.sh` (GUI version), and update the file names inside them.
-5. Rename the guides in `docs/` to the new version numbers and update the versions and file names inside them. Update this README: the table in "Which one do I use?", "Newest versions", "What's new", and the example commands.
+5. Rename the guides in `docs/` to the new version numbers (the two Android APK guides follow the Android patcher's version) and update the versions and file names inside them. Update this README: the table in "Which one do I use?", "Newest versions", "What's new", and the example commands.
 6. Update the version in the tests' usage lines (`tests/*.py`), then run them all (the commands are in `.github/workflows/build.yml`).
 7. Open a pull request. When it is merged, CI publishes the release `Patchers_v<CLI_VERSION>` by itself. A GUI-only or Mac-only bump doesn't make a new release, because releases follow `CLI_VERSION`.
 8. The Android patcher (`patchers/NestPatcher_TiTS_Android_v*.py`) is edited by hand. The Android app has its own version in `android/app/build.gradle.kts`.

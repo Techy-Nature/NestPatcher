@@ -2,7 +2,7 @@
 
 The NestPatcher app runs the NestPatcher patcher on your phone without Termux. It is **not KittyPatcher**. It is based on KittyPatcher by LibraKitty.
 
-You still need the game unpacked into a folder, the same as with Termux. The app patches that unpacked game. It doesn't rebuild or sign the TiTS APK for you.
+You still need the game unpacked into a folder, the same as with Termux. The app patches that unpacked game. It doesn't rebuild or sign the TiTS APK for you. To unpack the APK, see [EXTRACTING_TITS_ANDROID_APK_v1.6.md](EXTRACTING_TITS_ANDROID_APK_v1.6.md). To pack, sign and install the result, see [BUILDING_TITS_ANDROID_MODDED_v1.6.md](BUILDING_TITS_ANDROID_MODDED_v1.6.md) (steps 9 to 16).
 
 ## What you need
 
@@ -91,7 +91,7 @@ Text in **Extra options** (step 4) is added after the folders.
 2. Tap **Test my mods**. This changes nothing. Read **What happened** at the bottom.
 3. If you see **STOP**, **MISS** or **INVALID**, nothing was changed. Fix that mod, or turn it off in `enabled.txt`.
 4. When the test is clean, tap **Patch the game**.
-5. Rebuild and sign the TiTS APK the way you usually do, then install it.
+5. Pack, align and sign the TiTS APK in Termux, then install it: steps 9 to 16 of [BUILDING_TITS_ANDROID_MODDED_v1.6.md](BUILDING_TITS_ANDROID_MODDED_v1.6.md).
 
 Tap **Copy log** to paste the log into a bug report.
 
