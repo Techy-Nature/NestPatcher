@@ -96,6 +96,7 @@ def main(argv=None):
     if PLATFORM != PLATFORM_DEFAULT:
         say("Note: this is the " + PLATFORM_LABEL + " patcher but you seem to be on " + PLATFORM + ".")
         say("It will still try, but the matching patcher for your system gives better help messages.")
+    warn_wine()
 
     if args.forget:
         if os.path.isfile(SETTINGS):

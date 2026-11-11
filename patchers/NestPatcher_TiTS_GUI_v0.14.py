@@ -28,8 +28,8 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_GUI_v0.13.py'
-TOOL_VERSION = '0.13'
+TOOL_NAME = 'NestPatcher_TiTS_GUI_v0.14.py'
+TOOL_VERSION = '0.14'
 PLATFORM_DEFAULT = None
 PLATFORM_LABEL = 'GUI'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
@@ -594,6 +594,59 @@ def game_executables():
     return names
 
 
+def safe_realpath(path):
+    """os.path.realpath that never crashes. Under Wine (Windows programs on Linux),
+    Python's realpath can fail with "[WinError 1168] Element not found" on Linux
+    drives such as Z:\\mnt\\..., so fall back to the plain full path."""
+    try:
+        return os.path.realpath(path)
+    except (OSError, ValueError):
+        return os.path.abspath(path)
+
+
+def copy_file(source, dest):
+    """shutil.copy2, with a plain copy as a fallback when Windows (or Wine) refuses
+    the fast copy for a reason other than permissions."""
+    try:
+        shutil.copy2(source, dest)
+    except PermissionError:
+        raise
+    except OSError:
+        shutil.copyfile(source, dest)
+        try:
+            shutil.copystat(source, dest)
+        except OSError:
+            pass
+
+
+WINE = []
+
+
+def running_under_wine():
+    """True when this Windows build runs on Linux or a Mac through Wine/Proton/CrossOver."""
+    if not WINE:
+        found = False
+        if PLATFORM == "windows":
+            try:
+                import ctypes
+                found = hasattr(ctypes.WinDLL("ntdll"), "wine_get_version")
+            except Exception:
+                found = False
+        WINE.append(found)
+    return WINE[0]
+
+
+def warn_wine():
+    """Tell Wine users the native Linux build is the better fit (it is what we test)."""
+    if not running_under_wine():
+        return False
+    say("NOTE: This is the Windows build running through Wine/Proton on Linux or Mac.")
+    say("  It should still work, but on Linux the Linux AppImage (NestPatcher_GUI_..._x86_64.AppImage)")
+    say("  or the Linux patcher script is the better choice. It patches the Windows copy of")
+    say("  TiTS too. Either way, close TiTS before you patch.")
+    return True
+
+
 def windows_process_paths(pids):
     """Full program paths for these Windows process ids. A path that can't be read is None."""
     paths = {pid: None for pid in pids}
@@ -634,11 +687,11 @@ def windows_running_from_game(paths):
     """Says which process (truthy) if any process runs from the game folder. A same-named program elsewhere
     (another copy of TiTS, another Electron app) doesn't count. When Windows hides a
     path we can't tell, so we play safe and count it."""
-    game_real = os.path.normcase(os.path.realpath(GAME)).rstrip("\\/") + os.sep
+    game_real = os.path.normcase(safe_realpath(GAME)).rstrip("\\/") + os.sep
     for pid, path in sorted(paths.items()):
         if path is None:
             return "process " + str(pid) + " (Windows didn't say where it runs from)"
-        if os.path.normcase(os.path.realpath(path)).startswith(game_real):
+        if os.path.normcase(safe_realpath(path)).startswith(game_real):
             return path + " (process " + str(pid) + ")"
     return ""
 
@@ -671,14 +724,14 @@ def game_running():
         except OSError:
             return False
     # Linux: any process whose program file sits inside the game folder.
-    game_real = os.path.realpath(GAME) + os.sep
+    game_real = safe_realpath(GAME) + os.sep
     try:
         pids = [pid for pid in os.listdir("/proc") if pid.isdigit()]
     except OSError:
         return False
     for pid in pids:
         try:
-            exe = os.path.realpath(os.readlink("/proc/" + pid + "/exe"))
+            exe = safe_realpath(os.readlink("/proc/" + pid + "/exe"))
         except OSError:
             continue
         if exe.startswith(game_real):
@@ -893,10 +946,10 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
         for name in touched:
             path = os.path.join(BACKUP, name)
             if not os.path.exists(path):
-                shutil.copy2(os.path.join(APP, name), path)
+                copy_file(os.path.join(APP, name), path)
                 log("Captured original bundle backup " + name)
         if not os.path.isfile(index_backup_path):
-            shutil.copy2(index_path, index_backup_path)
+            copy_file(index_path, index_backup_path)
             log("Captured original index.html backup")
         os.makedirs(RUNTIME_DIR, exist_ok=True)
         for name in write_bundles:
@@ -958,7 +1011,7 @@ def restore_originals():
     for name in sorted(os.listdir(BACKUP)):
         source = os.path.join(BACKUP, name)
         if os.path.isfile(source) and (name.endswith(".js") or name == "index.html"):
-            shutil.copy2(source, os.path.join(APP, name))
+            copy_file(source, os.path.join(APP, name))
             count += 1
     if os.path.isdir(RUNTIME_DIR):
         shutil.rmtree(RUNTIME_DIR)
@@ -1001,7 +1054,7 @@ def extract_asar(asar_path, dest):
                 elif "link" in entry:
                     continue
                 elif entry.get("unpacked"):
-                    shutil.copy2(os.path.join(unpacked_dir, name), out)
+                    copy_file(os.path.join(unpacked_dir, name), out)
                     count += 1
                 else:
                     handle.seek(base + int(entry["offset"]))
@@ -3186,7 +3239,7 @@ def write_enabled(turn_on):
     if os.path.isfile(ENABLED):
         with open(ENABLED, encoding="utf-8", errors="replace") as handle:
             lines = handle.read().splitlines()
-        shutil.copy2(ENABLED, ENABLED + ".bak")
+        copy_file(ENABLED, ENABLED + ".bak")
     out, seen = [], set()
     for raw in lines:
         stripped = raw.strip()
@@ -3266,6 +3319,7 @@ def state():
         "running": JOB["running"], "reportUrl": REPORT_URL, "reportEmail": REPORT_EMAIL,
         "problem": preflight() if GAME else "Pick your game folder first.",
         "kitty": KITTY_FOUND[0],
+        "wine": running_under_wine(),
         "canAppImage": True,      # mksquashfs if installed, else the built-in packer
         "squashHint": "",
         "hostArch": host_arch(),
@@ -3307,6 +3361,10 @@ def run_job(action, payload):
             result = 1
     except Exception as exc:
         say("CRASH: " + type(exc).__name__ + ": " + str(exc))
+        # Where it happened, so a bug report can point at the right line.
+        import traceback
+        for frame in traceback.extract_tb(exc.__traceback__)[-4:]:
+            say("  at " + os.path.basename(frame.filename) + " line " + str(frame.lineno) + " in " + frame.name)
         say("Please make a bug report from the Report a bug tab.")
         result = 1
     JOB["result"] = result
@@ -3469,6 +3527,7 @@ def gui_main():
     SERVER[0] = server
     url = "http://127.0.0.1:" + str(server.server_address[1]) + "/#k=" + KEY
     say("NestPatcher GUI " + TOOL_VERSION + " is running.")
+    warn_wine()
     say("If your browser did not open, copy this into it:  " + url)
     say("Keep this window open while you use it. Close the browser tab or press Ctrl+C to stop.")
     if not no_browser:
@@ -3661,7 +3720,8 @@ function show(st){S=st;$("ver").textContent="v"+st.version+" · "+st.platform;
  const aiOk=st.canAppImage;$("expai").hidden=false;$("aihint").hidden=aiOk||$("expai").hidden;
  $("aihint").textContent=aiOk?"":st.squashHint;
  if(st.kitty)banner("KittyPatcher (LibraKitty's patcher) is in this folder: "+st.kitty+"\nNestPatcher is a different program. Use only one of them on a game, or each will undo the other's changes. Move KittyPatcher somewhere else.","bad");
- else if(st.problem)banner(st.problem,"warn");else if(!st.node)banner("Node.js is missing, so mods cannot be checked yet.\n"+st.nodeHint,"warn");else banner("");
+ else if(st.problem)banner(st.problem,"warn");else if(!st.node)banner("Node.js is missing, so mods cannot be checked yet.\n"+st.nodeHint,"warn");
+ else if(st.wine)banner("This is the Windows build running through Wine/Proton. It should work, but on Linux the NestPatcher Linux AppImage is the better choice: it patches the Windows copy of TiTS too. Either way, close TiTS before you patch.","warn");else banner("");
  ["dry","go","restore","find","savemods","expmac"].forEach(id=>$(id).disabled=st.running);
  $("expai").disabled=st.running||!aiOk;
 }

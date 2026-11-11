@@ -1,6 +1,6 @@
 """Checks the Windows "is TiTS running?" test without Windows, using fake tasklist/PowerShell output.
 
-    python tests/test_windows_running.py patchers/NestPatcher_TiTS_Windows_v1.11.py
+    python tests/test_windows_running.py patchers/NestPatcher_TiTS_Windows_v1.12.py
 """
 import os
 import sys
@@ -42,6 +42,23 @@ check("a TiTS.exe from another folder is not this game", not running(tits, "4321
 check("TiTS.exe from the game folder is the game", bool(running(tits, "4321|" + os.path.join(game, "TiTS.exe") + "\n")))
 check("hidden path plays safe", bool(running(tits, "")))
 check("nothing running", not running('"explorer.exe","1","Console","1","5 K"\n', ""))
+
+# Wine (Windows build on Linux): os.path.realpath fails with WinError 1168 on Z:\ drives.
+real_realpath = nest.os.path.realpath
+
+
+def wine_realpath(path, *args, **kwargs):
+    raise OSError(22, "Element not found")
+
+
+nest.os.path.realpath = wine_realpath
+try:
+    check("Wine realpath error doesn't crash (game running)",
+          bool(running(tits, "4321|" + os.path.join(game, "TiTS.exe") + "\n")))
+    check("Wine realpath error doesn't crash (other folder)", not running(tits, "4321|C:\\Other\\TiTS.exe\n"))
+finally:
+    nest.os.path.realpath = real_realpath
+check("not Wine on this machine", nest.running_under_wine() is False)
 
 print("\nALL PASSED" if not failed else "\nFAILED: " + ", ".join(failed))
 sys.exit(1 if failed else 0)

@@ -1,25 +1,19 @@
-#!/usr/bin/env python3
-# NestPatcher for Trials in Tainted Space, Linux edition (Debian, Ubuntu, Mint,
-# Fedora, Nobara and friends).
+# NestPatcher for Trials in Tainted Space, Windows 10/11 edition.
 # Based on KittyPatcher by LibraKitty (the original Windows patcher).
 # Same .mod format, flags and safety rules as the Desktop, Android and Mac patchers:
 # Replace / With still swaps exact text. Hashed bundles such as
 # content_first14.<hash>.js are found from the plain name content_first14.js.
 # Add Javascript blocks load from mods/nest/nest-inline.js.
 #
-# Linux differences:
-#   * The game folder can live anywhere (~/Games/TiTS is a good spot). The patcher
-#     looks next to itself, in ~/Games, ~/Downloads, ~/Desktop and /opt, or you
-#     point at it once with --game and it is remembered.
-#   * A TiTS .AppImage is unpacked once with --extract-appimage into a normal
-#     folder; you then start the game from that folder's AppRun.
-#   * If the game ships packed as resources/app.asar, --unpack-asar extracts it
-#     (pure Python, no npm needed) and keeps the original as app.asar.nest-original.
-#   * Node.js install hints match your distro (apt on Debian/Ubuntu, dnf on
-#     Fedora/Nobara).
-#   * --export-appimage packs the patched game into one .AppImage file, and
-#     --export-mac makes a macOS TiTS.app (as a zip) from the same game.
-#   * Mods live in nestmods/ next to this script, outside the game, so a game
+# Windows differences:
+#   * The game folder (the one with TiTS.exe and resources\) can live anywhere.
+#     The patcher looks next to itself, on the Desktop, in Downloads, Documents,
+#     C:\Games and Program Files, or you point at it once with --game.
+#   * Program Files is write-protected, so the patcher explains how to move the
+#     game to C:\Games if Windows blocks it.
+#   * Double-click NestPatcher_Windows_v1.12.bat for a numbered menu.
+#   * --export-mac makes a macOS TiTS.app (as a zip) from the patched game.
+#   * Mods live in nestmods\ next to this script, outside the game, so a game
 #     update cannot wipe them.
 
 import os
@@ -36,13 +30,13 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_Linux_v1.11.py'
-TOOL_VERSION = '1.11'
-PLATFORM_DEFAULT = 'linux'
-PLATFORM_LABEL = 'Linux'
+TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.12.py'
+TOOL_VERSION = '1.12'
+PLATFORM_DEFAULT = 'windows'
+PLATFORM_LABEL = 'Windows 10/11'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
 # No version in the settings name, so a newer patcher keeps your saved folders.
-SETTINGS_NAME = 'NestPatcher_TiTS_Linux.settings.json'
+SETTINGS_NAME = 'NestPatcher_TiTS_Windows.settings.json'
 
 # --------------------------------------------------------------------------
 # Where things live
@@ -602,6 +596,59 @@ def game_executables():
     return names
 
 
+def safe_realpath(path):
+    """os.path.realpath that never crashes. Under Wine (Windows programs on Linux),
+    Python's realpath can fail with "[WinError 1168] Element not found" on Linux
+    drives such as Z:\\mnt\\..., so fall back to the plain full path."""
+    try:
+        return os.path.realpath(path)
+    except (OSError, ValueError):
+        return os.path.abspath(path)
+
+
+def copy_file(source, dest):
+    """shutil.copy2, with a plain copy as a fallback when Windows (or Wine) refuses
+    the fast copy for a reason other than permissions."""
+    try:
+        shutil.copy2(source, dest)
+    except PermissionError:
+        raise
+    except OSError:
+        shutil.copyfile(source, dest)
+        try:
+            shutil.copystat(source, dest)
+        except OSError:
+            pass
+
+
+WINE = []
+
+
+def running_under_wine():
+    """True when this Windows build runs on Linux or a Mac through Wine/Proton/CrossOver."""
+    if not WINE:
+        found = False
+        if PLATFORM == "windows":
+            try:
+                import ctypes
+                found = hasattr(ctypes.WinDLL("ntdll"), "wine_get_version")
+            except Exception:
+                found = False
+        WINE.append(found)
+    return WINE[0]
+
+
+def warn_wine():
+    """Tell Wine users the native Linux build is the better fit (it is what we test)."""
+    if not running_under_wine():
+        return False
+    say("NOTE: This is the Windows build running through Wine/Proton on Linux or Mac.")
+    say("  It should still work, but on Linux the Linux AppImage (NestPatcher_GUI_..._x86_64.AppImage)")
+    say("  or the Linux patcher script is the better choice. It patches the Windows copy of")
+    say("  TiTS too. Either way, close TiTS before you patch.")
+    return True
+
+
 def windows_process_paths(pids):
     """Full program paths for these Windows process ids. A path that can't be read is None."""
     paths = {pid: None for pid in pids}
@@ -642,11 +689,11 @@ def windows_running_from_game(paths):
     """Says which process (truthy) if any process runs from the game folder. A same-named program elsewhere
     (another copy of TiTS, another Electron app) doesn't count. When Windows hides a
     path we can't tell, so we play safe and count it."""
-    game_real = os.path.normcase(os.path.realpath(GAME)).rstrip("\\/") + os.sep
+    game_real = os.path.normcase(safe_realpath(GAME)).rstrip("\\/") + os.sep
     for pid, path in sorted(paths.items()):
         if path is None:
             return "process " + str(pid) + " (Windows didn't say where it runs from)"
-        if os.path.normcase(os.path.realpath(path)).startswith(game_real):
+        if os.path.normcase(safe_realpath(path)).startswith(game_real):
             return path + " (process " + str(pid) + ")"
     return ""
 
@@ -679,14 +726,14 @@ def game_running():
         except OSError:
             return False
     # Linux: any process whose program file sits inside the game folder.
-    game_real = os.path.realpath(GAME) + os.sep
+    game_real = safe_realpath(GAME) + os.sep
     try:
         pids = [pid for pid in os.listdir("/proc") if pid.isdigit()]
     except OSError:
         return False
     for pid in pids:
         try:
-            exe = os.path.realpath(os.readlink("/proc/" + pid + "/exe"))
+            exe = safe_realpath(os.readlink("/proc/" + pid + "/exe"))
         except OSError:
             continue
         if exe.startswith(game_real):
@@ -901,10 +948,10 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
         for name in touched:
             path = os.path.join(BACKUP, name)
             if not os.path.exists(path):
-                shutil.copy2(os.path.join(APP, name), path)
+                copy_file(os.path.join(APP, name), path)
                 log("Captured original bundle backup " + name)
         if not os.path.isfile(index_backup_path):
-            shutil.copy2(index_path, index_backup_path)
+            copy_file(index_path, index_backup_path)
             log("Captured original index.html backup")
         os.makedirs(RUNTIME_DIR, exist_ok=True)
         for name in write_bundles:
@@ -966,7 +1013,7 @@ def restore_originals():
     for name in sorted(os.listdir(BACKUP)):
         source = os.path.join(BACKUP, name)
         if os.path.isfile(source) and (name.endswith(".js") or name == "index.html"):
-            shutil.copy2(source, os.path.join(APP, name))
+            copy_file(source, os.path.join(APP, name))
             count += 1
     if os.path.isdir(RUNTIME_DIR):
         shutil.rmtree(RUNTIME_DIR)
@@ -1009,7 +1056,7 @@ def extract_asar(asar_path, dest):
                 elif "link" in entry:
                     continue
                 elif entry.get("unpacked"):
-                    shutil.copy2(os.path.join(unpacked_dir, name), out)
+                    copy_file(os.path.join(unpacked_dir, name), out)
                     count += 1
                 else:
                     handle.seek(base + int(entry["offset"]))
@@ -3197,6 +3244,7 @@ def main(argv=None):
     if PLATFORM != PLATFORM_DEFAULT:
         say("Note: this is the " + PLATFORM_LABEL + " patcher but you seem to be on " + PLATFORM + ".")
         say("It will still try, but the matching patcher for your system gives better help messages.")
+    warn_wine()
 
     if args.forget:
         if os.path.isfile(SETTINGS):

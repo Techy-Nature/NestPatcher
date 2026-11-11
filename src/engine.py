@@ -569,6 +569,59 @@ def game_executables():
     return names
 
 
+def safe_realpath(path):
+    """os.path.realpath that never crashes. Under Wine (Windows programs on Linux),
+    Python's realpath can fail with "[WinError 1168] Element not found" on Linux
+    drives such as Z:\\mnt\\..., so fall back to the plain full path."""
+    try:
+        return os.path.realpath(path)
+    except (OSError, ValueError):
+        return os.path.abspath(path)
+
+
+def copy_file(source, dest):
+    """shutil.copy2, with a plain copy as a fallback when Windows (or Wine) refuses
+    the fast copy for a reason other than permissions."""
+    try:
+        shutil.copy2(source, dest)
+    except PermissionError:
+        raise
+    except OSError:
+        shutil.copyfile(source, dest)
+        try:
+            shutil.copystat(source, dest)
+        except OSError:
+            pass
+
+
+WINE = []
+
+
+def running_under_wine():
+    """True when this Windows build runs on Linux or a Mac through Wine/Proton/CrossOver."""
+    if not WINE:
+        found = False
+        if PLATFORM == "windows":
+            try:
+                import ctypes
+                found = hasattr(ctypes.WinDLL("ntdll"), "wine_get_version")
+            except Exception:
+                found = False
+        WINE.append(found)
+    return WINE[0]
+
+
+def warn_wine():
+    """Tell Wine users the native Linux build is the better fit (it is what we test)."""
+    if not running_under_wine():
+        return False
+    say("NOTE: This is the Windows build running through Wine/Proton on Linux or Mac.")
+    say("  It should still work, but on Linux the Linux AppImage (NestPatcher_GUI_..._x86_64.AppImage)")
+    say("  or the Linux patcher script is the better choice. It patches the Windows copy of")
+    say("  TiTS too. Either way, close TiTS before you patch.")
+    return True
+
+
 def windows_process_paths(pids):
     """Full program paths for these Windows process ids. A path that can't be read is None."""
     paths = {pid: None for pid in pids}
@@ -609,11 +662,11 @@ def windows_running_from_game(paths):
     """Says which process (truthy) if any process runs from the game folder. A same-named program elsewhere
     (another copy of TiTS, another Electron app) doesn't count. When Windows hides a
     path we can't tell, so we play safe and count it."""
-    game_real = os.path.normcase(os.path.realpath(GAME)).rstrip("\\/") + os.sep
+    game_real = os.path.normcase(safe_realpath(GAME)).rstrip("\\/") + os.sep
     for pid, path in sorted(paths.items()):
         if path is None:
             return "process " + str(pid) + " (Windows didn't say where it runs from)"
-        if os.path.normcase(os.path.realpath(path)).startswith(game_real):
+        if os.path.normcase(safe_realpath(path)).startswith(game_real):
             return path + " (process " + str(pid) + ")"
     return ""
 
@@ -646,14 +699,14 @@ def game_running():
         except OSError:
             return False
     # Linux: any process whose program file sits inside the game folder.
-    game_real = os.path.realpath(GAME) + os.sep
+    game_real = safe_realpath(GAME) + os.sep
     try:
         pids = [pid for pid in os.listdir("/proc") if pid.isdigit()]
     except OSError:
         return False
     for pid in pids:
         try:
-            exe = os.path.realpath(os.readlink("/proc/" + pid + "/exe"))
+            exe = safe_realpath(os.readlink("/proc/" + pid + "/exe"))
         except OSError:
             continue
         if exe.startswith(game_real):
@@ -868,10 +921,10 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
         for name in touched:
             path = os.path.join(BACKUP, name)
             if not os.path.exists(path):
-                shutil.copy2(os.path.join(APP, name), path)
+                copy_file(os.path.join(APP, name), path)
                 log("Captured original bundle backup " + name)
         if not os.path.isfile(index_backup_path):
-            shutil.copy2(index_path, index_backup_path)
+            copy_file(index_path, index_backup_path)
             log("Captured original index.html backup")
         os.makedirs(RUNTIME_DIR, exist_ok=True)
         for name in write_bundles:
@@ -933,7 +986,7 @@ def restore_originals():
     for name in sorted(os.listdir(BACKUP)):
         source = os.path.join(BACKUP, name)
         if os.path.isfile(source) and (name.endswith(".js") or name == "index.html"):
-            shutil.copy2(source, os.path.join(APP, name))
+            copy_file(source, os.path.join(APP, name))
             count += 1
     if os.path.isdir(RUNTIME_DIR):
         shutil.rmtree(RUNTIME_DIR)
@@ -976,7 +1029,7 @@ def extract_asar(asar_path, dest):
                 elif "link" in entry:
                     continue
                 elif entry.get("unpacked"):
-                    shutil.copy2(os.path.join(unpacked_dir, name), out)
+                    copy_file(os.path.join(unpacked_dir, name), out)
                     count += 1
                 else:
                     handle.seek(base + int(entry["offset"]))

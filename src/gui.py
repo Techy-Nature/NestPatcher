@@ -93,7 +93,7 @@ def write_enabled(turn_on):
     if os.path.isfile(ENABLED):
         with open(ENABLED, encoding="utf-8", errors="replace") as handle:
             lines = handle.read().splitlines()
-        shutil.copy2(ENABLED, ENABLED + ".bak")
+        copy_file(ENABLED, ENABLED + ".bak")
     out, seen = [], set()
     for raw in lines:
         stripped = raw.strip()
@@ -173,6 +173,7 @@ def state():
         "running": JOB["running"], "reportUrl": REPORT_URL, "reportEmail": REPORT_EMAIL,
         "problem": preflight() if GAME else "Pick your game folder first.",
         "kitty": KITTY_FOUND[0],
+        "wine": running_under_wine(),
         "canAppImage": True,      # mksquashfs if installed, else the built-in packer
         "squashHint": "",
         "hostArch": host_arch(),
@@ -214,6 +215,10 @@ def run_job(action, payload):
             result = 1
     except Exception as exc:
         say("CRASH: " + type(exc).__name__ + ": " + str(exc))
+        # Where it happened, so a bug report can point at the right line.
+        import traceback
+        for frame in traceback.extract_tb(exc.__traceback__)[-4:]:
+            say("  at " + os.path.basename(frame.filename) + " line " + str(frame.lineno) + " in " + frame.name)
         say("Please make a bug report from the Report a bug tab.")
         result = 1
     JOB["result"] = result
@@ -376,6 +381,7 @@ def gui_main():
     SERVER[0] = server
     url = "http://127.0.0.1:" + str(server.server_address[1]) + "/#k=" + KEY
     say("NestPatcher GUI " + TOOL_VERSION + " is running.")
+    warn_wine()
     say("If your browser did not open, copy this into it:  " + url)
     say("Keep this window open while you use it. Close the browser tab or press Ctrl+C to stop.")
     if not no_browser:
@@ -568,7 +574,8 @@ function show(st){S=st;$("ver").textContent="v"+st.version+" · "+st.platform;
  const aiOk=st.canAppImage;$("expai").hidden=false;$("aihint").hidden=aiOk||$("expai").hidden;
  $("aihint").textContent=aiOk?"":st.squashHint;
  if(st.kitty)banner("KittyPatcher (LibraKitty's patcher) is in this folder: "+st.kitty+"\nNestPatcher is a different program. Use only one of them on a game, or each will undo the other's changes. Move KittyPatcher somewhere else.","bad");
- else if(st.problem)banner(st.problem,"warn");else if(!st.node)banner("Node.js is missing, so mods cannot be checked yet.\n"+st.nodeHint,"warn");else banner("");
+ else if(st.problem)banner(st.problem,"warn");else if(!st.node)banner("Node.js is missing, so mods cannot be checked yet.\n"+st.nodeHint,"warn");
+ else if(st.wine)banner("This is the Windows build running through Wine/Proton. It should work, but on Linux the NestPatcher Linux AppImage is the better choice: it patches the Windows copy of TiTS too. Either way, close TiTS before you patch.","warn");else banner("");
  ["dry","go","restore","find","savemods","expmac"].forEach(id=>$(id).disabled=st.running);
  $("expai").disabled=st.running||!aiOk;
 }
