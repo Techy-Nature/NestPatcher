@@ -13,7 +13,7 @@ The notes for every version are in [`changelog.md`](../changelog.md) at the top 
 ## Quick install
 
 1. Back up your `nestmods` folder.
-2. Delete every `.mod` and `.js` file and `enabled.txt` in it. Keep the `logs` folder. Keep `backup` too, unless the game was updated (for example 0.9.167 to 0.9.168): then delete it.
+2. Delete every `.mod` and `.js` file and `enabled.txt` in it. Keep the `logs` folder. Keep `backup` too, unless the game was updated (for example 0.9.167 to 0.9.168): then delete it. (NestPatcher CLI 1.12, GUI 0.14, Mac 1.9, Android patcher 1.6 and Android app 0.10 notice an old-version `backup` and set it aside by themselves.)
 3. Copy everything from `TITS-Mods/` into `nestmods`.
 4. Patch with NestPatcher: run Test my mods, then Patch the game.
 

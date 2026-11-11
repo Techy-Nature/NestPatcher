@@ -11,7 +11,7 @@
 #     C:\Games and Program Files, or you point at it once with --game.
 #   * Program Files is write-protected, so the patcher explains how to move the
 #     game to C:\Games if Windows blocks it.
-#   * Double-click NestPatcher_Windows_v1.11.bat for a numbered menu.
+#   * Double-click NestPatcher_Windows_v1.12.bat for a numbered menu.
 #   * --export-mac makes a macOS TiTS.app (as a zip) from the patched game.
 #   * Mods live in nestmods\ next to this script, outside the game, so a game
 #     update cannot wipe them.
@@ -30,8 +30,8 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.11.py'
-TOOL_VERSION = '1.11'
+TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.12.py'
+TOOL_VERSION = '1.12'
 PLATFORM_DEFAULT = 'windows'
 PLATFORM_LABEL = 'Windows 10/11'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
@@ -162,7 +162,7 @@ def load_settings():
     old = os.path.join(ROOT, SETTINGS_NAME.replace("NestPatcher", "KittyPatcher"))
     for path in (SETTINGS, old):
         try:
-            with open(path, "r", encoding="utf-8") as handle:
+            with open(path, "r", encoding="utf-8-sig") as handle:
                 return json.load(handle)
         except (OSError, ValueError):
             continue
@@ -401,7 +401,7 @@ def replace_first(text, block):
 
 
 def parse_mod(path):
-    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+    with open(path, "r", encoding="utf-8-sig", errors="replace") as handle:
         text = handle.read().replace("\r\n", "\n").replace("\r", "\n")
     # Standalone # lines are .mod annotations, not replacement JavaScript.
     # Remove them before parsing to prevent accidentally splicing metadata into
@@ -452,14 +452,34 @@ def parse_mod(path):
     return blocks
 
 
+CASE_FIXED = {}
+
+
+def mod_file_name(name):
+    """The real file name for a name in enabled.txt. Windows and Mac don't care about
+    capital letters but Linux and Android do, so a list written on Windows
+    ('smoke.mod' for Smoke.mod) still finds its files here."""
+    if os.path.isfile(os.path.join(MODS, name)):
+        return name
+    try:
+        matches = [real for real in os.listdir(MODS) if real.lower() == name.lower()]
+    except OSError:
+        return name
+    if len(matches) == 1:
+        CASE_FIXED[name] = matches[0]
+        return matches[0]
+    return name
+
+
 def enabled_names():
     names = []
     if os.path.isfile(ENABLED):
-        with open(ENABLED, "r", encoding="utf-8", errors="replace") as handle:
+        # utf-8-sig: Notepad can save enabled.txt with an invisible BOM mark at the start.
+        with open(ENABLED, "r", encoding="utf-8-sig", errors="replace") as handle:
             for line in handle:
                 line = line.split("#", 1)[0].strip()
                 if line:
-                    names.append(line)
+                    names.append(mod_file_name(line))
     else:
         names = sorted(
             name for name in os.listdir(MODS)
@@ -471,7 +491,11 @@ def enabled_names():
 
 def enabled_mods():
     resolved = []
-    for name in enabled_names():
+    CASE_FIXED.clear()
+    names = enabled_names()
+    for listed, real in sorted(CASE_FIXED.items()):
+        log("Note: enabled.txt says " + listed + "; using " + real + " (only capital letters differ).")
+    for name in names:
         path = os.path.join(MODS, name)
         if os.path.isfile(path):
             resolved.append(path)
@@ -547,6 +571,57 @@ def patched_without_backup():
         source = handle.read()
     return clean_index(source) != source
 
+def game_script_names(source):
+    """The game's own <script src> files in an index.html (NestPatcher/KittyPatcher tags left out)."""
+    names = set()
+    for src in re.findall(r'<script\b[^>]*\bsrc=["\']?([^"\'\s>]+)', source, flags=re.IGNORECASE):
+        if not src.lower().startswith(("mods/kitty/", "mods/nest/")):
+            names.add(src)
+    return names
+
+
+def backup_from_other_game_version():
+    """True when the clean index.html backup belongs to an older (or newer) TiTS than
+    the one in the game folder. After a TiTS update main.<hash>.js gets a new name, so
+    the old backup would point the game at files that no longer exist (black screen),
+    and Restore would put the old game's page back."""
+    index_path = os.path.join(APP, "index.html")
+    backup_path = os.path.join(BACKUP, "index.html")
+    if not (os.path.isfile(index_path) and os.path.isfile(backup_path)):
+        return False
+    with open(index_path, encoding="utf-8", errors="replace") as handle:
+        current = game_script_names(handle.read())
+    with open(backup_path, encoding="utf-8", errors="replace") as handle:
+        saved = game_script_names(handle.read())
+    return bool(current) and bool(saved) and current != saved
+
+
+def set_aside_old_backup(dry_run=False):
+    """Move a backup made for another TiTS version out of the way. Returns True when it did."""
+    if not backup_from_other_game_version():
+        return False
+    if dry_run:
+        log("NOTE: the backups in " + BACKUP + " are from a different TiTS version than the game.")
+        log("  A real patch will move them aside (to backup-old-...) and make fresh ones from this game.")
+        return False
+    stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+    target = BACKUP.rstrip("\\/") + "-old-" + stamp
+    shutil.move(BACKUP, target)
+    # Bundles the update didn't change keep their file name (it is a hash of the
+    # content), so their clean copies are still right: keep using those.
+    kept = 0
+    for name in os.listdir(target):
+        if name.endswith(".js") and os.path.isfile(os.path.join(APP, name)):
+            os.makedirs(BACKUP, exist_ok=True)
+            copy_file(os.path.join(target, name), os.path.join(BACKUP, name))
+            kept += 1
+    log("NOTE: the backups were made for a different TiTS version (the game was updated).")
+    if kept:
+        log("  Kept the clean copies of " + str(kept) + " game file(s) the update didn't change.")
+    log("  Moved them to " + target + " and will make fresh ones from this game.")
+    log("  You can delete that folder once the game works.")
+    return True
+
 
 def already_patched_help():
     log("STOP: this game copy was already patched, but " + BACKUP + " has no clean backup of it.")
@@ -596,6 +671,59 @@ def game_executables():
     return names
 
 
+def safe_realpath(path):
+    """os.path.realpath that never crashes. Under Wine (Windows programs on Linux),
+    Python's realpath can fail with "[WinError 1168] Element not found" on Linux
+    drives such as Z:\\mnt\\..., so fall back to the plain full path."""
+    try:
+        return os.path.realpath(path)
+    except (OSError, ValueError):
+        return os.path.abspath(path)
+
+
+def copy_file(source, dest):
+    """shutil.copy2, with a plain copy as a fallback when Windows (or Wine) refuses
+    the fast copy for a reason other than permissions."""
+    try:
+        shutil.copy2(source, dest)
+    except PermissionError:
+        raise
+    except OSError:
+        shutil.copyfile(source, dest)
+        try:
+            shutil.copystat(source, dest)
+        except OSError:
+            pass
+
+
+WINE = []
+
+
+def running_under_wine():
+    """True when this Windows build runs on Linux or a Mac through Wine/Proton/CrossOver."""
+    if not WINE:
+        found = False
+        if PLATFORM == "windows":
+            try:
+                import ctypes
+                found = hasattr(ctypes.WinDLL("ntdll"), "wine_get_version")
+            except Exception:
+                found = False
+        WINE.append(found)
+    return WINE[0]
+
+
+def warn_wine():
+    """Tell Wine users the native Linux build is the better fit (it is what we test)."""
+    if not running_under_wine():
+        return False
+    say("NOTE: This is the Windows build running through Wine/Proton on Linux or Mac.")
+    say("  It should still work, but on Linux the Linux AppImage (NestPatcher_GUI_..._x86_64.AppImage)")
+    say("  or the Linux patcher script is the better choice. It patches the Windows copy of")
+    say("  TiTS too. Either way, close TiTS before you patch.")
+    return True
+
+
 def windows_process_paths(pids):
     """Full program paths for these Windows process ids. A path that can't be read is None."""
     paths = {pid: None for pid in pids}
@@ -636,13 +764,59 @@ def windows_running_from_game(paths):
     """Says which process (truthy) if any process runs from the game folder. A same-named program elsewhere
     (another copy of TiTS, another Electron app) doesn't count. When Windows hides a
     path we can't tell, so we play safe and count it."""
-    game_real = os.path.normcase(os.path.realpath(GAME)).rstrip("\\/") + os.sep
+    game_real = os.path.normcase(safe_realpath(GAME)).rstrip("\\/") + os.sep
     for pid, path in sorted(paths.items()):
         if path is None:
             return "process " + str(pid) + " (Windows didn't say where it runs from)"
-        if os.path.normcase(os.path.realpath(path)).startswith(game_real):
+        if os.path.normcase(safe_realpath(path)).startswith(game_real):
             return path + " (process " + str(pid) + ")"
     return ""
+
+
+def mac_running_from_game(ps_output, game, my_pid):
+    """Says which process (truthy) runs from this game, from `ps -axww -o pid=,ppid=,command=` output.
+    Matches the game's full path (TiTS.app/Contents/MacOS/..., or a TiTS.exe run through
+    Wine/CrossOver), so a TiTS.app somewhere else doesn't count, and the patcher itself and
+    whatever started it never count."""
+    root = os.path.realpath(game).rstrip("/") if game else ""
+    if not root:
+        return False
+    wanted = [root + "/"]
+    if root.startswith("/"):
+        wanted.append("z:" + root.replace("/", "\\").lower() + "\\")
+    rows, parents = [], {}
+    for line in ps_output.splitlines():
+        parts = line.strip().split(None, 2)
+        if len(parts) < 3 or not parts[0].isdigit() or not parts[1].isdigit():
+            continue
+        rows.append((int(parts[0]), parts[2]))
+        parents[int(parts[0])] = int(parts[1])
+    skip, pid = set(), my_pid
+    while pid and pid not in skip and len(skip) < 64:
+        skip.add(pid)
+        pid = parents.get(pid, 0)
+    for pid, command in rows:
+        if pid in skip:
+            continue
+        low = command.lower()
+        for want in wanted:
+            spot = low.find(want.lower())
+            if spot < 0:
+                continue
+            program = re.split(r"[/\\]", command[spot + len(want):])[0].lower()
+            if program.startswith(("nestpatcher", "kittypatcher", "python", "node", "open tits.command")):
+                continue
+            return command + " (process " + str(pid) + ")"
+    return False
+
+
+def mac_game_running(game):
+    try:
+        result = subprocess.run(["ps", "-axww", "-o", "pid=,ppid=,command="],
+                                capture_output=True, text=True, errors="replace")
+    except OSError:
+        return False
+    return mac_running_from_game(result.stdout, game, os.getpid())
 
 
 def game_running():
@@ -666,25 +840,67 @@ def game_running():
             return False
         return windows_running_from_game(windows_process_paths(pids))
     if PLATFORM == "mac":
+        return mac_game_running(GAME)
+    return linux_running_from_game("/proc")
+
+
+def linux_ancestors(proc_root):
+    """Our own process id and every parent above it (AppImage runtime, shell, launcher)."""
+    found = {str(os.getpid())}
+    pid = str(os.getpid())
+    for _ in range(64):
         try:
-            result = subprocess.run(["pgrep", "-f", os.path.basename(GAME) + "/Contents/MacOS/"],
-                                    capture_output=True, text=True)
-            return result.returncode == 0
-        except OSError:
-            return False
-    # Linux: any process whose program file sits inside the game folder.
-    game_real = os.path.realpath(GAME) + os.sep
+            with open(os.path.join(proc_root, pid, "stat"), encoding="utf-8", errors="replace") as handle:
+                parent = handle.read().rsplit(")", 1)[1].split()[1]
+        except (OSError, IndexError):
+            break
+        if parent in ("0", "1") or parent in found:
+            break
+        found.add(parent)
+        pid = parent
+    return found
+
+
+def linux_program_paths(proc_root, pid):
+    """The program file of a process, plus its first argument when Wine runs a Windows .exe
+    (Wine processes show wine's own file as their program, so the game .exe is only in argv)."""
+    paths = []
     try:
-        pids = [pid for pid in os.listdir("/proc") if pid.isdigit()]
+        paths.append(os.readlink(os.path.join(proc_root, pid, "exe")))
+    except OSError:
+        pass
+    try:
+        with open(os.path.join(proc_root, pid, "cmdline"), "rb") as handle:
+            first = handle.read().split(b"\0", 1)[0].decode("utf-8", "replace")
+    except OSError:
+        first = ""
+    if re.match(r"(?i)^z:[\\/]", first):
+        first = "/" + first[3:].replace("\\", "/")
+    if first.startswith("/") and first.lower().endswith(".exe"):
+        paths.append(first)
+    return paths
+
+
+def linux_running_from_game(proc_root):
+    """Says which process (truthy) if any program from the game folder is running. The
+    patcher itself (and the AppImage or script that started it) never counts, even when
+    it sits inside the game folder."""
+    game_real = safe_realpath(GAME).rstrip("/") + "/"
+    try:
+        pids = sorted((pid for pid in os.listdir(proc_root) if pid.isdigit()), key=int)
     except OSError:
         return False
+    skip = linux_ancestors(proc_root)
     for pid in pids:
-        try:
-            exe = os.path.realpath(os.readlink("/proc/" + pid + "/exe"))
-        except OSError:
+        if pid in skip:
             continue
-        if exe.startswith(game_real):
-            return True
+        for path in linux_program_paths(proc_root, pid):
+            real = safe_realpath(path)
+            if not real.startswith(game_real):
+                continue
+            if os.path.basename(real).lower().startswith(NOT_GAME_EXES):
+                continue
+            return real + " (process " + pid + ")"
     return False
 
 
@@ -756,6 +972,8 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
     log("NestPatcher " + TOOL_VERSION + " (" + PLATFORM + ")")
     log("Game: " + APP)
     log("Mods: " + MODS)
+    if os.path.isdir(BACKUP):
+        set_aside_old_backup(dry_run)
     if patched_without_backup():
         already_patched_help()
         return 1
@@ -895,10 +1113,10 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
         for name in touched:
             path = os.path.join(BACKUP, name)
             if not os.path.exists(path):
-                shutil.copy2(os.path.join(APP, name), path)
+                copy_file(os.path.join(APP, name), path)
                 log("Captured original bundle backup " + name)
         if not os.path.isfile(index_backup_path):
-            shutil.copy2(index_path, index_backup_path)
+            copy_file(index_path, index_backup_path)
             log("Captured original index.html backup")
         os.makedirs(RUNTIME_DIR, exist_ok=True)
         for name in write_bundles:
@@ -943,6 +1161,12 @@ def restore_originals():
     if problem:
         say(problem)
         return 1
+    if backup_from_other_game_version():
+        say("The backups in " + BACKUP + " are from a different TiTS version than this game")
+        say("(the game was updated since they were made). Putting them back would break it.")
+        say("Nothing was changed. To turn mods off, unzip a fresh copy of this TiTS version,")
+        say("or turn every mod off on the Mods tab (or in enabled.txt) and patch again.")
+        return 1
     if patched_without_backup():
         say("This game copy was patched, but " + BACKUP + " has no clean backup to put back.")
         say("To get an unmodded game, unzip a fresh copy of TiTS. Nothing was changed.")
@@ -960,7 +1184,7 @@ def restore_originals():
     for name in sorted(os.listdir(BACKUP)):
         source = os.path.join(BACKUP, name)
         if os.path.isfile(source) and (name.endswith(".js") or name == "index.html"):
-            shutil.copy2(source, os.path.join(APP, name))
+            copy_file(source, os.path.join(APP, name))
             count += 1
     if os.path.isdir(RUNTIME_DIR):
         shutil.rmtree(RUNTIME_DIR)
@@ -1003,7 +1227,7 @@ def extract_asar(asar_path, dest):
                 elif "link" in entry:
                     continue
                 elif entry.get("unpacked"):
-                    shutil.copy2(os.path.join(unpacked_dir, name), out)
+                    copy_file(os.path.join(unpacked_dir, name), out)
                     count += 1
                 else:
                     handle.seek(base + int(entry["offset"]))
@@ -3133,13 +3357,18 @@ def menu():
     for number, (label, _) in enumerate(MENU, 1):
         say("  " + str(number) + ") " + label)
     say("  0) Quit")
-    try:
-        answer = input("Type a number and press Enter: ").strip()
-    except EOFError:
-        return None
-    if answer.isdigit() and 1 <= int(answer) <= len(MENU):
-        return MENU[int(answer) - 1][1]
-    return None
+    while True:
+        try:
+            answer = input("Type a number and press Enter: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            return None
+        if answer in ("0", "q", "Q"):
+            return None
+        if not answer:
+            continue
+        if answer.isdigit() and 1 <= int(answer) <= len(MENU):
+            return MENU[int(answer) - 1][1]
+        say("'" + answer + "' is not on the list. Type a number from 0 to " + str(len(MENU)) + ".")
 
 
 def main(argv=None):
@@ -3178,19 +3407,32 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.menu:
-        picked = menu()
-        if picked is None:
-            return 0
+        # Show the menu again after each job, so one window can test, patch and
+        # make a bug report without being started again. 0 quits.
         keep = []
         if args.game:
             keep += ["--game", args.game]
         if args.mods:
             keep += ["--mods", args.mods]
-        return main(keep + picked)
+        result = 0
+        while True:
+            picked = menu()
+            if picked is None:
+                return result
+            try:
+                result = main(keep + picked)
+            except SystemExit as stop:
+                result = stop.code if isinstance(stop.code, int) else 1
+            except Exception as exc:
+                say("CRASH: " + type(exc).__name__ + ": " + str(exc))
+                say("Please make a bug report (menu option 4).")
+                result = 1
+            say("[finished: " + ("OK" if result == 0 else "stopped, see the lines above") + "]")
 
     if PLATFORM != PLATFORM_DEFAULT:
         say("Note: this is the " + PLATFORM_LABEL + " patcher but you seem to be on " + PLATFORM + ".")
         say("It will still try, but the matching patcher for your system gives better help messages.")
+    warn_wine()
 
     if args.forget:
         if os.path.isfile(SETTINGS):

@@ -4,9 +4,9 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "patchers")
-CLI_VERSION = "1.11"
-GUI_VERSION = "0.13"
-MAC_VERSION = "1.8"
+CLI_VERSION = "1.12"
+GUI_VERSION = "0.14"
+MAC_VERSION = "1.9"
 
 HEADERS = {
     "linux": """#!/usr/bin/env python3
@@ -46,7 +46,7 @@ HEADERS = {
 #     C:\\Games and Program Files, or you point at it once with --game.
 #   * Program Files is write-protected, so the patcher explains how to move the
 #     game to C:\\Games if Windows blocks it.
-#   * Double-click NestPatcher_Windows_v1.11.bat for a numbered menu.
+#   * Double-click NestPatcher_Windows_v1.12.bat for a numbered menu.
 #   * --export-mac makes a macOS TiTS.app (as a zip) from the patched game.
 #   * Mods live in nestmods\\ next to this script, outside the game, so a game
 #     update cannot wipe them.

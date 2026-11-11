@@ -38,16 +38,16 @@ Your Desktop, Documents or Downloads also work.
 
 1. Make a folder, for example `C:\Games\NestPatcher`.
 2. Put these two files in it:
-   - `NestPatcher_TiTS_Windows_v1.11.py`
-   - `NestPatcher_Windows_v1.11.bat`
+   - `NestPatcher_TiTS_Windows_v1.12.py`
+   - `NestPatcher_Windows_v1.12.bat`
 3. Copy your mods folder in next to them and **rename it to `nestmods`**. Inside it you should see `enabled.txt` and lots of `.mod` and `.js` files.
 
 It should look like this:
 
 ```
 C:\Games\NestPatcher\
-    NestPatcher_TiTS_Windows_v1.11.py
-    NestPatcher_Windows_v1.11.bat
+    NestPatcher_TiTS_Windows_v1.12.py
+    NestPatcher_Windows_v1.12.bat
     nestmods\
         enabled.txt
         AndroidModMenu.js
@@ -60,7 +60,7 @@ C:\Games\NestPatcher\
 ## Step 4: test your mods
 
 1. **Close TiTS** if it is open.
-2. Double-click **`NestPatcher_Windows_v1.11.bat`**.
+2. Double-click **`NestPatcher_Windows_v1.12.bat`**.
 3. Type **1** (Test my mods) and press **Enter**.
 4. The first time it looks for the game in the usual places. If it asks which one, type its number.
    - If it says *Could not find the game*, see "Pointing it at the game" below.
@@ -91,7 +91,7 @@ If it can't find the game by itself:
 2. Open PowerShell in the NestPatcher folder (in File Explorer: **File > Open Windows PowerShell**, or Shift + right-click > **Open PowerShell window here**).
 3. Run (paste your own path between the quotes):
    ```
-   py NestPatcher_TiTS_Windows_v1.11.py --game "C:\Games\TiTS" --dry-run
+   py NestPatcher_TiTS_Windows_v1.12.py --game "C:\Games\TiTS" --dry-run
    ```
 4. It remembers that path. From now on the `.bat` just works.
 
@@ -109,7 +109,7 @@ Use `--mods "D:\somewhere\TITS-Mods"` the same way if your mods live somewhere e
 | `Missing enabled files` | A name in `enabled.txt` has no file. Fix the spelling or put a `#` in front. |
 | `MISS SomeMod.mod` | That mod doesn't fit this TiTS version, or needs another mod that is turned off. |
 | `this game copy was already patched` | The game folder already has mods in it and no clean backup (often a pre-patched copy someone shared). Unzip a fresh TiTS into a new folder and patch that. |
-| Hundreds of `MISS` lines | Usually an already-patched game or an old mod pack. Use a fresh game and the newest mod pack (mod names ending in `_v2.x`), and delete `nestmods\backup` first. |
+| Hundreds of `MISS` lines | Usually an already-patched game or an old mod pack. Use a fresh game and the newest mod pack (mod names ending in `_v2.x`), and delete `nestmods\backup` first (1.12 sets old-version backups aside by itself). |
 | Windows Defender pops up | Python is allowed to edit the game. Click **Allow**. |
 
 ## Making a Mac app from your patched game
@@ -117,19 +117,27 @@ Use `--mods "D:\somewhere\TITS-Mods"` the same way if your mods live somewhere e
 After patching, NestPatcher can pack the game as a macOS app for a friend's Mac (or your own):
 
 ```bat
-py NestPatcher_TiTS_Windows_v1.11.py --export-mac
+py NestPatcher_TiTS_Windows_v1.12.py --export-mac
 ```
 
-Menu option **7** does the same. The zip lands in `NestExports\` inside your mods folder. Unzip it **on the Mac**, not on Windows. Full steps: [Guide_Export_Mac_AppImage_v1.11.md](Guide_Export_Mac_AppImage_v1.11.md).
+Menu option **7** does the same. The zip lands in `NestExports\` inside your mods folder. Unzip it **on the Mac**, not on Windows. Full steps: [Guide_Export_Mac_AppImage_v1.12.md](Guide_Export_Mac_AppImage_v1.12.md).
 
 ## After a TiTS update
 
 1. Install the new TiTS (into the same folder, or a new one).
-2. Delete `nestmods\backup` (it holds the old version's files).
-3. Run option **1**, then **2**.
+2. Run option **1**, then **2**. Since 1.12 the patcher sees that `nestmods\backup` holds the old version's files, moves it to `nestmods\backup-old-<date>` and makes fresh backups (delete the old folder once the game works). Deleting `nestmods\backup` yourself first still works too.
+
+The menu comes back after each option, so you can test, patch and make a bug report in one go. Type **0** to quit.
+
+## Updating NestPatcher to a new version
+
+1. Download the new `NestPatcher_TiTS_Windows_v<version>.py` and `NestPatcher_Windows_v<version>.bat`.
+2. Put them in the same folder as the old ones (next to `nestmods`), and delete the old ones.
+3. Your mods, backups and saved folders stay as they are. Settings file names have no version number, so they carry over.
+4. You don't have to patch again, but it's safe to.
 
 ## Full command list
 
 ```
-py NestPatcher_TiTS_Windows_v1.11.py --help
+py NestPatcher_TiTS_Windows_v1.12.py --help
 ```

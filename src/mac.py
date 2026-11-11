@@ -35,6 +35,7 @@ import hashlib
 import zipfile
 import platform
 import tempfile
+import time
 import subprocess
 
 # What this patcher needs, for the NestPatcher Android app (read without running
@@ -328,7 +329,7 @@ def replace_first(text, block):
 
 
 def parse_mod(path):
-    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+    with open(path, "r", encoding="utf-8-sig", errors="replace") as handle:
         text = handle.read().replace("\r\n", "\n").replace("\r", "\n")
     # Standalone # lines are .mod annotations, not replacement JavaScript.
     # Remove them before parsing to prevent accidentally splicing metadata into
@@ -382,7 +383,7 @@ def parse_mod(path):
 def enabled_mods():
     names = []
     if os.path.isfile(ENABLED):
-        for line in read_file(ENABLED).splitlines():
+        for line in read_file(ENABLED).lstrip("\ufeff").splitlines():
             line = line.split("#", 1)[0].strip()
             if line:
                 names.append(line)
@@ -462,6 +463,57 @@ def patched_without_backup():
         source = handle.read()
     return clean_index(source) != source
 
+def game_script_names(source):
+    """The game's own <script src> files in an index.html (NestPatcher/KittyPatcher tags left out)."""
+    names = set()
+    for src in re.findall(r'<script\b[^>]*\bsrc=["\']?([^"\'\s>]+)', source, flags=re.IGNORECASE):
+        if not src.lower().startswith(("mods/kitty/", "mods/nest/")):
+            names.add(src)
+    return names
+
+
+def backup_from_other_game_version():
+    """True when the clean index.html backup belongs to an older (or newer) TiTS than
+    the one in the game folder. After a TiTS update main.<hash>.js gets a new name, so
+    the old backup would point the game at files that no longer exist (black screen),
+    and Restore would put the old game's page back."""
+    index_path = os.path.join(APP, "index.html")
+    backup_path = os.path.join(BACKUP, "index.html")
+    if not (os.path.isfile(index_path) and os.path.isfile(backup_path)):
+        return False
+    with open(index_path, encoding="utf-8", errors="replace") as handle:
+        current = game_script_names(handle.read())
+    with open(backup_path, encoding="utf-8", errors="replace") as handle:
+        saved = game_script_names(handle.read())
+    return bool(current) and bool(saved) and current != saved
+
+
+def set_aside_old_backup(dry_run=False):
+    """Move a backup made for another TiTS version out of the way. Returns True when it did."""
+    if not backup_from_other_game_version():
+        return False
+    if dry_run:
+        log("NOTE: the backups in " + BACKUP + " are from a different TiTS version than the game.")
+        log("  A real patch will move them aside (to backup-old-...) and make fresh ones from this game.")
+        return False
+    stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+    target = BACKUP.rstrip("\\/") + "-old-" + stamp
+    shutil.move(BACKUP, target)
+    # Bundles the update didn't change keep their file name (it is a hash of the
+    # content), so their clean copies are still right: keep using those.
+    kept = 0
+    for name in os.listdir(target):
+        if name.endswith(".js") and os.path.isfile(os.path.join(APP, name)):
+            os.makedirs(BACKUP, exist_ok=True)
+            shutil.copy2(os.path.join(target, name), os.path.join(BACKUP, name))
+            kept += 1
+    log("NOTE: the backups were made for a different TiTS version (the game was updated).")
+    if kept:
+        log("  Kept the clean copies of " + str(kept) + " game file(s) the update didn't change.")
+    log("  Moved them to " + target + " and will make fresh ones from this game.")
+    log("  You can delete that folder once the game works.")
+    return True
+
 
 def already_patched_help():
     log("STOP: this game copy was already patched, but " + BACKUP + " has no clean backup of it.")
@@ -485,16 +537,56 @@ def make_runtime(blocks):
     return "\n".join(parts) + "\n"
 
 
-def game_running():
-    if not is_mac_bundle():
+def mac_running_from_game(ps_output, game, my_pid):
+    """Says which process (truthy) runs from this game, from `ps -axww -o pid=,ppid=,command=` output.
+    Matches the game's full path (TiTS.app/Contents/MacOS/..., or a TiTS.exe run through
+    Wine/CrossOver), so a TiTS.app somewhere else doesn't count, and the patcher itself and
+    whatever started it never count."""
+    root = os.path.realpath(game).rstrip("/") if game else ""
+    if not root:
         return False
-    name = os.path.basename(BUNDLE)
+    wanted = [root + "/"]
+    if root.startswith("/"):
+        wanted.append("z:" + root.replace("/", "\\").lower() + "\\")
+    rows, parents = [], {}
+    for line in ps_output.splitlines():
+        parts = line.strip().split(None, 2)
+        if len(parts) < 3 or not parts[0].isdigit() or not parts[1].isdigit():
+            continue
+        rows.append((int(parts[0]), parts[2]))
+        parents[int(parts[0])] = int(parts[1])
+    skip, pid = set(), my_pid
+    while pid and pid not in skip and len(skip) < 64:
+        skip.add(pid)
+        pid = parents.get(pid, 0)
+    for pid, command in rows:
+        if pid in skip:
+            continue
+        low = command.lower()
+        for want in wanted:
+            spot = low.find(want.lower())
+            if spot < 0:
+                continue
+            program = re.split(r"[/\\]", command[spot + len(want):])[0].lower()
+            if program.startswith(("nestpatcher", "kittypatcher", "python", "node", "open tits.command")):
+                continue
+            return command + " (process " + str(pid) + ")"
+    return False
+
+
+def mac_game_running(game):
     try:
-        result = subprocess.run(["pgrep", "-f", name + "/Contents/MacOS/"],
-                                capture_output=True, text=True)
-        return result.returncode == 0
+        result = subprocess.run(["ps", "-axww", "-o", "pid=,ppid=,command="],
+                                capture_output=True, text=True, errors="replace")
     except OSError:
         return False
+    return mac_running_from_game(result.stdout, game, os.getpid())
+
+
+def game_running():
+    if not BUNDLE:
+        return False
+    return mac_game_running(BUNDLE)
 
 
 def permission_hint(exc):
@@ -522,8 +614,10 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
         log("STOP: both app/ and app.asar exist. Electron loads app.asar first, so patches would be ignored.")
         log("Run --unpack-asar again (it moves app.asar aside) or rename app.asar yourself.")
         return 1
-    if not dry_run and game_running():
+    running = False if dry_run else game_running()
+    if running:
         log("STOP: TiTS is running. Quit it (Cmd+Q) and run the patcher again.")
+        log("  Found: " + running)
         return 1
     node = which_tool("node", "nodejs")
     if validate and not node:
@@ -533,6 +627,8 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
         return 1
     log("Game: " + APP)
     log("Mods: " + MODS)
+    if os.path.isdir(BACKUP):
+        set_aside_old_backup(dry_run)
     if patched_without_backup():
         already_patched_help()
         return 1
@@ -556,7 +652,7 @@ def apply(dry_run=False, fresh=False, validate=True, resign=True):
                 log("Skip empty Replace in " + block["mod"])
     # enabled_mods logs missing names; stop on any missing dependency to avoid half-working builds.
     if os.path.isfile(ENABLED):
-        for raw in read_file(ENABLED).splitlines():
+        for raw in read_file(ENABLED).lstrip("\ufeff").splitlines():
             name = raw.split("#", 1)[0].strip()
             if name and not os.path.isfile(os.path.join(MODS, name)):
                 missing.append(name)

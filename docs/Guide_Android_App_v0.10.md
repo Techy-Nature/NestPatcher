@@ -1,4 +1,4 @@
-# NestPatcher Android app v0.9 — step by step
+# NestPatcher Android app v0.10 — step by step
 
 The NestPatcher app runs the NestPatcher patcher on your phone without Termux. It is **not KittyPatcher**. It is based on KittyPatcher by LibraKitty.
 
@@ -20,7 +20,7 @@ TITS-Modding/
 ## 1. Get the APK
 
 1. Open the repo's **Actions** tab on GitHub, open the newest green **Test and build** run, and download **nestpatcher-android-apk**. If you'd rather use a tagged version, use **Releases** instead.
-2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.9.apk`.
+2. Unzip it if your phone downloaded a `.zip`. Inside is `NestPatcher_Android_App_v0.10.apk`.
 
 ## 2. Install it
 
@@ -94,6 +94,19 @@ Text in **Extra options** (step 4) is added after the folders.
 5. Rebuild and sign the TiTS APK the way you usually do, then install it.
 
 Tap **Copy log** to paste the log into a bug report.
+
+## Updating the app
+
+Download the new APK and install it over the old one. Your folder choices and settings stay, and your `mods` folder isn't touched.
+
+## After a TiTS update
+
+1. Extract the new TiTS APK into `extracted/apk` as usual (replacing the old files).
+2. **Test my mods**, then **Patch the game**.
+3. Since app 0.10 (Android patcher 1.6), the patcher notices that `mods/backup` is from the old TiTS. It moves it to `mods/backup-old-<date>` and makes fresh backups by itself. Delete that folder once the game works. (App 0.9 and older: delete `mods/backup` yourself before patching.)
+4. A `MISS` line after an update means that mod doesn't fit the new TiTS yet. Turn it off, or get a newer version of it.
+
+Also new in 0.10: an `enabled.txt` saved with a hidden BOM mark (some Windows editors add one) works, and mod names whose capital letters differ from the file name are found.
 
 ## Comfort settings
 
