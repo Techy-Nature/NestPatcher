@@ -25,9 +25,13 @@
  * Returns one paragraph of text with [pc.*] parser tags, or "" when nothing applies.
  * The text never uses "/", "{" or "}" (Roo's scene markup splits on them).
  *
- * The game's own scenes: every creature's loadInCunt (the game calls it when Steele cums in
- *   her pussy, ~330 scenes) is wrapped, and Steele's body gets one "looking back" paragraph at the
- *   end of that page: Azra, Feruze, zil, myr, terratch slavers, vanae maidens and everyone else.
+ * The game's own scenes (Azra, Feruze, zil, myr, terratch slavers, vanae maidens and everyone
+ *   else): the game calls pc.cockChange() right after Steele enters someone, and her loadInCunt(pc)
+ *   when Steele cums in her pussy (~330 scenes). We note where the page was at cockChange, and when
+ *   the same page ends in her pussy, the paragraph is slipped in right after the entering line, so
+ *   the game's own moans and squeaks that follow answer it. A short closing line goes at the end
+ *   ("It'll take a while for her to recover from that suula venom."). If the page was cleared in
+ *   between, one "looking back" paragraph goes at the end instead.
  *
  * Toggles: Options -> Android Mods -> "Steele's Body in Sex Scenes" (off = nothing at all) and
  *   "Steele's Body: Game Scenes" (off = only our own mods' scenes).
@@ -192,6 +196,7 @@
             "Thanks to " + blood + ", it’s the real thing, and it hits her fast: her pleasure doubles. Every stroke lands twice as hard, every nerve lights up twice over, and " + who + " stops being able to tell one wave from the next.",
             "With " + blood + " behind it, the venom is every bit as strong as a full suula’s. Her pleasure doubles; she flushes from her face to her chest, her pussy floods around you, and " + who + " cries out like you’re fucking her twice at once."
         ]);
+        if (o.suulaPartner) t += " Being suula herself doesn’t make her immune. If anything, she knows exactly what that sting means, and she melts into it.";
         if (b === "naga") t += " Your coils hold her through every shiver.";
         else if (b === "taur") t += " Beneath your barrel, she bucks back against you for more.";
         return t;
@@ -264,13 +269,31 @@
                 else if (o.venom !== "short") out.push(tentacleOnlyText(o, ci, b, tc, hasPre));
             }
             var text = out.join(" ");
-            if (text) lastOwn = Date.now();
+            if (text && !o.game) lastOwn = Date.now();
             return text;
         } catch (err) {
             return "";
         }
     };
     var lastOwn = 0;   // when one of our own scenes last printed a line (the game hook stays quiet then)
+    // A short closing line for the end of a scene: how she's left after Steele's body was done with her.
+    API.ending = function (o) {
+        try {
+            o = o || {};
+            if (!on()) return "";
+            var ci = typeof o.cock === "number" && o.cock >= 0 ? o.cock : 0;
+            if (!cockOk(ci)) return "";
+            var who = o.who || "she", n = clitCount(o);
+            var tc = tentacles(ci), venom = !!(tc && suulaParts(ci).length), out = [];
+            if (venom) out.push(pick([
+                "It’ll take a while for " + who + " to recover from that suula venom.",
+                cap(who) + " is going to be feeling that suula venom for a good while yet."
+            ]));
+            else if (prehensile(ci)) out.push("It’ll take a while for " + who + " to recover from the battering you gave her g-spot" + (n <= 0 ? "" : n === 1 ? " and clit" : " and clits") + ".");
+            if (tc) out.push("Your penile tentacles wiggle languidly in remembrance of her slick tunnel.");
+            return out.join(" ");
+        } catch (err) { return ""; }
+    };
     // Same, with a paragraph break before it ("" stays "").
     API.para = function (o) { var t = API.vag(o); return t ? "\n\n" + t : ""; };
     /* ---------- The game's own scenes ----------
@@ -314,6 +337,32 @@
         if (!safe(function () { return c.hasVagina(); }, false)) return false;
         return safe(function () { return c.mf("he", "she") === "she"; }, true);
     }
+    /* Where Steele's cock went in: the game calls pc.cockChange() right after the line where
+       Steele enters someone. We remember how much text the page had at that moment. If the same
+       page then ends with Steele cumming in a woman, our "during" paragraph is slipped in at that
+       spot, so her moans in the game's next lines answer it too, and a short closing line goes at
+       the end. If the page was cleared in between, we fall back to one "looking back" paragraph. */
+    var mark = null;
+    function pageText() { return safe(function () { return String(window.ui.state.preText || ""); }, null); }
+    function noteEntry() {
+        if (!gameOn()) return;
+        if (safe(function () { return window.inCombat(); }, false)) return;
+        var txt = pageText();
+        if (txt === null) return;
+        if (markValid(mark, txt)) return;                     // keep the first entry on this page
+        mark = { len: txt.length, tail: txt.slice(Math.max(0, txt.length - 60)), at: Date.now() };
+    }
+    function markValid(m, txt) {
+        if (!m || txt === null || txt.length < m.len) return false;
+        if (Date.now() - m.at > 30 * 60 * 1000) return false;
+        return txt.slice(Math.max(0, m.len - 60), m.len) === m.tail;
+    }
+    function spliceAt(m, text) {
+        var st = window.ui.state;
+        var html = window.ui.parse("\n\n" + text);
+        st.preText = st.preText.slice(0, m.len) + html + st.preText.slice(m.len);
+        try { window.ui.render(); } catch (err) {}
+    }
     function onCum(target, from) {
         if (!gameOn() || !isPc(from) || isPc(target)) return;
         if (!isWoman(target) || !safe(function () { return pc.hasCock(); }, false)) return;
@@ -322,21 +371,43 @@
         if (lastHit.who === target && t - lastHit.at < 10000) return;        // the same scene calling it twice
         var ci = safe(function () { return pc.cockThatFits(target.vaginalCapacity(0)); }, 0);
         if (typeof ci !== "number" || ci < 0) ci = 0;
-        var text = API.vag({
-            mode: "after",
+        var o = {
+            game: true,
             who: partnerName(target),
             npc: target,
             cock: ci,
             suulaPartner: safe(function () { return /suula/i.test(String(target.originalRace)); }, false)
-        });
+        };
+        var m = markValid(mark, pageText()) ? mark : null;
+        mark = null;
+        o.mode = m ? "thrust" : "after";
+        var text = API.vag(o);
         if (!text) return;
+        var end = m ? API.ending(o) : "";
         lastHit = { who: target, at: t };
-        // After the scene function returns, so the paragraph lands at the end of the page.
+        // After the scene function returns, so the ending lands at the end of the page.
         // Never mid-fight: combat text goes to a different panel.
         setTimeout(function () {
             if (safe(function () { return window.inCombat(); }, false)) return;
-            try { output("\n\n" + text); } catch (err) {}
+            if (markValid(m, pageText())) {
+                try { spliceAt(m, text); } catch (err) { try { output("\n\n" + text); } catch (err2) {} }
+                if (end) { try { output("\n\n" + end); } catch (err3) {} }
+            } else {
+                if (m) text = API.vag({ game: true, mode: "after", who: o.who, npc: target, cock: ci, suulaPartner: o.suulaPartner });
+                try { if (text) output("\n\n" + text); } catch (err4) {}
+            }
         }, 0);
+    }
+    function wrapEntry(holder) {
+        var f = holder && holder.cockChange;
+        if (typeof f !== "function" || f.__tnSteeleBody) return;
+        var w = function () {
+            if (this === undefined || isPc(this)) { try { noteEntry(); } catch (err) {} }
+            return f.apply(this, arguments);
+        };
+        for (var key in f) if (Object.prototype.hasOwnProperty.call(f, key)) { try { w[key] = f[key]; } catch (err) {} }
+        w.__tnSteeleBody = true;
+        try { holder.cockChange = w; } catch (err) { try { Object.defineProperty(holder, "cockChange", { value: w, writable: true, configurable: true }); } catch (err2) {} }
     }
     function wrapOn(holder) {
         var f = holder && holder.loadInCunt;
@@ -371,6 +442,15 @@
             var all = registry.RegisteredClasses;
             for (var k in all) if (Object.prototype.hasOwnProperty.call(all, k)) wrapClass(all[k]);
         }
+        // Steele's own cockChange (the game binds it onto pc itself, and pc is replaced on load).
+        safe(function () {
+            if (typeof pc === "undefined" || !pc) return;
+            var p = pc;
+            while (p && p !== Object.prototype) {
+                if (Object.prototype.hasOwnProperty.call(p, "cockChange")) wrapEntry(p);
+                p = Object.getPrototypeOf(p);
+            }
+        });
         // Named NPCs whose loadInCunt another mod replaced on the object itself (e.g. Shekka's Eggs).
         safe(function () {
             for (var id in chars) if (chars[id] && Object.prototype.hasOwnProperty.call(chars[id], "loadInCunt")) wrapOn(chars[id]);
@@ -388,7 +468,7 @@
             registry.registerClass = rw;
         }
         scan();
-        setInterval(scan, 5000);
+        setInterval(scan, 2000);
         return true;
     }
     function boot(tries) {
@@ -407,4 +487,5 @@
     }
     boot(0);
     API.hookReady = function () { return !!registry; };
+    API.debug = function () { return { mark: mark, page: (pageText() || "").length, lastOwn: lastOwn }; };
 })();
