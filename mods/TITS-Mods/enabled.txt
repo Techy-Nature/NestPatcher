@@ -47,7 +47,7 @@ TN_HoloChastity_v2.6.mod
 TN_FeruzeCrew_v2.8.mod
 TN_FeruzeCrew_v2.8.js
 TN_DaneCrew_v2.8.mod
-TN_SexGalleryScenes_v2.8.js
+TN_SexGalleryScenes_v2.9.js
 TN_SexGallery_v2.9.js
 TN_QuadBatPop_v2.8.mod
 TN_QuadDracoPop_v2.8.mod

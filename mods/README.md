@@ -6,7 +6,7 @@ Neston's mods for **Trials in Tainted Space 0.9.168**, ready to use with NestPat
 |---|---|
 | [`TITS-Mods/`](TITS-Mods/) | Every mod in the pack, plus `enabled.txt` (the load list). Copy everything in this folder into your `nestmods` folder. |
 | [`guides/`](guides/) | Install guides and notes. Start with [`INSTALL-Modv2.8.md`](guides/INSTALL-Modv2.8.md). |
-| [`tools/`](tools/) | `taur_gate_scan.js`, which writes `TN_taur-naga_gates.mod` for the Taur/Naga Scene Bypass mod, and `sex_scene_scan_v2.8.js`, which writes `TN_SexGalleryScenes_v2.8.js` (the Sex Scene Gallery's scene list). Only needed after a game update. |
+| [`tools/`](tools/) | `taur_gate_scan.js`, which writes `TN_taur-naga_gates.mod` for the Taur/Naga Scene Bypass mod, and `sex_scene_scan_v2.9.js`, which writes `TN_SexGalleryScenes_v2.9.js` (the Sex Scene Gallery's scene list). Only needed after a game update. |
 
 The notes for every version are in [`changelog.md`](../changelog.md) at the top of the repo. That's also the file the in-game Changelog downloads.
 

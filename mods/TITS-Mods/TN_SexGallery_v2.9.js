@@ -1,4 +1,4 @@
-/* TN Sex Scene Gallery v2.9 (Techy-Nest, 2026-11-02; main menu button 2026-11-05)
+/* TN Sex Scene Gallery v2.9 (Techy-Nest, 2026-11-02; main menu button 2026-11-05; character link 2026-11-11)
    A gallery of every sex scene in the game, with a summary of each one, that fills in as you
    play, plus four achievements for filling it:
      25%  Sex Hound
@@ -9,9 +9,15 @@
    from the Info section of the main menu sidebar (Sex Gallery), from the mod menu
    (Android Mods or TN Mod Settings), or with window.TnSexGallery.open().
 
-   Needs TN_SexGalleryScenes_v2.8.js (the scene list). The scene list is made by
-   mods/tools/sex_scene_scan_v2.8.js, which reads the game files with acorn.js. Run it again
+   Needs TN_SexGalleryScenes_v2.9.js (the scene list). The scene list is made by
+   mods/tools/sex_scene_scan_v2.9.js, which reads the game files with acorn.js. Run it again
    after a game update.
+
+   Character link: the scene list says which characters from the game's own Gallery (main menu >
+   Gallery, the character portraits) are in each scene. Pick a name in the Character drop-down to
+   see their portrait and only their scenes. In the game's Gallery, double-tap (or double-click)
+   a character's portrait to open the Sex Gallery on that character. A single tap still works as
+   before; it just waits a moment to see if a second tap is coming.
 
    How "seen" works: whenever someone in a scene orgasms, the mod checks the text printed on
    that page against the scene list and marks the matching scene as seen. Progress is kept in
@@ -25,7 +31,8 @@
 
     var MOD_ID = "tn-sex-gallery";
     var VERSION = "2.9";
-    var SCENES_FILE = "TN_SexGalleryScenes_v2.8.js";
+    var SCENES_FILE = "TN_SexGalleryScenes_v2.9.js";
+    var DOUBLE_TAP_MS = 350;
     var MAIN_MENU_SLOT = 5;   // the main menu uses 0-4, 7, 13 and 14
     var SEEN_FLAG = "TN_SEXGAL_SEEN";
     var ACH_FLAG = "TN_SEXGAL_ACH";
@@ -84,7 +91,10 @@
                 list.push({ i: i, fp: s.fp[j] });
             }
         }
-        catalog = { data: data, scenes: data.scenes, byId: byId, index: index };
+        var chars = Array.isArray(data.characters) ? data.characters.slice() : [];
+        var charByName = {};
+        for (var c = 0; c < chars.length; c++) charByName[chars[c].name] = chars[c];
+        catalog = { data: data, scenes: data.scenes, byId: byId, index: index, chars: chars, charByName: charByName };
         debug("scene list loaded: " + data.scenes.length + " scenes (TiTS " + (data.game || "?") + ")");
         return catalog;
     }
@@ -344,6 +354,60 @@
         } catch (err) {}
     }
 
+    // ------------------------------------------------------------------ portraits
+    // Webpack modules in main.js (0.9.168): 94083 .rs = bust lookup that follows the player's
+    // artist choices, 37127 = the image manifest (name, artist, paths).
+    var gameModules = {};
+    function gameModule(id) {
+        if (Object.prototype.hasOwnProperty.call(gameModules, id)) return gameModules[id];
+        var mod = null;
+        try {
+            var chunks = window.webpackChunktits_html || self.webpackChunktits_html;
+            if (chunks && typeof chunks.push === "function") {
+                var req = null;
+                chunks.push([["tn-sex-gallery-" + id + "-" + Date.now()], {}, function (r) { req = r; }]);
+                if (typeof req === "function") mod = req(id);
+            }
+        } catch (err) { mod = null; }
+        if (mod) gameModules[id] = mod;
+        return mod;
+    }
+    function fixPath(p) {
+        p = String(p || "").replace(/\\/g, "/");
+        return !p || /^(\.\/|\/|data:|https?:|blob:|file:)/i.test(p) ? p : "./" + p;
+    }
+    var portraitCache = {};
+    function portraitSrc(bust) {
+        bust = String(bust || "");
+        if (!bust) return "";
+        if (Object.prototype.hasOwnProperty.call(portraitCache, bust)) return portraitCache[bust];
+        var src = "";
+        try {
+            var low = bust.toLowerCase();
+            if (typeof flags !== "undefined" && flags && flags.artistOverrides && flags.artistOverrides[low] === "custom" &&
+                flags.pathOverrides && flags.pathOverrides[low] && flags.pathOverrides[low].x1) src = flags.pathOverrides[low].x1;
+        } catch (err) {}
+        if (!src) {
+            try {
+                var m = gameModule(94083);
+                if (m && typeof m.rs === "function") { var e = m.rs(bust); if (e && e.paths && e.paths.x1) src = fixPath(e.paths.x1); }
+            } catch (err) {}
+        }
+        if (!src) {
+            try {
+                var list = gameModule(37127);
+                list = list && (Array.isArray(list) ? list : list.default);
+                if (Array.isArray(list)) {
+                    for (var i = 0; i < list.length; i++) {
+                        if (list[i] && list[i].name === bust && list[i].paths && list[i].paths.x1) { src = fixPath(list[i].paths.x1); break; }
+                    }
+                }
+            } catch (err) {}
+        }
+        if (src) portraitCache[bust] = src;
+        return src;
+    }
+
     // ------------------------------------------------------------------ styles
     function ensureStyle() {
         if (document.getElementById("tnSexGalStyle")) return;
@@ -384,6 +448,14 @@
             + "#tnSexGal .sg-seen{float:right;font-size:.8em;color:#e5a6ff;}"
             + "#tnSexGal .sg-note{color:#bdb6d3;padding:1em .2em;line-height:1.5;}"
             + "#tnSexGal .sg-more{display:block;margin:1em auto;}"
+            + "#tnSexGal select[data-sg=char]{max-width:100%;}"
+            + "#tnSexGal .sg-char{display:flex;gap:.9em;align-items:center;background:#1c1b26;border:1px solid #3b3756;border-radius:.55em;padding:.6em .8em;margin:.3em 0 .6em;}"
+            + "#tnSexGal .sg-portrait{flex:0 0 auto;width:7.5em;height:7.5em;border-radius:.5em;background:#15141c;border:1px solid #34304a;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;}"
+            + "#tnSexGal .sg-portrait img{width:100%;height:100%;object-fit:cover;object-position:top center;}"
+            + "#tnSexGal .sg-portrait .sg-noimg{align-self:center;font-size:2.4em;color:#5b4f7a;font-weight:bold;}"
+            + "#tnSexGal .sg-char-name{font-weight:bold;font-size:1.25em;color:#f3d6ff;}"
+            + "#tnSexGal .sg-char-sub{font-size:.9em;color:#bdb6d3;margin:.2em 0 .45em;line-height:1.4;}"
+            + "@media (max-width:560px){#tnSexGal .sg-portrait{width:5.5em;height:5.5em;}}"
             + ".tnSexToastBox{position:fixed;right:1em;bottom:1em;z-index:99999;display:flex;flex-direction:column;gap:.5em;max-width:min(24em,calc(100vw - 2em));pointer-events:none;}"
             + ".tnSexToast{pointer-events:auto;background:#1c1a27;color:#efe9fb;border:1px solid #6d4a8a;border-left:.35em solid #c07be0;border-radius:.5em;padding:.6em .8em;box-shadow:0 .3em .9em rgba(0,0,0,.55);font-family:Lato,'Segoe UI',sans-serif;font-size:14px;animation:tnSexIn .25s ease-out;}"
             + ".tnSexToast.ach{border-left-color:#ffcf5a;border-color:#a8853a;background:#241c12;}"
@@ -431,7 +503,7 @@
     }
 
     // ------------------------------------------------------------------ gallery window
-    var view = { q: "", place: "", show: "all", shown: PAGE, revealed: {} };
+    var view = { q: "", place: "", show: "all", char: "", shown: PAGE, revealed: {} };
     var keyHandler = null, backHandler = null;
 
     function closeGallery() {
@@ -451,6 +523,7 @@
             if (view.show === "seen" && !isSeen) continue;
             if (view.show === "unseen" && isSeen) continue;
             if (view.place && s.place !== view.place) continue;
+            if (view.char && !(s.chars && s.chars.indexOf(view.char) >= 0)) continue;
             if (q) {
                 var hay = (s.npc + " " + s.title + " " + s.place + " " + s.author + " " + s.tags.join(" ") + " " + (isSeen || settings.spoilers ? s.summary : "")).toLowerCase();
                 if (hay.indexOf(q) < 0) continue;
@@ -487,6 +560,38 @@
         return html + "</div>";
     }
 
+    function charCardHtml(cat, name, seen) {
+        var c = cat.charByName[name] || { name: name, bust: "" };
+        var total = 0, got = 0;
+        for (var i = 0; i < cat.scenes.length; i++) {
+            var s = cat.scenes[i];
+            if (s.chars && s.chars.indexOf(name) >= 0) { total++; if (seen[s.id]) got++; }
+        }
+        var src = portraitSrc(c.bust);
+        var html = '<div class="sg-char"><div class="sg-portrait">';
+        var letter = '<span class="sg-noimg">' + esc(String(c.name).charAt(0)) + "</span>";
+        html += src ? '<img alt="' + esc(c.name) + '" src="' + esc(src) + '" onerror="this.outerHTML=this.getAttribute(\'data-fallback\')" data-fallback="' + esc(letter) + '">' : letter;
+        html += '</div><div><div class="sg-char-name">' + esc(c.name) + "</div>";
+        html += '<div class="sg-char-sub">' + (total ? (inGame() ? got + " of " + total + (total === 1 ? " scene" : " scenes") + " seen" : total + (total === 1 ? " scene" : " scenes")) : "No scenes in the list") +
+            (c.gallery && c.gallery !== c.name ? " · Gallery name: " + esc(c.gallery) : "") + "</div>";
+        html += '<button type="button" data-sg="allchars">All characters</button></div></div>';
+        return html;
+    }
+
+    function charOptions(cat) {
+        var opts = '<option value="">All characters</option>';
+        var list = cat ? cat.chars : [];
+        var found = false;
+        for (var i = 0; i < list.length; i++) {
+            var c = list[i];
+            if (c.name === view.char) found = true;
+            opts += '<option value="' + esc(c.name) + '"' + (view.char === c.name ? " selected" : "") + ">" + esc(c.name) + " (" + (c.scenes || 0) + ")</option>";
+        }
+        // a portrait from the game's Gallery with no scenes in the list still gets a name to show
+        if (view.char && !found) opts += '<option value="' + esc(view.char) + '" selected>' + esc(view.char) + " (0)</option>";
+        return opts;
+    }
+
     function renderList(root) {
         var list = root.querySelector(".sg-list");
         var cat = loadCatalog();
@@ -497,8 +602,11 @@
         var seen = readSeen();
         var rows = filtered(cat, seen);
         var html = "";
+        if (view.char) html += charCardHtml(cat, view.char, seen);
         if (!inGame()) html += '<div class="sg-note">No save is loaded, so nothing is marked as seen. Load a save to see its gallery.</div>';
-        if (!rows.length) html += '<div class="sg-note">No scenes match.</div>';
+        if (!rows.length) html += '<div class="sg-note">' + (view.char && !cat.charByName[view.char]
+            ? "The scene list doesn’t have any sex scenes for " + esc(view.char) + "."
+            : "No scenes match.") + "</div>";
         var lastGroup = null;
         var upto = Math.min(rows.length, view.shown);
         for (var i = 0; i < upto; i++) {
@@ -528,8 +636,16 @@
         root.querySelector(".sg-ach").innerHTML = html;
     }
 
-    function openGallery() {
+    function openGallery(charName) {
         if (!modOn()) return false;
+        if (typeof charName === "string") {
+            // opened for one character (double-tap in the game's Gallery): show all of their scenes
+            view.char = charName;
+            view.place = "";
+            view.q = "";
+            view.show = "all";
+            view.shown = PAGE;
+        }
         wrapAll();
         ensureStyle();
         closeGallery();
@@ -559,6 +675,7 @@
             + '<div class="sg-ach"></div>'
             + '<div class="sg-row">'
             + '<input type="search" data-sg="q" placeholder="Search by name, place, act..." value="' + esc(view.q) + '">'
+            + '<select data-sg="char" aria-label="Character">' + charOptions(cat) + "</select>"
             + '<select data-sg="place" aria-label="Place">' + opts + "</select>"
             + '<select data-sg="show" aria-label="Show">'
             + '<option value="all"' + (view.show === "all" ? " selected" : "") + ">All scenes</option>"
@@ -579,12 +696,21 @@
             timer = setTimeout(function () { renderList(root); }, 200);
         });
         root.querySelector("[data-sg=place]").addEventListener("change", function (ev) { view.place = ev.target.value; view.shown = PAGE; renderList(root); });
+        root.querySelector("[data-sg=char]").addEventListener("change", function (ev) {
+            view.char = ev.target.value; view.shown = PAGE; renderList(root); root.querySelector(".sg-list").scrollTop = 0;
+        });
         root.querySelector("[data-sg=show]").addEventListener("change", function (ev) { view.show = ev.target.value; view.shown = PAGE; renderList(root); });
         root.addEventListener("click", function (ev) {
             var t = ev.target.closest ? ev.target.closest("[data-sg]") : null;
             if (!t) return;
             var act = t.getAttribute("data-sg");
             if (act === "close") closeGallery();
+            else if (act === "allchars") {
+                view.char = ""; view.shown = PAGE;
+                var sel = root.querySelector("[data-sg=char]");
+                if (sel) sel.value = "";
+                renderList(root);
+            }
             else if (act === "more") { view.shown += PAGE; var y = root.querySelector(".sg-list").scrollTop; renderList(root); root.querySelector(".sg-list").scrollTop = y; }
             else if (act === "reveal") { view.revealed[t.getAttribute("data-id")] = true; var y2 = root.querySelector(".sg-list").scrollTop; renderList(root); root.querySelector(".sg-list").scrollTop = y2; }
             else if (act === "bigger" || act === "smaller") {
@@ -599,6 +725,61 @@
         document.addEventListener("keydown", keyHandler, true);
         document.addEventListener("backbutton", backHandler, true);
         return true;
+    }
+
+    // ------------------------------------------------------------------ the game's character Gallery
+    // Its portraits are <div id="idx:Name" class="listBust artGallery" data-header="Display Name">
+    // and open that character's art on pointerup (React). A capture listener on window sees the
+    // tap first: it holds a single tap back for DOUBLE_TAP_MS, then hands it to the game
+    // unchanged. A second tap on the same portrait in that time opens the Sex Gallery instead.
+    var tap = null;   // { el, timer, type, button, id, x, y }
+    function portraitFrom(target) {
+        var el = target && target.closest ? target.closest(".listBust.artGallery") : null;
+        if (!el || !el.id || el.id.indexOf("idx:") !== 0) return null;
+        return el;
+    }
+    function replayTap(t) {
+        try {
+            var init = { bubbles: true, cancelable: true, composed: true, pointerId: t.id, pointerType: t.type, isPrimary: true,
+                button: t.button, buttons: 0, clientX: t.x, clientY: t.y };
+            var ev = typeof PointerEvent === "function" ? new PointerEvent("pointerup", init) : new MouseEvent("pointerup", init);
+            if (typeof PointerEvent !== "function") { try { Object.defineProperty(ev, "pointerType", { value: t.type }); } catch (err) {} }
+            ev.__tnSexGalleryReplay = true;
+            if (t.el.isConnected) t.el.dispatchEvent(ev);
+        } catch (err) { debug("could not pass the tap on: " + err); }
+    }
+    function onPortraitUp(ev) {
+        if (ev.__tnSexGalleryReplay) return;
+        if (!modOn() || !loadCatalog()) return;
+        if (ev.pointerType === "mouse" && ev.button !== 0) return;
+        var el = portraitFrom(ev.target);
+        if (!el) return;
+        ev.stopImmediatePropagation();
+        ev.stopPropagation();
+        if (tap && tap.el === el) {
+            // second tap: this character's sex scenes
+            clearTimeout(tap.timer);
+            tap = null;
+            var name = el.getAttribute("data-header") || el.id.slice(4).replace(/_/g, " ");
+            debug("double-tap on " + name + " in the character gallery");
+            setTimeout(function () { openGallery(name); }, 0);
+            return;
+        }
+        if (tap) { clearTimeout(tap.timer); replayTap(tap); }
+        var t = { el: el, type: ev.pointerType || "mouse", button: ev.button || 0, id: ev.pointerId || 1, x: ev.clientX, y: ev.clientY };
+        t.timer = setTimeout(function () { if (tap === t) tap = null; replayTap(t); }, DOUBLE_TAP_MS);
+        tap = t;
+    }
+    function onPortraitDblClick(ev) {
+        // pointerup already handled it; keep the browser from also selecting text or zooming
+        if (portraitFrom(ev.target) && modOn()) ev.preventDefault();
+    }
+    var galleryHooked = false;
+    function hookCharacterGallery() {
+        if (galleryHooked) return;
+        window.addEventListener("pointerup", onPortraitUp, true);
+        window.addEventListener("dblclick", onPortraitDblClick, true);
+        galleryHooked = true;
     }
 
     // ------------------------------------------------------------------ menu buttons
@@ -634,7 +815,8 @@
     function menuHtml() {
         var p = progress();
         var html = "A gallery of every sex scene in the game, with a summary of each, that fills in as you play. " +
-            "Open it from <b>Info &gt; Sex Gallery</b> in the main menu sidebar, or with the button below.\n\n" +
+            "Open it from <b>Sex Gallery</b> on the main menu, or with the button below. " +
+            "In the game's <b>Gallery</b>, double-tap (or double-click) a character's portrait to see just their scenes.\n\n" +
             (inGame() ? "This save: <b>" + p.seen + " of " + p.total + "</b> scenes (" + p.pct.toFixed(1) + "%)." : "Scenes in the list: <b>" + p.total + "</b>. Load a save to see its progress.") +
             "\n\nAchievement pop-ups: <b>" + (settings.toasts ? "On" : "Off") + "</b>" +
             "\nNew scene pop-ups: <b>" + (settings.newSceneToasts ? "On" : "Off") + "</b>" +
@@ -676,7 +858,9 @@
     window.TnSexGallery = {
         version: VERSION,
         achievements: ACHIEVEMENTS.slice(),
-        open: openGallery,
+        open: function (charName) { return openGallery(typeof charName === "string" ? charName : undefined); },
+        characters: function () { var cat = loadCatalog(); return cat ? cat.chars.slice() : []; },
+        portrait: function (name) { var cat = loadCatalog(); var c = cat && cat.charByName[name]; return c ? portraitSrc(c.bust) : ""; },
         close: closeGallery,
         progress: function () { var p = progress(); return { seen: p.seen, total: p.total, pct: p.pct }; },
         findScene: function (text) { return findScene(String(text || "")); },
@@ -685,6 +869,7 @@
             return {
                 version: VERSION, enabled: modOn(), scenes: cat ? cat.scenes.length : 0, game: cat ? cat.data.game : "",
                 mainMenu: !!(typeof ui !== "undefined" && ui && ui.generateMainMenuButtons && ui.generateMainMenuButtons.__tnSexGallery),
+                characters: cat ? cat.chars.length : 0, galleryDoubleTap: galleryHooked,
                 watching: { output: !!(window.output && window.output.__tnSexGallery), clearOutput: !!(window.clearOutput && window.clearOutput.__tnSexGallery), orgasm: orgasmWrapped },
                 counts: stats, lastMatch: lastMatch, progress: this.progress()
             };
@@ -708,6 +893,7 @@
         try { wrapAll(); } catch (err) {}
         try { addButton(); } catch (err) {}
         try { registerMenu(); } catch (err) {}
+        try { hookCharacterGallery(); } catch (err) {}
         // keep checking: the game can replace output/clearOutput while it starts up
         setTimeout(tick, ticks < 60 ? 500 : 3000);
     }

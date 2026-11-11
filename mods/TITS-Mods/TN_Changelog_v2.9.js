@@ -66,7 +66,7 @@
         { mod: "Shekka's Eggs", text: "New. Once Shekka is fertile, try for eggs with her (taur and naga versions). She carries for 14 days aboard, lays the egg, and it goes to Briget's nursery on Tavros, with emails when it arrives and hatches. File: `TN_ShekkaEggs_v2.9.js`." },
         { mod: "Roo Crew", text: "New. William's Roo crew expansion: once you've won big at her blackjack table and have her panties, recruit her for 50,000 credits. Crew talks, plus a full Sex menu with taur and naga versions. Files: `TN_RooCrew_v2.9.mod` + `TN_RooCrew_v2.9.js`." },
         { mod: "Shelly Cabin Returns", text: "With Shelly on your crew, her Assist scene happens at her bunk aboard your ship. Now `ShellyCabinReturns_v2.9.mod`; delete `ShellyCabinReturns_v2.8.mod`." },
-        { mod: "Sex Scene Gallery", text: "Fix: the gallery couldn't be reached with a save loaded. **Sex Gallery** is now on the main menu. Now `TN_SexGallery_v2.9.js`; delete `TN_SexGallery_v2.8.js`." },
+        { mod: "Sex Scene Gallery", text: "Fix: the gallery couldn't be reached with a save loaded. **Sex Gallery** is now on the main menu. New: a **Character** drop-down shows a character's portrait and only their scenes, and in the game's own **Gallery** you can double-tap (or double-click) a character's portrait to open their sex scenes. A single tap works as before. Now `TN_SexGallery_v2.9.js` + `TN_SexGalleryScenes_v2.9.js`; delete `TN_SexGallery_v2.8.js` and `TN_SexGalleryScenes_v2.8.js`. The scene list tool is now `tools/sex_scene_scan_v2.9.js`." },
         { mod: "Changelog", text: "Shows Modv2.9 as installed. Now `TN_Changelog_v2.9.js`; delete `TN_Changelog_v2.8.js`." }
       ]
     },

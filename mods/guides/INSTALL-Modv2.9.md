@@ -26,6 +26,7 @@ Modv2.8, so you don't need to delete `backup`. All notes are in the in-game **Ch
 | `TN_Changelog_v2.9.js` | `TN_Changelog_v2.8.js` |
 | `ShellyCabinReturns_v2.9.mod` | `ShellyCabinReturns_v2.8.mod` |
 | `TN_SexGallery_v2.9.js` | `TN_SexGallery_v2.8.js` |
+| `TN_SexGalleryScenes_v2.9.js` | `TN_SexGalleryScenes_v2.8.js` |
 
 NestPatcher stops if it finds an old and a new copy of the same mod in `enabled.txt`, so the
 easiest update is a clean copy:

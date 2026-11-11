@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 /*
- * sex_scene_scan_v2.8.js  -  companion to TN_SexGallery_v2.8.js (the Sex Scene Gallery mod).
+ * sex_scene_scan_v2.9.js  -  companion to TN_SexGallery_v2.9.js (the Sex Scene Gallery mod).
  *
  * What it does
  *   Reads the game's clean scripts (the backup folder first, then the live files), parses
@@ -18,8 +18,8 @@
  *     - a short summary,
  *     - a few unique bits of its text, so the gallery can tell when you have seen it.
  *
- *   It writes all of that to TN_SexGalleryScenes_v2.8.js in your mods folder. That file is
- *   the gallery's scene list, so keep it in enabled.txt next to TN_SexGallery_v2.8.js.
+ *   It writes all of that to TN_SexGalleryScenes_v2.9.js in your mods folder. That file is
+ *   the gallery's scene list, so keep it in enabled.txt next to TN_SexGallery_v2.9.js.
  *   The pack already ships one made from TiTS 0.9.168. Run this again after a game update.
  *
  * Where things are
@@ -29,17 +29,17 @@
  *   Press Enter at a question to keep the value shown in [brackets].
  *
  * Usage
- *   node sex_scene_scan_v2.8.js              scan, using the saved folders
- *   node sex_scene_scan_v2.8.js --setup      ask for every folder again
- *   node sex_scene_scan_v2.8.js --dry-run    only report, write nothing
- *   node sex_scene_scan_v2.8.js --list       also print every scene it found
- *   node sex_scene_scan_v2.8.js --out NAME   output file name (saved for next time)
- *   node sex_scene_scan_v2.8.js --project DIR    suggest DIR/extracted/apk/assets/www, DIR/mods, ...
- *   node sex_scene_scan_v2.8.js --settings FILE  use a different settings file
- *   node sex_scene_scan_v2.8.js --game DIR --acorn FILE --mods DIR --logs DIR --backup DIR|none
+ *   node sex_scene_scan_v2.9.js              scan, using the saved folders
+ *   node sex_scene_scan_v2.9.js --setup      ask for every folder again
+ *   node sex_scene_scan_v2.9.js --dry-run    only report, write nothing
+ *   node sex_scene_scan_v2.9.js --list       also print every scene it found
+ *   node sex_scene_scan_v2.9.js --out NAME   output file name (saved for next time)
+ *   node sex_scene_scan_v2.9.js --project DIR    suggest DIR/extracted/apk/assets/www, DIR/mods, ...
+ *   node sex_scene_scan_v2.9.js --settings FILE  use a different settings file
+ *   node sex_scene_scan_v2.9.js --game DIR --acorn FILE --mods DIR --logs DIR --backup DIR|none
  *                                            give the folders on the command line (no questions)
  *   If node runs out of memory on the biggest file:
- *   node --max-old-space-size=3072 sex_scene_scan_v2.8.js
+ *   node --max-old-space-size=3072 sex_scene_scan_v2.9.js
  */
 
 const fs = require("fs");
@@ -48,13 +48,13 @@ const path = require("path");
 const readline = require("readline");
 const crypto = require("crypto");
 
-const SCANNER_VERSION = "2.8";
-const DEFAULT_OUT = "TN_SexGalleryScenes_v2.8.js";
+const SCANNER_VERSION = "2.9";
+const DEFAULT_OUT = "TN_SexGalleryScenes_v2.9.js";
 let acorn;
 
 // ---------------------------------------------------------------- options
 function usage() {
-  console.log("Usage: node sex_scene_scan_v2.8.js [--setup] [--dry-run] [--list] [--out NAME] [--settings FILE] [--project DIR]\n" +
+  console.log("Usage: node sex_scene_scan_v2.9.js [--setup] [--dry-run] [--list] [--out NAME] [--settings FILE] [--project DIR]\n" +
               "       [--game DIR] [--acorn FILE] [--mods DIR] [--logs DIR] [--backup DIR|none]");
 }
 const opts = { dryRun: false, list: false, setup: false, out: null, project: null, settings: null, given: {} };
@@ -189,6 +189,8 @@ async function setup() {
     changed = true;
   }
   let outName = path.basename(opts.out || saved.out || DEFAULT_OUT);
+  // an older scanner's default name moves up to this version's
+  if (!opts.out && /^TN_SexGalleryScenes_v[\d.]+\.js$/.test(outName)) outName = DEFAULT_OUT;
   if (!/\.js$/i.test(outName)) outName += ".js";
   if (outName !== saved.out) changed = true;
   result.out = outName;
@@ -314,7 +316,7 @@ function scanFile(file, src, ctx) {
   function rec(fn) {
     let r = info.get(fn);
     if (!r) {
-      r = { fn, file: file.name, area: file.area, start: fn.start, end: fn.end, texts: [], orgasm: 0, names: [], busts: [],
+      r = { fn, file: file.name, area: file.area, start: fn.start, end: fn.end, texts: [], orgasm: 0, names: [], busts: [], allBusts: [],
             authors: [], flags: [], orgasmTags: new Set(), caseCallers: new Map(), npc: new Map(), calls: [], buttons: [], parent: null, readable: "", triggers: [] };
       info.set(fn, r);
       fns.push(r);
@@ -428,6 +430,7 @@ function scanFile(file, src, ctx) {
         const s = strArg(n.arguments[0]); if (s) r.names.push(s);
       } else if (name === "showBust" && r) {
         const s = strArg(n.arguments[0]); if (s) r.busts.push(s);
+        for (const a of n.arguments) { const b = strArg(a); if (b) r.allBusts.push(b); }
       } else if ((name === "IncrementFlag" || name === "incrementFlag") && r) {
         const s = strArg(n.arguments[0]); if (s) r.flags.push({ s, tag });
       } else if (name === "author" && r) {
@@ -698,6 +701,26 @@ function buildCatalog(allFns, literalCount) {
     }
     return "";
   }
+  // the busts shown in a scene, or failing that, in what leads to it (for the character gallery link)
+  function bustsFor(starts) {
+    const seen = new Set();
+    const queue = starts.slice();
+    let first = true;
+    while (queue.length) {
+      const cur = queue.shift();
+      if (!cur || seen.has(cur) || seen.size > 10) continue;
+      seen.add(cur);
+      const own = cur.allBusts.slice();
+      for (const c of cur.calls) if (!c.texts.length) own.push(...c.allBusts);
+      if (own.length) { const list = [...new Set(own)]; list.own = starts.includes(cur); return list; }
+      if (!first && cur.texts.length > 40) continue;
+      first = false;
+      if (cur.parent && cur.parent.end - cur.parent.start < 40000) queue.push(cur.parent);
+      for (const t of cur.triggers) if (t.from && t.from.end - t.from.start < 60000) queue.push(t.from);
+      for (const c of (callers.get(cur) || [])) if (c.end - c.start < 60000) queue.push(c);
+    }
+    return [];
+  }
   function authorFor(r) {
     for (let cur = r, i = 0; cur && i < 4; cur = cur.parent, i++) if (cur.authors.length) return cur.authors[cur.authors.length - 1];
     for (const t of r.triggers) if (t.from && t.from.authors.length) return t.from.authors[t.from.authors.length - 1];
@@ -782,7 +805,7 @@ function buildCatalog(allFns, literalCount) {
     const id = r.area + "-" + hashId(fps[0]);
     scenes.push({
       id, npc, area: r.area, place: areaLabel(r.area), title: title || (npc ? "Scene" : "Untitled scene"), author: authorFor(r), tags, summary,
-      opening, fp: fps,
+      opening, fp: fps, busts: bustsFor(u.starts),
     });
     for (const f of fps) fpOwner.set(f, (fpOwner.get(f) || 0) + 1);
   }
@@ -811,6 +834,145 @@ function buildCatalog(allFns, literalCount) {
   return { scenes: final, skipped, helpers: helpers.size };
 }
 
+// ------------------------------------------------------- character gallery link
+// The game's own character gallery (main menu > Gallery) lists every character by a display
+// name, a gallery name and the bust it shows. The image manifest says which character(s) each
+// bust is. Both are read from main.*.js so each scene can name the gallery characters in it.
+function unwrapArray(n) {
+  while (n && n.type !== "ArrayExpression") {
+    if (n.type === "CallExpression") n = n.callee;
+    else if (n.type === "MemberExpression") n = n.object;
+    else if (n.type === "SequenceExpression") n = n.expressions[n.expressions.length - 1];
+    else return null;
+  }
+  return n;
+}
+function readGalleryIndex(src) {
+  const out = { chars: [], bustChars: new Map() };
+  const at = src.indexOf("[{displayName:");
+  if (at >= 0) {
+    try {
+      const arr = unwrapArray(acorn.parseExpressionAt(src, at, { ecmaVersion: "latest" }));
+      for (const o of (arr ? arr.elements : [])) {
+        if (!o || o.type !== "ObjectExpression") continue;
+        const e = {};
+        for (const p of o.properties) {
+          if (!p.key) continue;
+          const k = p.key.name || p.key.value;
+          const v = p.value;
+          e[k] = v.type === "Literal" ? v.value : (v.type === "MemberExpression" && v.property ? (v.property.name || v.property.value) : null);
+        }
+        if (e.displayName && e.galleryCharacterName) out.chars.push(e);
+      }
+    } catch (e) { /* left empty: the gallery link is skipped */ }
+  }
+  const m = /JSON\.parse\('\[\{"name":"[^"]*","character":/.exec(src);
+  if (m) {
+    try {
+      const call = acorn.parseExpressionAt(src, m.index, { ecmaVersion: "latest" });
+      const list = JSON.parse(call.arguments[0].value);
+      for (const b of list) {
+        if (!b || !b.name || !b.character) continue;
+        const k = String(b.name).toLowerCase();
+        if (!out.bustChars.has(k)) out.bustChars.set(k, new Set());
+        for (const c of String(b.character).split(", ")) out.bustChars.get(k).add(c.trim());
+      }
+    } catch (e) { /* no manifest: names only */ }
+  }
+  return out;
+}
+function normName(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+const NAME_TITLES = /^(queen|king|lady|lord|dr|doctor|mz|ms|mr|mrs|miss|captain|commander|officer|sister|mother|father|madam|chief|princess|prince|the)\s+/;
+function linkCharacters(scenes, gallery) {
+  // display names are unique; gallery names are not ("Wall" is two characters), so scenes keep display names
+  const byDisplay = new Map();
+  const byName = new Map();
+  const byGallery = new Map();
+  const byBust = new Map();
+  for (const c of gallery.chars) {
+    if (!byGallery.has(c.galleryCharacterName)) byGallery.set(c.galleryCharacterName, []);
+    byGallery.get(c.galleryCharacterName).push(c);
+  }
+  const put = (m, k, c) => { if (k && !m.has(k)) m.set(k, c); };
+  for (const c of gallery.chars) {
+    const d = normName(c.displayName);
+    put(byDisplay, d, c); put(byDisplay, d.replace(/ /g, ""), c);
+    put(byName, d, c); put(byName, d.replace(/ /g, ""), c);
+  }
+  for (const c of gallery.chars) {
+    if (byGallery.get(c.galleryCharacterName).length !== 1) continue;
+    const g = normName(c.galleryCharacterName);
+    put(byName, g, c); put(byName, g.replace(/ /g, ""), c);
+  }
+  for (const c of gallery.chars) put(byBust, String(c.indexingBust || "").toLowerCase(), c);
+  function fromName(raw) {
+    let n = normName(raw);
+    if (!n) return null;
+    for (let i = 0; i < 2; i++) {
+      if (byName.has(n)) return byName.get(n);
+      if (byName.has(n.replace(/ /g, ""))) return byName.get(n.replace(/ /g, ""));
+      if (!NAME_TITLES.test(n)) break;
+      n = n.replace(NAME_TITLES, "");
+    }
+    return null;
+  }
+  function fromBust(raw) {
+    const whole = String(raw || "").toLowerCase();
+    let b = whole;
+    while (b) {
+      if (byBust.has(b)) return [byBust.get(b)];
+      const named = gallery.bustChars.get(b);
+      if (named) {
+        const hits = [];
+        for (const nm of named) {
+          const list = byGallery.get(nm) || [];
+          if (list.length === 1) hits.push(list[0]);
+          else if (list.length > 1) {
+            // shared gallery name: only the one whose own bust this is
+            const own = list.filter((c) => { const ib = String(c.indexingBust || "").toLowerCase(); return ib && (whole.indexOf(ib) === 0 || ib.indexOf(whole) === 0); });
+            if (own.length === 1) hits.push(own[0]);
+          } else {
+            const c = fromName(nm);
+            if (c) hits.push(c);
+          }
+        }
+        if (hits.length) return hits;
+      }
+      const cut = b.lastIndexOf("_");
+      if (cut <= 0) break;
+      b = b.slice(0, cut);
+    }
+    return [];
+  }
+  let linked = 0;
+  const used = new Map();
+  for (const s of scenes) {
+    const found = [];
+    const add = (c) => { if (c && !found.includes(c.displayName)) found.push(c.displayName); };
+    for (const part of String(s.npc || "").split(/\s*(?:&|,| and )\s*/)) {
+      let c = fromName(part);
+      // "Steph Irson" -> Steph: one word of a short name that is a whole character name
+      const words = normName(part).split(" ").filter(Boolean);
+      if (!c && words.length >= 2 && words.length <= 3) {
+        for (const w of words) if (w.length >= 3 && byDisplay.has(w)) { c = byDisplay.get(w); break; }
+      }
+      add(c);
+    }
+    // busts found only in what leads to the scene may be someone else, so they count only when the name gave nobody
+    if (!found.length || (s.busts && s.busts.own)) for (const b of (s.busts || [])) for (const c of fromBust(b)) add(c);
+    if (found.length) { s.chars = found; linked++; for (const g of found) used.set(g, (used.get(g) || 0) + 1); }
+  }
+  const chars = gallery.chars.filter((c) => used.has(c.displayName)).map((c) => {
+    const o = { name: c.displayName, gallery: c.galleryCharacterName, bust: c.indexingBust || "", scenes: used.get(c.displayName) };
+    if (c.taggedGender) o.gender = c.taggedGender;
+    return o;
+  });
+  chars.sort((a, b) => a.name.localeCompare(b.name));
+  return { chars, linked };
+}
+
 // -------------------------------------------------------------------- output
 function writeCatalog(file, catalog, version) {
   const data = {
@@ -819,8 +981,10 @@ function writeCatalog(file, catalog, version) {
     game: version,
     generated: new Date().toISOString().slice(0, 10),
     count: catalog.scenes.length,
+    characters: catalog.characters || [],
     scenes: catalog.scenes.map((s) => {
       const o = { id: s.id, npc: s.npc, area: s.area, place: s.place, title: s.title, author: s.author, tags: s.tags, summary: s.summary, fp: s.fp };
+      if (s.chars && s.chars.length) o.chars = s.chars;
       if (s.opening) o.opening = s.opening;
       return o;
     }),
@@ -844,8 +1008,10 @@ async function main() {
   const allFns = [];
   const literalCount = new Map();
   const log = [];
+  let gallery = null;
   for (const f of files) {
     const src = fs.readFileSync(f.path, "utf8");
+    if (/^main\./.test(f.name) && !gallery) gallery = readGalleryIndex(src);
     process.stdout.write("Scanning " + f.name + " (" + Math.round(src.length / 1048576) + " MB)... ");
     let fns;
     try { fns = scanFile(f, src, ctx); }
@@ -862,13 +1028,19 @@ async function main() {
     log.push(f.name + (f.path.indexOf(BACKUP || "\u0000") === 0 ? " (backup)" : "") + ": " + n + " functions with an orgasm");
   }
   const catalog = buildCatalog(allFns, literalCount);
+  const link = linkCharacters(catalog.scenes, gallery || { chars: [], bustChars: new Map() });
+  catalog.characters = link.chars;
+  console.log("Character gallery: " + (gallery ? gallery.chars.length : 0) + " characters, " + link.chars.length + " with scenes; " +
+    link.linked + " of " + catalog.scenes.length + " scenes linked to a character.");
+  log.push("Character gallery: " + link.chars.length + " characters with scenes, " + link.linked + " scenes linked");
   const byArea = {};
   for (const s of catalog.scenes) byArea[s.place] = (byArea[s.place] || 0) + 1;
   console.log("\nFound " + catalog.scenes.length + " sex scenes (" + catalog.skipped + " left out: no text of their own to recognise them by).");
   for (const k of Object.keys(byArea).sort()) console.log("  " + k + ": " + byArea[k]);
   log.push("", "TiTS " + (version || "?") + ": " + catalog.scenes.length + " scenes, " + catalog.skipped + " left out", "");
   for (const s of catalog.scenes) {
-    const line = s.id + "  [" + s.place + "] " + (s.npc || "?") + " — " + s.title + (s.tags.length ? "  (" + s.tags.join(", ") + ")" : "");
+    const line = s.id + "  [" + s.place + "] " + (s.npc || "?") + " — " + s.title + (s.tags.length ? "  (" + s.tags.join(", ") + ")" : "") +
+      (s.chars ? "  -> " + s.chars.join(", ") : "");
     log.push(line);
     if (opts.list) console.log("  " + line);
   }
@@ -887,4 +1059,4 @@ async function main() {
 if (require.main === module) {
   main().catch((e) => { console.error(e && e.stack || e); process.exit(1); });
 }
-module.exports = { scanFile, buildCatalog, cleanText, pickFingerprints };
+module.exports = { scanFile, buildCatalog, cleanText, pickFingerprints, readGalleryIndex, linkCharacters };
