@@ -49,6 +49,11 @@ jobs:
       - name: Linux "TiTS is running" check (fake /proc)
         if: runner.os == 'Linux'
         run: python tests/test_linux_running.py patchers/NestPatcher_TiTS_Linux_v*.py
+      - name: Mac "TiTS is running" check (fake ps)
+        if: runner.os == 'Linux'
+        run: |
+          python tests/test_mac_running.py patchers/NestPatcher_TiTS_Mac_v*.py
+          python tests/test_mac_running.py patchers/NestPatcher_TiTS_Linux_v*.py
       - name: Android app runs every patcher
         if: runner.os == 'Linux'
         run: python tests/test_android_harness.py

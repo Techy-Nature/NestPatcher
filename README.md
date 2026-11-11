@@ -22,8 +22,8 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 | Linux, no installing | `NestPatcher_GUI_v0.14-x86_64.AppImage` from [Releases](../../releases) | [Guide_GUI_v0.14.md](docs/Guide_GUI_v0.14.md) |
 | Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.12.py`](patchers/) + `NestPatcher_Windows_v1.12.bat` | [Guide_Windows_v1.12.md](docs/Guide_Windows_v1.12.md) |
 | Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.12.py`](patchers/) + `nestpatcher_linux_v1.12.sh` | [Guide_Linux_v1.12.md](docs/Guide_Linux_v1.12.md) |
-| macOS, with only the Windows game (TiTS.exe) | [`patchers/NestPatcher_TiTS_Mac_v1.8.py`](patchers/) `--app` the Windows game folder: it patches it and makes TiTS.app | [NestPatcher_Mac_Guide_v1.8.md](docs/NestPatcher_Mac_Guide_v1.8.md) |
-| macOS | [`patchers/NestPatcher_TiTS_Mac_v1.8.py`](patchers/) | [NestPatcher_Mac_Guide_v1.8.md](docs/NestPatcher_Mac_Guide_v1.8.md) |
+| macOS, with only the Windows game (TiTS.exe) | [`patchers/NestPatcher_TiTS_Mac_v1.9.py`](patchers/) `--app` the Windows game folder: it patches it and makes TiTS.app | [NestPatcher_Mac_Guide_v1.9.md](docs/NestPatcher_Mac_Guide_v1.9.md) |
+| macOS | [`patchers/NestPatcher_TiTS_Mac_v1.9.py`](patchers/) | [NestPatcher_Mac_Guide_v1.9.md](docs/NestPatcher_Mac_Guide_v1.9.md) |
 | Make a **Mac app** or **Linux AppImage** of the patched game | GUI 0.14 (**Make Mac app** / **Make AppImage**) or `--export-mac` / `--export-appimage` | [Guide_Export_Mac_AppImage_v1.12.md](docs/Guide_Export_Mac_AppImage_v1.12.md) |
 | Android, no Termux (app) | `NestPatcher_Android_App_v0.9.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.9.md](docs/Guide_Android_App_v0.9.md) |
 | Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.5.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.14.md](docs/Guide_GUI_v0.14.md) |

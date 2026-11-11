@@ -50,7 +50,7 @@ The AppImage is packed with `mksquashfs` when it's installed. Everywhere else (A
 
 ## On a Mac, or from the Android app, with only the Windows game
 
-The Mac patcher (1.6 or newer) takes the Windows game folder (the one with `TiTS.exe`) directly: it patches it and makes TiTS.app in one go. Steps are in [NestPatcher_Mac_Guide_v1.8.md](NestPatcher_Mac_Guide_v1.8.md), section "Only have the Windows game". In the Android app, pick the Mac patcher and choose the Windows game folder.
+The Mac patcher (1.6 or newer) takes the Windows game folder (the one with `TiTS.exe`) directly: it patches it and makes TiTS.app in one go. Steps are in [NestPatcher_Mac_Guide_v1.9.md](NestPatcher_Mac_Guide_v1.9.md), section "Only have the Windows game". In the Android app, pick the Mac patcher and choose the Windows game folder.
 
 ## Using the command line
 

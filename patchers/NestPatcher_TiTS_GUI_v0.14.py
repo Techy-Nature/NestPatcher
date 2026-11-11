@@ -696,6 +696,52 @@ def windows_running_from_game(paths):
     return ""
 
 
+def mac_running_from_game(ps_output, game, my_pid):
+    """Says which process (truthy) runs from this game, from `ps -axww -o pid=,ppid=,command=` output.
+    Matches the game's full path (TiTS.app/Contents/MacOS/..., or a TiTS.exe run through
+    Wine/CrossOver), so a TiTS.app somewhere else doesn't count, and the patcher itself and
+    whatever started it never count."""
+    root = os.path.realpath(game).rstrip("/") if game else ""
+    if not root:
+        return False
+    wanted = [root + "/"]
+    if root.startswith("/"):
+        wanted.append("z:" + root.replace("/", "\\").lower() + "\\")
+    rows, parents = [], {}
+    for line in ps_output.splitlines():
+        parts = line.strip().split(None, 2)
+        if len(parts) < 3 or not parts[0].isdigit() or not parts[1].isdigit():
+            continue
+        rows.append((int(parts[0]), parts[2]))
+        parents[int(parts[0])] = int(parts[1])
+    skip, pid = set(), my_pid
+    while pid and pid not in skip and len(skip) < 64:
+        skip.add(pid)
+        pid = parents.get(pid, 0)
+    for pid, command in rows:
+        if pid in skip:
+            continue
+        low = command.lower()
+        for want in wanted:
+            spot = low.find(want.lower())
+            if spot < 0:
+                continue
+            program = re.split(r"[/\\]", command[spot + len(want):])[0].lower()
+            if program.startswith(("nestpatcher", "kittypatcher", "python", "node", "open tits.command")):
+                continue
+            return command + " (process " + str(pid) + ")"
+    return False
+
+
+def mac_game_running(game):
+    try:
+        result = subprocess.run(["ps", "-axww", "-o", "pid=,ppid=,command="],
+                                capture_output=True, text=True, errors="replace")
+    except OSError:
+        return False
+    return mac_running_from_game(result.stdout, game, os.getpid())
+
+
 def game_running():
     if not GAME or not RESOURCES:
         return False
@@ -717,12 +763,7 @@ def game_running():
             return False
         return windows_running_from_game(windows_process_paths(pids))
     if PLATFORM == "mac":
-        try:
-            result = subprocess.run(["pgrep", "-f", os.path.basename(GAME) + "/Contents/MacOS/"],
-                                    capture_output=True, text=True)
-            return result.returncode == 0
-        except OSError:
-            return False
+        return mac_game_running(GAME)
     return linux_running_from_game("/proc")
 
 

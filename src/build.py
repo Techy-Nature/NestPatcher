@@ -6,7 +6,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "patchers")
 CLI_VERSION = "1.12"
 GUI_VERSION = "0.14"
-MAC_VERSION = "1.8"
+MAC_VERSION = "1.9"
 
 HEADERS = {
     "linux": """#!/usr/bin/env python3
