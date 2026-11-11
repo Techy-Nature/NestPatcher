@@ -34,7 +34,7 @@ TN_QuadWingPop_v2.4.mod
 TN_ShellyFamily_v2.4.mod
 TN_ShellyFamilyBusts.js
 TN_TattooParlor_v2.6.mod
-TN_BustGenderFilter_v2.4.js
+TN_BustGenderFilter_v2.9.js
 TN_taur-naga_text_v2.8.mod
 TN_CombatHooks.mod
 StephIrson_v2.7.mod

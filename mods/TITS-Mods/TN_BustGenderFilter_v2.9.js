@@ -1,7 +1,14 @@
-/* Bust Gender Filter for Trials in Tainted Space (checked against 0.9.167).
+/* Bust Gender Filter for Trials in Tainted Space (checked against 0.9.168).
    Hides NPC busts by the NPC's genitals: Male (1), Female (2), Herm (3), plus
    optional Sexless and Unidentified groups. Each one is toggled on its own page in
    the Android Mod Menu. Your own (PC) bust is never hidden.
+
+   Modv2.9: battle busts too. The fight screen draws each fighter's portrait with
+   its own React component (solo and group layouts), which never goes through
+   ui.getBustImages. The mod finds those two components when React first builds
+   them and filters their bust list by that fighter's own genitals. A fighter with
+   every bust hidden keeps an empty portrait box (name, bars and status stay).
+   Ships are never hidden. "Battle busts" on the settings page can turn this off.
 
    How a bust's gender is found, first match wins:
      1. Your manual pick for that bust (Recent busts page).
@@ -33,12 +40,13 @@
     var indexBuilt = 0;
 
     function load() {
-        var base = { hide: {}, overrides: {} };
+        var base = { hide: {}, overrides: {}, showCombat: false };
         try {
             var saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}");
             if (saved && typeof saved === "object") {
                 if (saved.hide && typeof saved.hide === "object") base.hide = saved.hide;
                 if (saved.overrides && typeof saved.overrides === "object") base.overrides = saved.overrides;
+                if (saved.showCombat === true) base.showCombat = true;
             }
         } catch (err) { console.warn("[TN] Bust filter settings unreadable", err); }
         return base;
@@ -220,6 +228,97 @@
         p.showAll = wrapped;
     }
 
+    // ---- Battle busts ----
+    // The fight screen's portrait components read their busts from a "busts" getter
+    // (combatBustOverride, else bustDisplay). They aren't exported, so we spot them
+    // as React creates them: a class whose prototype has both a "busts" and a
+    // "cycleFilter" getter. Then that getter is wrapped once, for every portrait.
+    var reactLib = null;
+    var combatPatched = 0;
+
+    function webpackRequire() {
+        var chunks = window.webpackChunktits_html || self.webpackChunktits_html;
+        if (!chunks || typeof chunks.push !== "function") return null;
+        var req = null;
+        try { chunks.push([["tn-bust-filter-" + Date.now()], {}, function (r) { req = r; }]); }
+        catch (err) { return null; }
+        return typeof req === "function" ? req : null;
+    }
+
+    function isReact(x) {
+        return !!x && typeof x.createElement === "function" && typeof x.Component === "function" &&
+            typeof x.cloneElement === "function";
+    }
+
+    function findReact() {
+        if (isReact(window.React)) return window.React;
+        var req = webpackRequire();
+        if (!req) return null;
+        try { var known = req(67294); if (isReact(known)) return known; } catch (err) {}
+        var cache = req.c || {};
+        var ids = Object.keys(cache);
+        for (var i = 0; i < ids.length; i++) {
+            try {
+                var ex = cache[ids[i]] && cache[ids[i]].exports;
+                if (isReact(ex)) return ex;
+            } catch (err2) {}
+        }
+        return null;
+    }
+
+    function getterOf(proto, name) {
+        var d = Object.getOwnPropertyDescriptor(proto, name);
+        return d && typeof d.get === "function" ? d : null;
+    }
+
+    function filterCombat(list, creature) {
+        if (!Array.isArray(list) || !list.length || !active() || cfg.showCombat) return list;
+        if (!creature || creature === window.pc) return list;
+        try { if (creature.isShip) return list; } catch (err) {}
+        var prev = contextCreature;
+        contextCreature = creature;
+        var out;
+        try { out = filterList(list); }
+        finally { contextCreature = prev; }
+        // null (not []) so the game also drops the Edit/Cycle bust buttons.
+        return out.length ? out : null;
+    }
+
+    function inspectType(type) {
+        try {
+            Object.defineProperty(type, "__tnBustSeen", { value: true });
+            var proto = type.prototype;
+            if (!proto) return;
+            var bustsDesc = getterOf(proto, "busts");
+            if (!bustsDesc || !getterOf(proto, "cycleFilter") || bustsDesc.get.__tnBustFilter) return;
+            var orig = bustsDesc.get;
+            var wrapped = function () {
+                var list = orig.call(this);
+                try { return filterCombat(list, this.props && this.props.character); }
+                catch (err) { return list; }
+            };
+            wrapped.__tnBustFilter = true;
+            Object.defineProperty(proto, "busts", {
+                configurable: true,
+                enumerable: bustsDesc.enumerable,
+                get: wrapped
+            });
+            combatPatched++;
+        } catch (err) { console.warn("[TN] Bust filter: battle bust hook failed", err); }
+    }
+
+    function patchCombat() {
+        if (!reactLib) reactLib = findReact();
+        if (!reactLib || reactLib.createElement.__tnBustFilter) return;
+        var origCreate = reactLib.createElement;
+        var wrappedCreate = function (type) {
+            if (typeof type === "function" && !type.__tnBustSeen) inspectType(type);
+            return origCreate.apply(this, arguments);
+        };
+        wrappedCreate.__tnBustFilter = true;
+        reactLib.createElement = wrappedCreate;
+    }
+
     function esc(value) {
         return String(value == null ? "" : value)
             .replace(/&/g, "&amp;")
@@ -243,12 +342,15 @@
             var g = GROUPS[i];
             html += "\n" + g.num + ". " + g.label + ": <b>" + (cfg.hide[g.key] ? "Hidden" : "Shown") + "</b>";
         }
+        html += "\n\nBattle busts (the portraits in a fight): <b>" + (cfg.showCombat ? "Always shown" : "Filtered too") + "</b>. " +
+            "When they're filtered, a fighter whose bust is hidden keeps an empty portrait box. Ships are never hidden.";
         html += "\n\nIf a bust lands in the wrong group, open <b>Recent busts</b> and set it by hand.";
         for (var j = 0; j < GROUPS.length; j++) {
             var gg = GROUPS[j];
             html += '<button type="button" data-mod-act="toggle:' + gg.key + '">' +
                 (cfg.hide[gg.key] ? "Show " : "Hide ") + gg.label + "</button>";
         }
+        html += '<button type="button" data-mod-act="combat">' + (cfg.showCombat ? "Filter battle busts too" : "Always show battle busts") + "</button>";
         html += '<button type="button" data-mod-act="recent">Recent busts</button>';
         html += '<button type="button" data-mod-act="showall">Show everything</button>';
         return html;
@@ -280,6 +382,7 @@
         if (act === "main") { view = "main"; return true; }
         if (act === "showall") { cfg.hide = {}; save(); return true; }
         if (act === "clearpicks") { cfg.overrides = {}; save(); return true; }
+        if (act === "combat") { cfg.showCombat = !cfg.showCombat; save(); return true; }
         if (act.indexOf("toggle:") === 0) {
             var key = act.slice(7);
             cfg.hide[key] = !cfg.hide[key];
@@ -314,7 +417,7 @@
             id: MOD_ID,
             name: "Bust Gender Filter",
             author: "Kitty",
-            description: "Hide NPC busts that are male, female, or herm (each on its own switch).",
+            description: "Hide NPC busts that are male, female, or herm (each on its own switch), in scenes and in battle.",
             supportsToggle: true,
             getHtml: function () { return view === "recent" ? recentHtml() : mainHtml(); },
             onAct: onAct
@@ -325,13 +428,15 @@
     window.tnBustFilter = {
         classify: classify,
         recent: function () { return recent.slice(); },
-        settings: function () { return JSON.parse(JSON.stringify(cfg)); }
+        settings: function () { return JSON.parse(JSON.stringify(cfg)); },
+        battleHooks: function () { return combatPatched; }
     };
 
     function tick() {
         try { register(); } catch (err) {}
         try { patchUi(); } catch (err) {}
         try { patchShowAll(); } catch (err) {}
+        try { patchCombat(); } catch (err) {}
     }
 
     setInterval(tick, 1000);
