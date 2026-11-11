@@ -10,7 +10,9 @@
    start. On Android it sets window.tnModMenuActive = true (tnModMenuKind "android").
    Other TN mods only touch a menu while window.tnModMenuActive === true, and use their
    default settings otherwise.
-   Modv2.5: on desktop, TN_Desktop_Menu is the menu instead (settings, no on/off switches). */
+   Modv2.5: on desktop, TN_Desktop_Menu is the menu instead (settings, no on/off switches).
+   Modv2.9: the panel and the TN DEBUG log use the game's color theme (Options > Color Scheme, Custom
+   Theme included). Colors are the game's CSS variables, so a theme change shows at once. */
 (function () {
     // Already running (the file was listed twice): don't start a second copy.
     if (window.tnModMenuKind === "android") return;
@@ -329,18 +331,34 @@
             if (list) { list.textContent = tnLog.join('\n'); list.scrollTop = list.scrollHeight; }
         }
     }
+    // Modv2.9: colors come from the game's Color Scheme (Options), so the menu matches
+    // whatever theme is picked, Custom Theme included, and changes the moment it changes.
+    var TN_ON = 'var(--highlightColor,#8D31B0)', TN_OFF = 'var(--paleColor,#53677B)';
+    function ensureThemeStyle() {
+        if (document.getElementById('tn-android-mods-theme')) return;
+        var style = document.createElement('style');
+        style.id = 'tn-android-mods-theme';
+        var P = '#kitty-android-mods-panel';
+        style.textContent =
+            P + ' input,' + P + ' select,' + P + ' textarea{background:var(--foregroundColorB,#2C3649);color:var(--textColor,#fff);border:1px solid var(--paleColor,#53677B);border-radius:4px;font:inherit;}' +
+            P + ' input:focus,' + P + ' select:focus,' + P + ' textarea:focus{outline:2px solid var(--focusColor,#00F5EF);}' +
+            P + ' button:not(:disabled):hover,' + P + ' button:focus-visible{outline:2px solid var(--focusColor,#00F5EF);}' +
+            P + ' a{color:var(--hyperlinkColor,#D982EF);}' +
+            '.tn-mods-selected{outline:2px solid var(--focusColor,#00F5EF);}';
+        (document.head || document.documentElement).appendChild(style);
+    }
     function ensureDebug() {
         if (!debugEnabled || !document.body || (debugRoot && debugRoot.isConnected)) return;
         debugRoot = null;
         var root = document.createElement('aside');
         root.id = 'tn-debug-widget';
-        root.style.cssText = 'position:fixed;z-index:2147483646;bottom:100px;right:10px;font:13px sans-serif;color:#fff;max-width:min(90vw,440px);';
+        root.style.cssText = 'position:fixed;z-index:2147483646;bottom:100px;right:10px;font:13px sans-serif;color:var(--textColor,#fff);max-width:min(90vw,440px);';
         var toggle = document.createElement('button');
         toggle.type = 'button';
         toggle.textContent = 'TN DEBUG';
-        toggle.style.cssText = 'display:block;margin-left:auto;background:#74219b;color:white;border:2px solid #e7b9f7;border-radius:7px;padding:8px 10px;font:600 12px sans-serif;';
+        toggle.style.cssText = 'display:block;margin-left:auto;background:var(--highlightColor,#8D31B0);color:var(--textColor,#fff);border:2px solid var(--focusColor,#00F5EF);border-radius:7px;padding:8px 10px;font:600 12px sans-serif;';
         var detail = document.createElement('div');
-        detail.style.cssText = 'display:none;margin-top:5px;background:#16232d;border:1px solid #a77cbe;border-radius:6px;padding:9px;box-shadow:0 4px 14px #0009;';
+        detail.style.cssText = 'display:none;margin-top:5px;background:var(--foregroundColorB,#2C3649);border:1px solid var(--paleColor,#53677B);border-radius:6px;padding:9px;box-shadow:0 4px 14px var(--shadowColor,#202735);';
         var label = document.createElement('div');
         label.textContent = 'Android Mods diagnostics';
         label.style.cssText = 'font-weight:bold;margin-bottom:6px;';
@@ -351,11 +369,11 @@
         var copy = document.createElement('button');
         copy.type = 'button';
         copy.textContent = 'Select log';
-        copy.style.cssText = 'padding:6px;background:#496f7b;color:white;border:0;border-radius:4px;';
+        copy.style.cssText = 'padding:6px;background:var(--paleColor,#53677B);color:var(--textColor,#fff);border:0;border-radius:4px;';
         copy.addEventListener('click', function () {
             var area = document.createElement('textarea');
             area.value = tnLog.join('\n');
-            area.style.cssText = 'display:block;width:100%;height:110px;margin-top:8px;color:#111;background:white;';
+            area.style.cssText = 'display:block;width:100%;height:110px;margin-top:8px;color:var(--textColor,#fff);background:var(--foregroundColorA,#333E52);border:1px solid var(--paleColor,#53677B);';
             detail.appendChild(area);
             area.focus(); area.select();
             copy.disabled = true;
@@ -481,8 +499,9 @@
         panel.setAttribute('aria-label', 'Android Mods settings');
         panel.style.cssText = 'position:fixed;z-index:2147483000;left:' + Math.ceil(sidebar.right + 14) +
             'px;right:14px;top:51px;bottom:92px;overflow:auto;padding:18px;' +
-            'background:#294655;color:#f0f3f8;border-radius:8px;box-sizing:border-box;' +
-            'box-shadow:0 4px 20px rgba(0,0,0,.3);font:inherit;';
+            'background:var(--backgroundColor,#3D5174);color:var(--textColor,#fff);border-radius:8px;box-sizing:border-box;' +
+            'border:1px solid var(--paleColor,#53677B);box-shadow:0 4px 20px var(--shadowColor,#202735);font:inherit;';
+        ensureThemeStyle();
         sidebarPanel = panel;
         sidebarRow.classList.add('tn-mods-selected');
         document.body.appendChild(panel);
@@ -491,28 +510,28 @@
         var head = document.createElement('div');
         // Pinned to the top of the scrolling panel so Close is always reachable.
         head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-18px -18px 14px;' +
-            'padding:14px 18px;position:sticky;top:-18px;z-index:2;background:#294655;border-bottom:1px solid #3d6070;' +
+            'padding:14px 18px;position:sticky;top:-18px;z-index:2;background:var(--foregroundColorB,#2C3649);border-bottom:1px solid var(--paleColor,#53677B);' +
             'border-radius:8px 8px 0 0';
         var heading = document.createElement('h2');
         heading.textContent = id ? ((byId(id) || {}).name || id) : 'Android Mods';
-        heading.style.cssText = 'margin:0;color:#fff;font-size:23px';
+        heading.style.cssText = 'margin:0;color:var(--textColor,#fff);font-size:23px';
         head.appendChild(heading);
         var back = document.createElement('button');
         back.textContent = id ? '← All Mods' : 'Close ✕';
         back.setAttribute('aria-label', id ? 'Back to all mods' : 'Close Android Mods');
-        back.style.cssText = 'padding:9px 16px;border:0;border-radius:5px;background:#74219b;color:white;font:inherit;cursor:pointer';
+        back.style.cssText = 'padding:9px 16px;border:0;border-radius:5px;background:var(--highlightColor,#8D31B0);color:var(--textColor,#fff);font:inherit;cursor:pointer';
         back.addEventListener('click', function () { if (id) openOptionsPanel(); else closeOptionsPanel(); });
         head.appendChild(back);
         panel.appendChild(head);
 
         var intro = document.createElement('p');
         intro.textContent = 'Switches apply only to mods that support runtime disabling. Existing save progress and previous transformations are not undone. Tap outside this panel or tap Android Mods again to close it.';
-        intro.style.cssText = 'margin:0 0 18px;color:#d8e1e8';
+        intro.style.cssText = 'margin:0 0 18px;color:var(--textColor,#fff);opacity:.85';
         panel.appendChild(intro);
         // First-party Debug Mode setting belongs to Android Mods, not the registered mod list.
         if (!id) {
             var debugCard = document.createElement('section');
-            debugCard.style.cssText = 'background:#354f5d;border-radius:7px;margin:0 0 12px;padding:15px;box-sizing:border-box;';
+            debugCard.style.cssText = 'background:var(--foregroundColorA,#333E52);border-radius:7px;margin:0 0 12px;padding:15px;box-sizing:border-box;';
             var debugTitle = document.createElement('div');
             debugTitle.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
             var debugName = document.createElement('strong');
@@ -523,19 +542,19 @@
             debugToggle.type = 'button';
             debugToggle.textContent = debugEnabled ? 'On — Turn off' : 'Off — Turn on';
             debugToggle.setAttribute('aria-pressed', String(debugEnabled));
-            debugToggle.style.cssText = 'padding:10px 14px;border:0;border-radius:5px;color:#fff;font:inherit;cursor:pointer;background:' + (debugEnabled ? '#74219b' : '#4c7380');
+            debugToggle.style.cssText = 'padding:10px 14px;border:0;border-radius:5px;color:var(--textColor,#fff);font:inherit;cursor:pointer;background:' + (debugEnabled ? TN_ON : TN_OFF);
             debugToggle.addEventListener('click', function () {
                 setDebugEnabled(!debugEnabled);
                 debugToggle.textContent = debugEnabled ? 'On — Turn off' : 'Off — Turn on';
                 debugToggle.setAttribute('aria-pressed', String(debugEnabled));
-                debugToggle.style.background = debugEnabled ? '#74219b' : '#4c7380';
+                debugToggle.style.background = debugEnabled ? TN_ON : TN_OFF;
                 tnDebug('Debug Mode ' + (debugEnabled ? 'enabled' : 'disabled'));
             });
             debugTitle.appendChild(debugToggle);
             debugCard.appendChild(debugTitle);
             var debugDescription = document.createElement('p');
             debugDescription.textContent = 'Show the floating TN DEBUG log for troubleshooting. Off by default; saved on this device.';
-            debugDescription.style.cssText = 'margin:9px 0 0;color:#dbe3e7';
+            debugDescription.style.cssText = 'margin:9px 0 0;color:var(--textColor,#fff);opacity:.85';
             debugCard.appendChild(debugDescription);
             panel.appendChild(debugCard);
         }
@@ -547,7 +566,7 @@
         }
         visible.forEach(function (mod) {
             var card = document.createElement('section');
-            card.style.cssText = 'background:#354f5d;border-radius:7px;margin:0 0 12px;padding:15px;box-sizing:border-box;';
+            card.style.cssText = 'background:var(--foregroundColorA,#333E52);border-radius:7px;margin:0 0 12px;padding:15px;box-sizing:border-box;';
             var title = document.createElement('div');
             title.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
             var name = document.createElement('strong');
@@ -558,8 +577,8 @@
             var active = isModEnabled(mod.id);
             toggle.textContent = !mod.supportsToggle ? 'No runtime toggle' : active ? 'Enabled — Disable' : 'Disabled — Enable';
             toggle.disabled = !mod.supportsToggle;
-            toggle.style.cssText = 'padding:10px 14px;border:0;border-radius:5px;color:#fff;font:inherit;' +
-                'background:' + (mod.supportsToggle ? active ? '#74219b' : '#4c7380' : '#59676e') +
+            toggle.style.cssText = 'padding:10px 14px;border:0;border-radius:5px;color:var(--textColor,#fff);font:inherit;' +
+                'background:' + (mod.supportsToggle ? active ? TN_ON : TN_OFF : TN_OFF + ';opacity:.6') +
                 ';cursor:' + (mod.supportsToggle ? 'pointer' : 'default') + ';';
             if (mod.supportsToggle) toggle.addEventListener('click', function () {
                 setModEnabled(mod.id, !isModEnabled(mod.id));
@@ -570,13 +589,13 @@
             if (mod.description) {
                 var desc = document.createElement('p');
                 desc.textContent = mod.description;
-                desc.style.cssText = 'margin:9px 0 0;color:#dbe3e7';
+                desc.style.cssText = 'margin:9px 0 0;color:var(--textColor,#fff);opacity:.85';
                 card.appendChild(desc);
             }
             if (!id && (mod.getHtml || mod.fillMenu)) {
                 var details = document.createElement('button');
                 details.textContent = 'Settings →';
-                details.style.cssText = 'margin-top:10px;border:0;background:transparent;color:#e7b9f7;font:inherit;cursor:pointer';
+                details.style.cssText = 'margin-top:10px;border:0;background:transparent;color:var(--hyperlinkColor,#D982EF);font:inherit;cursor:pointer';
                 details.addEventListener('click', function () { openOptionsPanel(mod.id); });
                 card.appendChild(details);
             }
@@ -589,7 +608,7 @@
                     content.buttons.forEach(function (choice) {
                         var action = document.createElement('button');
                         action.textContent = choice.label;
-                        action.style.cssText = 'margin:8px 8px 0 0;padding:8px 12px;background:#496f7b;color:white;border:0;border-radius:5px';
+                        action.style.cssText = 'margin:8px 8px 0 0;padding:8px 12px;background:var(--paleColor,#53677B);color:var(--textColor,#fff);border:0;border-radius:5px';
                         action.addEventListener('click', function () {
                             if (choice.open) openOptionsPanel(choice.open);
                             else if (mod.onAct) {
