@@ -36,17 +36,23 @@ try:
     os.rename(os.path.join(root, "game"), os.path.join(root, "TiTS-test"))
     tool = os.path.join(root, "tool")
     shutil.copy2(script, tool)
-    proc = subprocess.Popen([sys.executable, os.path.basename(script), "--no-browser"], cwd=tool,
+    # No -u and no PYTHONUNBUFFERED: the GUI itself must print its address straight
+    # away even when its output goes to a pipe (it hung CI when it didn't).
+    env = dict(os.environ)
+    env.pop("PYTHONUNBUFFERED", None)
+    proc = subprocess.Popen([sys.executable, os.path.basename(script), "--no-browser"], cwd=tool, env=env,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    seen = []
+    threading.Thread(target=lambda: [seen.append(line) for line in proc.stdout], daemon=True).start()
     url = ""
     started = time.time()
     while time.time() - started < 30 and not url:
-        line = proc.stdout.readline()
-        if "#k=" in line:
-            url = line.split("into it:", 1)[1].strip()
-    check("GUI prints its address", bool(url))
+        url = next((line.split("into it:", 1)[1].strip() for line in list(seen) if "#k=" in line), "")
+        time.sleep(0.1)
+    check("GUI prints its address", bool(url), "".join(seen))
+    if not url:
+        raise SystemExit(1)
     base, key = url.split("/#k=")
-    threading.Thread(target=lambda: [None for _ in proc.stdout], daemon=True).start()
 
     def call(path, body=None):
         data = json.dumps(body).encode() if body is not None else None
