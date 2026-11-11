@@ -15,10 +15,13 @@
  * The buttons live in the Flashback Visor (TN_FlashbackVisor_v2.9.mod): Copy Text / Save Text on a
  * memory, and Save All in the visor menu. Other mods can call window.tnSceneText.
  *
- * Where the text lives: the device's own browser storage (IndexedDB), not the save file, so saves
- * stay small. It's kept per save (a TN_SCENETEXT_ID flag in the save tells them apart), and the
- * same scene seen again replaces its older copy. Moving a save to another device doesn't move the
- * text with it. Recording starts when this mod is installed.
+ * Where the text lives: the device's own browser storage (IndexedDB), kept per save (a
+ * TN_SCENETEXT_ID flag tells saves apart); the same scene seen again replaces its older copy.
+ * A copy also rides inside the save itself: flags.TN_SCENETEXT_PACK holds every scene compressed
+ * (deflate, like a zip) as a Base64 string, so moving a save to another device (slots, Save To
+ * File, cloud) brings its scenes along; they're added back when the save is loaded there. The
+ * same code can be copied out of the visor (Scene Backup) and pasted in on another device.
+ * Recording starts when this mod is installed.
  *
  * How a scene is found: every button press is remembered with its label, every page of text is
  * kept until the game returns to the main menu, and the pages around each orgasm become a scene.
@@ -268,7 +271,7 @@
             d: o.d, loc: o.loc, gid: o.gid || "", upd: Date.now()
         };
         S.last = rec;
-        put(rec);
+        put(rec).then(schedulePack);
         return rec;
     }
 
@@ -363,10 +366,138 @@
         hooked.menu = true;
         return true;
     }
+    /* ---------- Copy inside the save (moves with the save to other devices) ----------
+       flags.TN_SCENETEXT_PACK = "d:" + Base64 of the scenes, compressed the way a zip is
+       (deflate), or "j:" + Base64 of plain JSON where the browser can't compress. The game's
+       own save keeps it like any other flag, so Save To File / slots / other devices carry it.
+       When a save with a pack is loaded on a device that's missing some of its scenes, they're
+       added back to that device's storage. Newest scenes win if the pack gets too big. */
+    var PACK_MAX = 8 * 1024 * 1024;      // characters of Base64 kept in the save
+    function b64(bytes) {
+        var out = "", CH = 0x8000;
+        for (var i = 0; i < bytes.length; i += CH) out += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+        return btoa(out);
+    }
+    function unb64(str) {
+        var bin = atob(str), a = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+        return a;
+    }
+    function streamBytes(bytes, Kind, mode) {
+        var cs = new Kind(mode);
+        var w = cs.writable.getWriter(); w.write(bytes); w.close();
+        return new Response(cs.readable).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+    }
+    function canZip() { return typeof CompressionStream === "function" && typeof DecompressionStream === "function" && typeof Response === "function"; }
+    S.encode = function (recs) {
+        var bytes = utf8(JSON.stringify({ v: 1, r: recs }));
+        if (!canZip()) return Promise.resolve("j:" + b64(bytes));
+        return streamBytes(bytes, CompressionStream, "deflate-raw").then(function (z) { return "d:" + b64(z); }, function () { return "j:" + b64(bytes); });
+    };
+    S.decode = function (code) {
+        code = String(code || "").replace(/\s+/g, "");
+        var kind = code.slice(0, 2), body = code.slice(2);
+        var bytes;
+        try { bytes = unb64(body); } catch (err) { return Promise.reject(new Error("not a scene backup code")); }
+        var p = kind === "d:" ? (canZip() ? streamBytes(bytes, DecompressionStream, "deflate-raw") : Promise.reject(new Error("this device can't unpack compressed scenes")))
+            : kind === "j:" ? Promise.resolve(bytes) : Promise.reject(new Error("not a scene backup code"));
+        return p.then(function (b) {
+            var txt = typeof TextDecoder !== "undefined" ? new TextDecoder().decode(b) : decodeURIComponent(escape(String.fromCharCode.apply(null, b)));
+            var o = JSON.parse(txt);
+            if (!o || !Array.isArray(o.r)) throw new Error("not a scene backup code");
+            return o.r;
+        });
+    };
+    var packTimer = false, packing = null;
+    function schedulePack() {
+        if (packTimer) return;
+        packTimer = true;
+        setTimeout(function () { packTimer = false; S.pack(); }, 0);
+    }
+    S.pack = function () {
+        if (!inGame()) return Promise.resolve(null);
+        var sid = saveId(), f = flags;
+        packing = S.all(sid).then(function (list) {
+            list.sort(function (a, b) { return (b.upd || 0) - (a.upd || 0); });
+            function tryPack(n) {
+                return S.encode(list.slice(0, n)).then(function (code) {
+                    if (code.length > PACK_MAX && n > 1) return tryPack(Math.floor(n * 0.8));
+                    return { code: code, n: n };
+                });
+            }
+            return list.length ? tryPack(list.length) : { code: "", n: 0 };
+        }).then(function (res) {
+            // Only write if the same save is still loaded.
+            if (inGame() && flags === f && String(flags.TN_SCENETEXT_ID) === sid) {
+                if (res.code) { flags.TN_SCENETEXT_PACK = res.code; flags.TN_SCENETEXT_PACKN = res.n; }
+                importedCode = res.code;
+            }
+            return res;
+        }).catch(function (err) { console.warn("[TN] Scene Text Saver: pack failed", err); return null; });
+        return packing;
+    };
+    // Adds scenes from a backup code (the save's own, or one pasted in) to this device.
+    S.importCode = function (code, sid) {
+        sid = sid || saveId();
+        return S.decode(code).then(function (recs) {
+            return S.all(sid).then(function (have) {
+                var byId = {};
+                have.forEach(function (r) { byId[r.id] = r; });
+                var add = recs.filter(function (r) { return r && typeof r.id === "string" && r.id.indexOf("|") > 0 && Array.isArray(r.pages); }).map(function (r) {
+                    var c = {}; for (var k in r) c[k] = r[k];
+                    c.save = sid; c.id = sid + r.id.slice(r.id.indexOf("|"));
+                    return c;
+                }).filter(function (r) { return !byId[r.id] || (r.upd || 0) > (byId[r.id].upd || 0); });
+                return Promise.all(add.map(put)).then(function () { return add.length; });
+            });
+        });
+    };
+    var importedCode = null, importing = false;
+    function checkImport() {
+        if (!inGame() || importing) return;
+        var code = flags.TN_SCENETEXT_PACK;
+        if (!code || code === importedCode) return;
+        importing = true;
+        var sid = saveId();
+        S.importCode(code, sid).then(function (n) {
+            importedCode = code;
+            importing = false;
+            if (n) console.log("[TN] Scene Text Saver: " + n + " scenes came back from this save.");
+        }, function (err) { importedCode = code; importing = false; console.warn("[TN] Scene Text Saver: couldn't read the save's scenes", err); });
+    }
+    // A dark box to paste a backup code into (for moving scenes without moving the save).
+    S.pasteBox = function (done) {
+        try {
+            var old = document.getElementById("tnScenePasteBox"); if (old) old.remove();
+            var wrap = document.createElement("div");
+            wrap.id = "tnScenePasteBox";
+            wrap.style.cssText = "position:fixed;left:5%;top:8%;width:90%;height:80%;z-index:99999;background:#1b1b1f;border:1px solid #666;border-radius:10px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;color:#eee;font-size:15px;";
+            var tip = document.createElement("div");
+            tip.textContent = "Paste a scene backup code (it starts with d: or j:), then tap Add Scenes.";
+            var ta = document.createElement("textarea");
+            ta.style.cssText = "flex:1;width:100%;background:#111;color:#eee;font-size:13px;border:1px solid #444;border-radius:6px;padding:8px;box-sizing:border-box;";
+            var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;";
+            function mk(t, f) { var b = document.createElement("button"); b.textContent = t; b.style.cssText = "flex:1;padding:10px;font-size:16px;border-radius:8px;background:#333;color:#eee;border:1px solid #666;"; b.onclick = f; row.appendChild(b); }
+            mk("Add Scenes", function () {
+                var code = ta.value; wrap.remove();
+                S.importCode(code).then(function (n) { S.pack(); done(n, null); }, function (err) { done(0, err); });
+            });
+            mk("Cancel", function () { wrap.remove(); done(-1, null); });
+            wrap.appendChild(tip); wrap.appendChild(ta); wrap.appendChild(row); document.body.appendChild(wrap);
+            ta.focus();
+            return true;
+        } catch (err) { return false; }
+    };
+    S.packInfo = function () {
+        var code = inGame() ? String(flags.TN_SCENETEXT_PACK || "") : "";
+        return { code: code, scenes: inGame() ? Number(flags.TN_SCENETEXT_PACKN) || 0 : 0, kb: Math.round(code.length / 1024) };
+    };
+
     var ticks = 0;
     (function tick() {
         ticks++;
         try { wrapButtons(); wrapClear(); wrapBust(); wrapCreature(); wrapChars(); wrapCombat(); wrapMainMenu(); } catch (err) {}
+        try { checkImport(); } catch (err) {}
         setTimeout(tick, ticks < 60 ? 500 : 3000);
     })();
     S.put = put;

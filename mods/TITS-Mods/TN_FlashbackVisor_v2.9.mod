@@ -15,6 +15,7 @@ Author: Neston
 #   - Copy Text / Save Text on a memory (sex or fight) and Save All in the visor menu: the full
 #     scene text as .rtf (bold and italics kept), or a .zip with a folder per character. Needs
 #     TN_SceneText_v2.9.js (Scene Text Saver), which records the full text. Works on every build.
+#     Scene Backup shows the copy of those scenes packed inside the save (Base64), to copy or paste.
 #   - Menus: Sex (Sub or Domme -> who -> what went where -> the memory), Battle (who -> the
 #     fight), Both (a fight and the sex right after it). Every fight memory remembers whether
 #     you won or lost and opens with a two-paragraph "how it went" intro.
@@ -640,6 +641,8 @@ Add Javascript:
         else addDisabledButton(3, "Drift", "Drift", "Nothing to drift through yet.");
         if (!ST()) addDisabledButton(5, "Save All", "Save All Text", NEED_ST);
         else addButton(5, "Save All", F.saveAll, "Save All Text", "Save every sex scene and fight as .rtf files in a .zip, with a folder for each character.");
+        if (ST()) addButton(6, "Scene Backup", F.backup, "Scene Backup", "Your saved scenes, packed into your save file as a backup code that travels with it.");
+        else addDisabledButton(6, "Scene Backup", "Scene Backup", NEED_ST);
         addButton(4, "Codex Link", F.link, "Codex Link: " + (flags.TN_FBV_LINK === 1 ? "On" : "Off"), flags.TN_FBV_LINK === 1 ? "Your flashback logs are shared with your Codex (Hand So can see them). Turn it off?" : "Share your flashback logs with your Codex so someone you trust (like Hand So) can see them.");
         addButton(14, "Take It Off", F.takeOff, "Take It Off", "Come back to the present.");
     };
@@ -766,6 +769,30 @@ Add Javascript:
             if (rec) t.saveRtf(rec);
             else output("\n\n<i>There’s no full text for this fight yet. Fights are saved from the moment the Scene Text Saver is installed (only the newest " + (b.win ? "victory" : "defeat") + " against each enemy is kept).</i>");
         });
+    };
+    F.backup = function () {
+        var t = ST(); if (!t) return;
+        visorShow();
+        var info = t.packInfo();
+        output("The visor projects a long string of characters into the fog: a backup of every scene you’ve saved, packed into your save file so it travels with it.");
+        if (info.code) output("\n\n<b>In this save:</b> " + info.scenes + (info.scenes === 1 ? " scene" : " scenes") + ", " + info.kb + " KB.\n<i>" + info.code.slice(0, 48) + "…</i>\n\nMoving this save to another device (a save file, a slot, or the cloud) brings the scenes along. You can also copy this code and paste it in on another device.");
+        else output("\n\n<i>No scenes packed in this save yet. They’re added as you go.</i>");
+        clearMenu();
+        if (info.code) {
+            addButton(0, "Copy Code", function () { t.copy(t.packInfo().code); }, "Copy Code", "Copy the backup code to your clipboard.");
+            addButton(1, "Save Code", function () { t.saveBlob(new Blob([t.packInfo().code], { type: "text/plain" }), "TiTS_SceneBackup_" + t.cleanName((pc && pc.short) || "Steele").replace(/\s+/g, "_") + ".txt"); }, "Save Code", "Save the backup code as a .txt file.");
+        } else {
+            addDisabledButton(0, "Copy Code", "Copy Code", "Nothing packed yet.");
+            addDisabledButton(1, "Save Code", "Save Code", "Nothing packed yet.");
+        }
+        addButton(2, "Paste Code", function () {
+            if (!t.pasteBox(function (n, err) {
+                if (n < 0) return;
+                output("\n\n<i>" + (err ? "That code didn’t work: " + (err.message || err) + "." : n ? "Added " + n + (n === 1 ? " scene" : " scenes") + " to this save." : "Those scenes were already here.") + "</i>");
+            })) output("\n\n<i>Pasting isn’t available here.</i>");
+        }, "Paste Code", "Add scenes from a backup code copied on another device.");
+        addButton(3, "Refresh", function () { t.pack().then(function () { F.backup(); }); }, "Refresh", "Pack every scene on this device into the save again.");
+        addButton(14, "Back", function () { F.menu(); }, "Back", "");
     };
     F.saveAll = function () {
         var t = ST(); if (!t) return;
