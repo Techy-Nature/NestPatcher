@@ -262,6 +262,7 @@
     var ROWS = {}, LINES = [];
     for (var di = 0; di < DOC.length; di++) { ROWS[DOC[di][0]] = DOC[di]; LINES.push(DOC[di][0]); }
     var COND = {};  // doc line of a "// condition" -> predicate (filled in roo_2+)
+    var FLAV = {};  // doc line -> extra paragraph after it (Steele's body lines, filled in roo_7)
     function M() { return true; }
 
     /* Render doc lines a..b. Condition lines with a COND entry switch paragraphs on/off; other notes are skipped. */
@@ -276,6 +277,7 @@
             if (!on || (skip && skip.indexOf(n) >= 0)) continue;
             var t = txt(r[2], n);
             if (t.trim()) out.push(t.trim());
+            if (FLAV[n]) { var fv = FLAV[n](); if (fv) out.push(txt(fv, 0).trim()); }
         }
         return out;
     }
