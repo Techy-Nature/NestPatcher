@@ -57,6 +57,8 @@ TN_HandSoRedemption_v2.9.mod
 TN_ResDeckFountain_v2.9.mod
 TN_SiegwulfeSub_v2.9.mod
 TN_FlashbackVisor_v2.9.mod
+TN_SceneText_v2.9.js
+TN_OfflineGuard_v2.9.mod
 TN_DaneDating_v2.9.js
 TN_BiancaExtras_v2.9.mod
 TN_BiancaExtras_v2.9.js

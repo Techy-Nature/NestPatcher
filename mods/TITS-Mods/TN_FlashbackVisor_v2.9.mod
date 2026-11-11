@@ -12,6 +12,10 @@ Author: Neston
 #   - No taint. Unlike Dr. Badger's Mindwash Visor it doesn't beam anything into your brain:
 #     it fogs your eyes and mind into a flashback, then shows you the memory you picked.
 #   - Each memory you relive takes one hour (a Both memory's fight and sex share that hour).
+#   - Copy Text / Save Text on a memory (sex or fight) and Save All in the visor menu: the full
+#     scene text as .rtf (bold and italics kept), or a .zip with a folder per character. Needs
+#     TN_SceneText_v2.9.js (Scene Text Saver), which records the full text. Works on every build.
+#     Scene Backup shows the copy of those scenes packed inside the save (Base64), to copy or paste.
 #   - Menus: Sex (Sub or Domme -> who -> what went where -> the memory), Battle (who -> the
 #     fight), Both (a fight and the sex right after it). Every fight memory remembers whether
 #     you won or lost and opens with a two-paragraph "how it went" intro.
@@ -635,6 +639,10 @@ Add Javascript:
         else addDisabledButton(2, "Both", "Both", "You need a fight that ended in sex.");
         if (sx.length || fx.length) addButton(3, "Drift", F.drift, "Drift", "Stop choosing. Let the fog pick memories for you for a few hours.");
         else addDisabledButton(3, "Drift", "Drift", "Nothing to drift through yet.");
+        if (!ST()) addDisabledButton(5, "Save All", "Save All Text", NEED_ST);
+        else addButton(5, "Save All", F.saveAll, "Save All Text", "Save every sex scene and fight as .rtf files in a .zip, with a folder for each character.");
+        if (ST()) addButton(6, "Scene Backup", F.backup, "Scene Backup", "Your saved scenes, packed into your save file as a backup code that travels with it.");
+        else addDisabledButton(6, "Scene Backup", "Scene Backup", NEED_ST);
         addButton(4, "Codex Link", F.link, "Codex Link: " + (flags.TN_FBV_LINK === 1 ? "On" : "Off"), flags.TN_FBV_LINK === 1 ? "Your flashback logs are shared with your Codex (Hand So can see them). Turn it off?" : "Share your flashback logs with your Codex so someone you trust (like Hand So) can see them.");
         addButton(14, "Take It Off", F.takeOff, "Take It Off", "Come back to the present.");
     };
@@ -739,6 +747,58 @@ Add Javascript:
     F.fightIntro = fightIntro;
 
     /* ---------- Replay a sex memory ---------- */
+
+    /* ---------- Copy / save scene text (needs TN_SceneText_v2.9.js) ---------- */
+    function ST() { var t = window.tnSceneText; return t && typeof t.exportZip === "function" && (!t.on || t.on()) ? t : null; }
+    var NEED_ST = "Needs the Scene Text Saver mod (TN_SceneText_v2.9.js) turned on.";
+    function memRec(m) {
+        return { kind: "sex", chars: (m.who || []).slice(), title: m.ti || ("Memory, Day " + dayOf(m.d)), pages: String(m.txt || "").split(DIV),
+            d: m.d, loc: m.loc, busts: m.bu || [], pc: (pc && pc.short) || "Steele" };
+    }
+    F.copyMem = function (m) {
+        var t = ST(); if (!t) return;
+        t.find(String(m.txt || "").split(DIV).pop(), "sex").then(function (rec) { t.copy(t.toText(rec || memRec(m))); });
+    };
+    F.saveMem = function (m) {
+        var t = ST(); if (!t) return;
+        t.find(String(m.txt || "").split(DIV).pop(), "sex").then(function (rec) { t.saveRtf(rec || memRec(m)); });
+    };
+    F.saveFight = function (b) {
+        var t = ST(); if (!t) return;
+        t.findFight(b.who, !!b.win).then(function (rec) {
+            if (rec) t.saveRtf(rec);
+            else output("\n\n<i>There’s no full text for this fight yet. Fights are saved from the moment the Scene Text Saver is installed (only the newest " + (b.win ? "victory" : "defeat") + " against each enemy is kept).</i>");
+        });
+    };
+    F.backup = function () {
+        var t = ST(); if (!t) return;
+        visorShow();
+        var info = t.packInfo();
+        output("The visor projects a long string of characters into the fog: a backup of every scene you’ve saved, packed into your save file so it travels with it.");
+        if (info.code) output("\n\n<b>In this save:</b> " + info.scenes + (info.scenes === 1 ? " scene" : " scenes") + ", " + info.kb + " KB.\n<i>" + info.code.slice(0, 48) + "…</i>\n\nMoving this save to another device (a save file, a slot, or the cloud) brings the scenes along. You can also copy this code and paste it in on another device.");
+        else output("\n\n<i>No scenes packed in this save yet. They’re added as you go.</i>");
+        clearMenu();
+        if (info.code) {
+            addButton(0, "Copy Code", function () { t.copy(t.packInfo().code); }, "Copy Code", "Copy the backup code to your clipboard.");
+            addButton(1, "Save Code", function () { t.saveBlob(new Blob([t.packInfo().code], { type: "text/plain" }), "TiTS_SceneBackup_" + t.cleanName((pc && pc.short) || "Steele").replace(/\s+/g, "_") + ".txt"); }, "Save Code", "Save the backup code as a .txt file.");
+        } else {
+            addDisabledButton(0, "Copy Code", "Copy Code", "Nothing packed yet.");
+            addDisabledButton(1, "Save Code", "Save Code", "Nothing packed yet.");
+        }
+        addButton(2, "Paste Code", function () {
+            if (!t.pasteBox(function (n, err) {
+                if (n < 0) return;
+                output("\n\n<i>" + (err ? "That code didn’t work: " + (err.message || err) + "." : n ? "Added " + n + (n === 1 ? " scene" : " scenes") + " to this save." : "Those scenes were already here.") + "</i>");
+            })) output("\n\n<i>Pasting isn’t available here.</i>");
+        }, "Paste Code", "Add scenes from a backup code copied on another device.");
+        addButton(3, "Refresh", function () { t.pack().then(function () { F.backup(); }); }, "Refresh", "Pack every scene on this device into the save again.");
+        addButton(14, "Back", function () { F.menu(); }, "Back", "");
+    };
+    F.saveAll = function () {
+        var t = ST(); if (!t) return;
+        t.exportZip(sexMems().filter(function (m) { return m.txt && !m.f; }).map(memRec));
+    };
+
     F.playSex = function (m, back, sameHour) {
         visorShow();
         try { if (m.bu && m.bu.length) showBust.apply(null, m.bu); } catch (err) {}
@@ -756,6 +816,16 @@ Add Javascript:
         addButton(0, "Again", function () { F.playSex(m, back); }, "Again", "Relive it one more time.");
         addButton(1, "Re-file", function () { F.refile(m, back); }, "Re-file", "File this memory as " + (m.role === "sub" ? "Domme" : "Sub") + " instead.");
         addButton(2, "Forget", function () { F.forget(m, back); }, "Forget", "Delete this memory from the visor.");
+        if (!ST()) {
+            addDisabledButton(3, "Copy Text", "Copy Text", NEED_ST);
+            addDisabledButton(4, "Save Text", "Save Text", NEED_ST);
+        } else if (m.txt && !m.f) {
+            addButton(3, "Copy Text", function () { F.copyMem(m); }, "Copy Text", "Copy this scene’s full text to your clipboard.");
+            addButton(4, "Save Text", function () { F.saveMem(m); }, "Save Text", "Save this scene’s full text as an .rtf file (bold and italics kept).");
+        } else {
+            addDisabledButton(3, "Copy Text", "Copy Text", "This memory has faded. Live the scene again in the game to get its text back.");
+            addDisabledButton(4, "Save Text", "Save Text", "This memory has faded. Live the scene again in the game to get its text back.");
+        }
         addButton(14, "Back", function () { var mm = byId(m.i); if (mm) back(); else F.menu(); }, "Back", "");
     };
     F.refile = function (m, back) {
@@ -811,6 +881,8 @@ Add Javascript:
         else addDisabledButton(0, "Fight It", "Fight It", "This fight is too foggy to step into. (The game can’t rebuild this enemy.)");
         var s = b.s ? byId(b.s) : null;
         if (s) addButton(1, both ? "Just the Sex" : "After", function () { F.playSex(s, back); }, "What Came After", "Skip to the sex that happened right after.");
+        if (ST()) addButton(4, "Save Text", function () { F.saveFight(b); }, "Save Text", "Save the full text of your newest " + (b.win ? "victory" : "defeat") + " against " + foeNames(b) + " as an .rtf file.");
+        else addDisabledButton(4, "Save Text", "Save Text", NEED_ST);
         addButton(14, "Back", back, "Back", "");
     };
 
