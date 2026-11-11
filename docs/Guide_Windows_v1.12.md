@@ -109,7 +109,7 @@ Use `--mods "D:\somewhere\TITS-Mods"` the same way if your mods live somewhere e
 | `Missing enabled files` | A name in `enabled.txt` has no file. Fix the spelling or put a `#` in front. |
 | `MISS SomeMod.mod` | That mod doesn't fit this TiTS version, or needs another mod that is turned off. |
 | `this game copy was already patched` | The game folder already has mods in it and no clean backup (often a pre-patched copy someone shared). Unzip a fresh TiTS into a new folder and patch that. |
-| Hundreds of `MISS` lines | Usually an already-patched game or an old mod pack. Use a fresh game and the newest mod pack (mod names ending in `_v2.x`), and delete `nestmods\backup` first. |
+| Hundreds of `MISS` lines | Usually an already-patched game or an old mod pack. Use a fresh game and the newest mod pack (mod names ending in `_v2.x`), and delete `nestmods\backup` first (1.12 sets old-version backups aside by itself). |
 | Windows Defender pops up | Python is allowed to edit the game. Click **Allow**. |
 
 ## Making a Mac app from your patched game
@@ -128,6 +128,13 @@ Menu option **7** does the same. The zip lands in `NestExports\` inside your mod
 2. Run option **1**, then **2**. Since 1.12 the patcher sees that `nestmods\backup` holds the old version's files, moves it to `nestmods\backup-old-<date>` and makes fresh backups (delete the old folder once the game works). Deleting `nestmods\backup` yourself first still works too.
 
 The menu comes back after each option, so you can test, patch and make a bug report in one go. Type **0** to quit.
+
+## Updating NestPatcher to a new version
+
+1. Download the new `NestPatcher_TiTS_Windows_v<version>.py` and `NestPatcher_Windows_v<version>.bat`.
+2. Put them in the same folder as the old ones (next to `nestmods`), and delete the old ones.
+3. Your mods, backups and saved folders stay as they are. Settings file names have no version number, so they carry over.
+4. You don't have to patch again, but it's safe to.
 
 ## Full command list
 

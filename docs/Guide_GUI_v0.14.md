@@ -10,7 +10,7 @@ It works on Windows 10/11, Linux (Debian, Fedora, Nobara...), macOS, and Android
 
 Both have Python and Node.js built in, so players don't install anything.
 
-**Windows 10/11:** `NestPatcher_GUI_v0.4_Windows.zip` (from the Releases page)
+**Windows 10/11:** `NestPatcher_GUI_v0.14_Windows.zip` (from the Releases page)
 1. Right-click the zip > **Extract All...** and pick a folder you own, e.g. `C:\Games\NestPatcher`.
 2. Put your mods into the `nestmods` folder inside it.
 3. Double-click **`NestPatcher_GUI_v0.14.exe`**. Keep the black window open; the panel opens in your browser.
@@ -22,7 +22,26 @@ Both have Python and Node.js built in, so players don't install anything.
 3. Double-click it (or run it from a terminal to see its messages).
 4. If it says FUSE is missing (some Ubuntu/Debian installs): `sudo apt install libfuse2`, or run it with `--appimage-extract-and-run`.
 
-**Android:** there's no APK. See "Running it on Android (Termux)" below.
+**Android:** use the NestPatcher Android app ([Guide_Android_App_v0.9.md](Guide_Android_App_v0.9.md)), or see "Running it on Android (Termux)" below.
+
+**Linux users with the Windows zip:** use the AppImage instead of running the Windows zip through Wine/Proton. The AppImage patches the Windows copy of TiTS (the `-win` folder) too.
+
+## Updating to a new version
+
+Your mods and settings are kept.
+
+1. **Windows zip:** unzip the new zip next to the old folder. Move the `nestmods` folder from the old folder into the new one (replace the empty one it came with). To keep your saved folders, text size and theme, also move `NestPatcher_TiTS_GUI.settings.json`. Then delete the old folder.
+2. **AppImage:** put the new AppImage in the same folder as the old one, `chmod +x` it, and delete the old one. Nothing else moves.
+3. **Script (`.py` + `.bat` / `.sh`):** put the new files in the same folder and delete the old ones.
+
+You don't have to patch again after updating NestPatcher, but it's safe to.
+
+## After a TiTS update
+
+1. Install the new TiTS. If it's in a new folder, pick it on the **Setup** tab.
+2. **Test my mods**, then **Patch the game**.
+3. GUI 0.14 notices that `nestmods/backup` is from the old TiTS, moves it to `nestmods/backup-old-<date>`, and makes fresh backups. Delete that folder once the game works. (GUI 0.13 and older: delete `nestmods/backup` yourself before patching.)
+4. **Turn all mods off** won't put an old version's backups back. It says so instead.
 
 ## Seeing it comfortably
 
@@ -119,13 +138,14 @@ REPORT_EMAIL = ""    # e.g. an address you're happy to share publicly
 
 With `REPORT_URL` set, **Open the report page** opens it with the title and text filled in. With `REPORT_EMAIL` set, **Email it** opens the player's mail app. Either way they attach the zip themselves.
 
-## About an APK (why there isn't one yet)
+## Android app
 
-A real Android app needs a different toolkit (Python can't open a browser panel from inside a normal APK without bundling an Android Python runtime). It would also have to unpack, patch and re-sign the TiTS APK on the phone. The Termux route above does all of that except signing today. A true APK is a possible next step once the desktop GUI has had some testing.
+There is an Android app now: [Guide_Android_App_v0.9.md](Guide_Android_App_v0.9.md). It carries every patcher in this repo, including this GUI's engine, and checks mods with the phone's own browser engine instead of Node.js.
 
 ## Known limits of the draft
 
 - Tested on Linux with the real TiTS 0.9.167 files and the full TN Modv2.2 pack (508 replacements, patch, restore, mods on/off, bug report). **Not yet tried on a real Windows PC, Mac or phone.**
-- The ready-made Windows `.exe` was built on Linux and hasn't been run on a real Windows PC yet. The AppImage's Python + Node.js bundle was tested on Linux (508/508), but the packed `.AppImage` file itself wasn't started here.
+- The ready-made Windows `.exe` is started on a real Windows machine by CI for every change (it serves the panel), and the bundled Python passes the smoke test there. The AppImage's Python + Node.js bundle is tested on Linux by CI.
+- Running the Windows zip through Wine/Proton works since 0.14, but the Linux AppImage is the supported way on Linux.
 - The `build_*` scripts (PyInstaller route) are optional and haven't been run.
 - It closes itself about 2 minutes after you close the browser tab.

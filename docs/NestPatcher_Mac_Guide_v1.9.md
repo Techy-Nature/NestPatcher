@@ -200,9 +200,12 @@ Run `brew install node`. The patcher also looks in `/opt/homebrew/bin` and `/usr
 
 **After a game update**
 The update replaces the app, so the old backups no longer match.
-1. Move `nestmods/backup` aside (rename it to `backup-old-version`).
-2. If the new version ships `app.asar`, run `--unpack-asar` again.
-3. Run `--fresh --dry-run`. Any `MISS` lines are mods whose anchors changed in the new version.
+1. If the new version ships `app.asar`, run `--unpack-asar` again.
+2. Run `--dry-run`, then patch. Since 1.9 the patcher sees that `nestmods/backup` is from the old version, moves it to `nestmods/backup-old-<date>`, and makes fresh backups (delete that folder once the game works). On 1.8 and older, rename `nestmods/backup` to `backup-old-version` yourself first.
+3. Any `MISS` lines are mods whose anchors changed in the new version.
+
+**Updating the patcher itself**
+Put the new `NestPatcher_TiTS_Mac_v*.py` in the same folder as the old one and delete the old one. Your `nestmods` folder and saved settings stay as they are.
 
 **Undo everything**
 Restore an untouched copy of TiTS.app (re-download it), or copy the files in `nestmods/backup/` back into `TiTS.app/Contents/Resources/app/` and delete `app/mods/nest/`.

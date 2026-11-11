@@ -119,7 +119,7 @@ Turn **every** mod off with option **3** (`--restore`).
 | `Missing enabled files` | A name in `enabled.txt` has no file. Fix it or put `#` in front. |
 | `MISS SomeMod.mod` | That mod doesn't fit this TiTS version, or needs another mod that is off. |
 | `this game copy was already patched` | The game folder already has mods in it and no clean backup (often a pre-patched copy someone shared). Unpack a fresh TiTS into a new folder and patch that. |
-| Hundreds of `MISS` lines | Usually an already-patched game or an old mod pack. Use a fresh game and the newest mod pack (mod names ending in `_v2.x`), and delete `nestmods/backup` first. |
+| Hundreds of `MISS` lines | Usually an already-patched game or an old mod pack. Use a fresh game and the newest mod pack (mod names ending in `_v2.x`), and delete `nestmods/backup` first (1.12 sets old-version backups aside by itself). |
 | `CRASH: OSError: [WinError 1168] Element not found` | You ran the **Windows** patcher through Wine/Proton. Use this Linux patcher (or the Linux GUI AppImage) instead; it patches the Windows copy of TiTS too. Version 1.12 / GUI 0.14 no longer crash on this. |
 | Something else | Menu option **4** makes a bug report zip in `nestmods/logs/`. Send it to the mod author. |
 
@@ -143,6 +143,13 @@ Menu options **7** and **8** do the same. The file lands in `NestExports/` insid
 2. Run options **1** then **2**. Since 1.12 the patcher sees that `nestmods/backup` is from the old version, moves it to `nestmods/backup-old-<date>` and makes fresh backups (you can delete the old folder once the game works). Deleting `nestmods/backup` yourself first still works too.
 
 The menu comes back after each option, so you can test, patch and make a bug report in one go. Type **0** to quit.
+
+## Updating NestPatcher to a new version
+
+1. Download the new `NestPatcher_TiTS_Linux_v<version>.py` and `nestpatcher_linux_v<version>.sh`.
+2. Put them in the same folder as the old ones (next to `nestmods`), and delete the old ones.
+3. Your mods, backups and saved folders stay as they are. Settings file names have no version number, so they carry over.
+4. You don't have to patch again, but it's safe to.
 
 ## Full command list
 

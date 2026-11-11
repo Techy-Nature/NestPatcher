@@ -11,3 +11,9 @@ Based on KittyPatcher by LibraKitty.
 Nothing to install: Python and Node.js are included in the runtime folder.
 If Windows SmartScreen warns about an unknown app: More info > Run anyway.
 Text size (A- / A+) and Dark / Light theme are at the top of the panel.
+
+Updating from an older NestPatcher folder: move the nestmods folder (and
+NestPatcher_TiTS_GUI.settings.json, to keep your saved folders) from the old
+folder into this one, then delete the old folder.
+After a TiTS update: just Test, then Patch. Old backups are set aside by themselves.
+On Linux, use the AppImage instead of running this through Wine.
