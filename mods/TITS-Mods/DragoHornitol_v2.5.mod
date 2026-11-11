@@ -31,7 +31,7 @@ class DragoHornitol extends BaseItem {
       clearOutput();output("DragoHornitol is meant for " + [pc.name] + ".");return false;
     }
     if((window.tnModMenuActive===true&&typeof window.isTnModEnabled==="function") && !window.isTnModEnabled("tn.dragohornitol")){
-      clearOutput();output("DragoHornitol is disabled in Android Mods. Enable it to use this chcolate pudding serum.");return false;
+      clearOutput();output("DragoHornitol is disabled in Android Mods. Enable it to use this chocolate pudding serum.");return false;
     }
     clearOutput();showBust("");showName("DragoHornitol");author("TechyNest");
     const p=target, G=GLOBAL;
