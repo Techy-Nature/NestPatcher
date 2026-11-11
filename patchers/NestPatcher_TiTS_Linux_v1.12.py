@@ -731,19 +731,66 @@ def game_running():
             return result.returncode == 0
         except OSError:
             return False
-    # Linux: any process whose program file sits inside the game folder.
-    game_real = safe_realpath(GAME) + os.sep
+    return linux_running_from_game("/proc")
+
+
+def linux_ancestors(proc_root):
+    """Our own process id and every parent above it (AppImage runtime, shell, launcher)."""
+    found = {str(os.getpid())}
+    pid = str(os.getpid())
+    for _ in range(64):
+        try:
+            with open(os.path.join(proc_root, pid, "stat"), encoding="utf-8", errors="replace") as handle:
+                parent = handle.read().rsplit(")", 1)[1].split()[1]
+        except (OSError, IndexError):
+            break
+        if parent in ("0", "1") or parent in found:
+            break
+        found.add(parent)
+        pid = parent
+    return found
+
+
+def linux_program_paths(proc_root, pid):
+    """The program file of a process, plus its first argument when Wine runs a Windows .exe
+    (Wine processes show wine's own file as their program, so the game .exe is only in argv)."""
+    paths = []
     try:
-        pids = [pid for pid in os.listdir("/proc") if pid.isdigit()]
+        paths.append(os.readlink(os.path.join(proc_root, pid, "exe")))
+    except OSError:
+        pass
+    try:
+        with open(os.path.join(proc_root, pid, "cmdline"), "rb") as handle:
+            first = handle.read().split(b"\0", 1)[0].decode("utf-8", "replace")
+    except OSError:
+        first = ""
+    if re.match(r"(?i)^z:[\\/]", first):
+        first = "/" + first[3:].replace("\\", "/")
+    if first.startswith("/") and first.lower().endswith(".exe"):
+        paths.append(first)
+    return paths
+
+
+def linux_running_from_game(proc_root):
+    """Says which process (truthy) if any program from the game folder is running. The
+    patcher itself (and the AppImage or script that started it) never counts, even when
+    it sits inside the game folder."""
+    game_real = safe_realpath(GAME).rstrip("/") + "/"
+    try:
+        pids = sorted((pid for pid in os.listdir(proc_root) if pid.isdigit()), key=int)
     except OSError:
         return False
+    skip = linux_ancestors(proc_root)
     for pid in pids:
-        try:
-            exe = safe_realpath(os.readlink("/proc/" + pid + "/exe"))
-        except OSError:
+        if pid in skip:
             continue
-        if exe.startswith(game_real):
-            return True
+        for path in linux_program_paths(proc_root, pid):
+            real = safe_realpath(path)
+            if not real.startswith(game_real):
+                continue
+            if os.path.basename(real).lower().startswith(NOT_GAME_EXES):
+                continue
+            return real + " (process " + pid + ")"
     return False
 
 

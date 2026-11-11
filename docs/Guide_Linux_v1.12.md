@@ -114,7 +114,7 @@ Turn **every** mod off with option **3** (`--restore`).
 |---|---|
 | `Node.js is required` | Run the install line it prints (apt or dnf), then try again. |
 | `PERMISSION DENIED` | Copy the game into your home folder, or `sudo chown -R "$USER" /path/to/game`. |
-| `TiTS is running` | Close the game. |
+| `TiTS is running` | Close the game (also a copy running through Wine). The `Found:` line under it names the program. Version 1.11 / GUI 0.13 could say this by mistake when the NestPatcher AppImage sat inside the game folder; 1.12 / GUI 0.14 fixes that. |
 | `packed as app.asar` | Menu option **6** (`--unpack-asar`) once, then patch. |
 | `Missing enabled files` | A name in `enabled.txt` has no file. Fix it or put `#` in front. |
 | `MISS SomeMod.mod` | That mod doesn't fit this TiTS version, or needs another mod that is off. |
