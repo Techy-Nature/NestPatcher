@@ -471,13 +471,13 @@
             var old = document.getElementById("tnScenePasteBox"); if (old) old.remove();
             var wrap = document.createElement("div");
             wrap.id = "tnScenePasteBox";
-            wrap.style.cssText = "position:fixed;left:5%;top:8%;width:90%;height:80%;z-index:99999;background:#1b1b1f;border:1px solid #666;border-radius:10px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;color:#eee;font-size:15px;";
+            wrap.style.cssText = "position:fixed;left:5%;top:8%;width:90%;height:80%;z-index:99999;background:var(--backgroundColor,#3D5174);border:1px solid var(--paleColor,#53677B);border-radius:10px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;color:#eee;font-size:15px;";
             var tip = document.createElement("div");
             tip.textContent = "Paste a scene backup code (it starts with d: or j:), then tap Add Scenes.";
             var ta = document.createElement("textarea");
-            ta.style.cssText = "flex:1;width:100%;background:#111;color:#eee;font-size:13px;border:1px solid #444;border-radius:6px;padding:8px;box-sizing:border-box;";
+            ta.style.cssText = "flex:1;width:100%;background:var(--foregroundColorB,#2C3649);color:var(--textColor,#fff);font-size:13px;border:1px solid var(--paleColor,#53677B);border-radius:6px;padding:8px;box-sizing:border-box;";
             var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;";
-            function mk(t, f) { var b = document.createElement("button"); b.textContent = t; b.style.cssText = "flex:1;padding:10px;font-size:16px;border-radius:8px;background:#333;color:#eee;border:1px solid #666;"; b.onclick = f; row.appendChild(b); }
+            function mk(t, f) { var b = document.createElement("button"); b.textContent = t; b.style.cssText = "flex:1;padding:10px;font-size:16px;border-radius:8px;background:var(--foregroundColorA,#333E52);color:var(--textColor,#fff);border:1px solid var(--paleColor,#53677B);"; b.onclick = f; row.appendChild(b); }
             mk("Add Scenes", function () {
                 var code = ta.value; wrap.remove();
                 S.importCode(code).then(function (n) { S.pack(); done(n, null); }, function (err) { done(0, err); });
@@ -732,13 +732,13 @@
             var old = document.getElementById("tnSceneCopyBox"); if (old) old.remove();
             var wrap = document.createElement("div");
             wrap.id = "tnSceneCopyBox";
-            wrap.style.cssText = "position:fixed;left:5%;top:8%;width:90%;height:80%;z-index:99999;background:#1b1b1f;border:1px solid #666;border-radius:10px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;";
+            wrap.style.cssText = "position:fixed;left:5%;top:8%;width:90%;height:80%;z-index:99999;background:var(--backgroundColor,#3D5174);border:1px solid var(--paleColor,#53677B);border-radius:10px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;";
             var ta = document.createElement("textarea");
             ta.value = text; ta.readOnly = true;
-            ta.style.cssText = "flex:1;width:100%;background:#111;color:#eee;font-size:14px;border:1px solid #444;border-radius:6px;padding:8px;box-sizing:border-box;";
+            ta.style.cssText = "flex:1;width:100%;background:var(--foregroundColorB,#2C3649);color:var(--textColor,#fff);font-size:14px;border:1px solid var(--paleColor,#53677B);border-radius:6px;padding:8px;box-sizing:border-box;";
             var btn = document.createElement("button");
             btn.textContent = "Close";
-            btn.style.cssText = "padding:10px;font-size:16px;border-radius:8px;background:#333;color:#eee;border:1px solid #666;";
+            btn.style.cssText = "padding:10px;font-size:16px;border-radius:8px;background:var(--foregroundColorA,#333E52);color:var(--textColor,#fff);border:1px solid var(--paleColor,#53677B);";
             btn.onclick = function () { wrap.remove(); };
             wrap.appendChild(ta); wrap.appendChild(btn); document.body.appendChild(wrap);
             ta.focus(); ta.select();

@@ -1,8 +1,8 @@
 # TN mod pack load list (Modv2.9). One file per line; # turns a line off.
-AndroidModMenu_v2.5.js
-TN_Desktop_Menu_v2.5.js
+AndroidModMenu_v2.9.js
+TN_Desktop_Menu_v2.9.js
 ShellyRecruit.mod
-TN_Save_Editor_v2.5.js
+TN_Save_Editor_v2.9.js
 Shelly-Custom-Talk-Menu_v2.4.js
 CrewSize_v2.4.js
 Drakongarune_Lessau_v2.4.mod
@@ -17,7 +17,7 @@ Stella_v2.5.js
 Stella_v2.7.mod
 OverqueenRecruit_v2.5.mod
 TN_taur-naga_gates.mod
-TN_taur_naga_bypass_toggle_v2.5.mod
+TN_taur_naga_bypass_toggle_v2.9.mod
 CheatItemRegistry_TN.mod
 TN_UpperBodyFix_v2.4.mod
 TN_Draconilum_v2.4.mod
@@ -41,7 +41,7 @@ StephIrson_v2.7.mod
 StephIrson_v2.9.js
 Zheniya_v2.7.mod
 Zheniya.js
-Pregnancy_v2.4.js
+Pregnancy_v2.9.js
 TN_Virine_v2.4.mod
 TN_HoloChastity_v2.6.mod
 TN_FeruzeCrew_v2.8.mod

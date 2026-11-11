@@ -21,8 +21,8 @@ The full steps for Android and desktop are in [`guides/INSTALL-Modv2.5.md`](guid
 
 ## Which menu do I get?
 
-- **Android:** Options > **Android Mods** (`AndroidModMenu_v2.5.js`), with on/off switches and every mod's settings.
-- **Windows, Linux, Mac:** Options > **TN Mod Settings** (`TN_Desktop_Menu_v2.5.js`), with the same settings and no switches. To turn a mod off on desktop, put `#` in front of it in `enabled.txt` and patch again.
+- **Android:** Options > **Android Mods** (`AndroidModMenu_v2.9.js`), with on/off switches and every mod's settings.
+- **Windows, Linux, Mac:** Options > **TN Mod Settings** (`TN_Desktop_Menu_v2.9.js`), with the same settings and no switches. To turn a mod off on desktop, put `#` in front of it in `enabled.txt` and patch again.
 
 Both files can stay in `enabled.txt`. Each one only starts on its own system.
 
