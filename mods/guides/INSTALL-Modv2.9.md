@@ -1,6 +1,6 @@
 # Modv2.9: crew stories and new faces
 
-Modv2.9 adds 12 new mods and updates five. It's for **TiTS 0.9.168**, the same game version as
+Modv2.9 adds 14 new mods and updates six. It's for **TiTS 0.9.168**, the same game version as
 Modv2.8, so you don't need to delete `backup`. All notes are in the in-game **Changelog**.
 
 ## New mods
@@ -19,6 +19,8 @@ Modv2.8, so you don't need to delete `backup`. All notes are in the in-game **Ch
 | `TN_ShekkaEggs_v2.9.js` | Shekka carries and lays Steele's egg; it goes to the nursery. |
 | `TN_RooCrew_v2.9.mod` + `.js` | Recruit Roo the blackjack dealer, with a full Sex menu. |
 | `TN_SteeleBody_v2.9.js` | Steele's body in sex scenes: a prehensile cock finds her g-spot and clits, and a tentacle-lined cock on a suula Steele pumps in venom that doubles her pleasure. Our scenes and the game's own. |
+| `TN_SceneText_v2.9.js` | Scene Text Saver: keeps the full text of your sex scenes and fights for the Flashback Visor (.rtf / .zip export). |
+| `TN_OfflineGuard_v2.9.mod` | Keeps the game offline: no automatic error reports, no cloud saves, no update checker. Report Error opens our Stoat channel. |
 
 ## Renamed (delete the old copy)
 
@@ -30,6 +32,7 @@ Modv2.8, so you don't need to delete `backup`. All notes are in the in-game **Ch
 | `TN_SexGalleryScenes_v2.9.js` | `TN_SexGalleryScenes_v2.8.js` |
 | `TN_ShellyCureQuest_v2.9.mod` | `TN_ShellyCureQuest_v2.8.mod` |
 | `StephIrson_v2.9.js` | `StephIrson_v2.7.js` |
+| `TN_BustGenderFilter_v2.9.js` | `TN_BustGenderFilter_v2.4.js` |
 
 NestPatcher stops if it finds an old and a new copy of the same mod in `enabled.txt`, so the
 easiest update is a clean copy:
@@ -41,7 +44,7 @@ easiest update is a clean copy:
 3. Unzip `TN-Mods-Modv2.9.zip` straight into `nestmods` (the files go in the folder itself, not a
    subfolder).
 4. Run NestPatcher: **Test my mods**, then **Patch the game**. The test should end with
-   `612 replacements` and no `MISS` lines.
+   `622 replacements` and no `MISS` lines.
 
 Several 2.9 mods (Hand So's Redemption, Flashback Visor, Roo Crew) use buttons from
 `TN_DaneCrew_v2.8.mod`, so keep it in `enabled.txt`.
