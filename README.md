@@ -25,10 +25,10 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 | macOS, with only the Windows game (TiTS.exe) | [`patchers/NestPatcher_TiTS_Mac_v1.9.py`](patchers/) `--app` the Windows game folder: it patches it and makes TiTS.app | [NestPatcher_Mac_Guide_v1.9.md](docs/NestPatcher_Mac_Guide_v1.9.md) |
 | macOS | [`patchers/NestPatcher_TiTS_Mac_v1.9.py`](patchers/) | [NestPatcher_Mac_Guide_v1.9.md](docs/NestPatcher_Mac_Guide_v1.9.md) |
 | Make a **Mac app** or **Linux AppImage** of the patched game | GUI 0.14 (**Make Mac app** / **Make AppImage**) or `--export-mac` / `--export-appimage` | [Guide_Export_Mac_AppImage_v1.12.md](docs/Guide_Export_Mac_AppImage_v1.12.md) |
-| Android, no Termux (app) | `NestPatcher_Android_App_v0.9.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.9.md](docs/Guide_Android_App_v0.9.md) |
-| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.5.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.14.md](docs/Guide_GUI_v0.14.md) |
+| Android, no Termux (app) | `NestPatcher_Android_App_v0.10.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.10.md](docs/Guide_Android_App_v0.10.md) |
+| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.6.py`](patchers/), or the GUI script in Termux | [Guide_GUI_v0.14.md](docs/Guide_GUI_v0.14.md) |
 
-Newest versions: **CLI 1.12, GUI 0.14, Mac 1.9** (Android patcher 1.5, Android app 0.9). See [What's new](#whats-new) and [Updating](#updating).
+Newest versions: **CLI 1.12, GUI 0.14, Mac 1.9** (Android patcher 1.6, Android app 0.10). See [What's new](#whats-new) and [Updating](#updating).
 
 The GUI bundles include Python and Node.js. The command-line versions need Python 3 and Node.js installed (Node.js checks every mod for mistakes before the game is touched).
 
@@ -42,6 +42,7 @@ Your mods and settings are kept. You don't have to patch again after updating Ne
 2. **Linux GUI (AppImage):** put the new `.AppImage` in the same folder as the old one, make it runnable (`chmod +x`), and delete the old one. `nestmods` and the settings file sit next to it, so nothing else moves.
 3. **Command line (Windows, Linux, Mac):** put the new `.py` (and the `.bat` / `.sh` that goes with it) in the same folder as the old one, then delete the old ones. Settings file names have no version number, so they carry over.
 4. **Android app:** install the new APK over the old one. Your folder choices stay.
+5. **Android patcher in Termux:** put the new `NestPatcher_TiTS_Android_v<version>.py` in your patcher folder (for example `TITS-Modding/TITS-Patcher`) and delete the old one. `mods` and `extracted` stay as they are.
 
 If you used the Windows zip **through Wine/Proton on Linux**, switch to the Linux AppImage. It patches the Windows copy of TiTS (the `-win` folder) too.
 
@@ -49,7 +50,7 @@ If you used the Windows zip **through Wine/Proton on Linux**, switch to the Linu
 
 1. Install the new TiTS (into the same folder, or a new one). If you use a new folder, pick it on the Setup tab (or with `--game`).
 2. **Test my mods**, then **Patch the game** (CLI: options 1 then 2).
-3. Since CLI 1.12 / GUI 0.14 / Mac 1.9, the patcher notices that `nestmods/backup` belongs to the old TiTS. It moves it to `nestmods/backup-old-<date>` and makes fresh backups by itself. Delete that old folder once the game works. (On older versions, delete `nestmods/backup` yourself before patching.)
+3. Since CLI 1.12, GUI 0.14, Mac 1.9, Android patcher 1.6 and Android app 0.10, the patcher notices that `nestmods/backup` belongs to the old TiTS. It moves it to `nestmods/backup-old-<date>` and makes fresh backups by itself. Delete that old folder once the game works. (On older versions, delete `nestmods/backup` yourself before patching.)
 4. A `MISS` line after an update means that mod doesn't fit the new TiTS yet. Turn it off, or get a newer version of it.
 
 ### To a new mod pack
@@ -60,11 +61,12 @@ If you used the Windows zip **through Wine/Proton on Linux**, switch to the Linu
 
 ## What's new
 
-**CLI 1.12, GUI 0.14, Mac 1.9:**
+**CLI 1.12, GUI 0.14, Mac 1.9, Android patcher 1.6, Android app 0.10:**
 - The Windows GUI no longer crashes with `[WinError 1168] Element not found` when it runs through Wine/Proton, and it suggests the Linux AppImage when it sees Wine.
 - "TiTS is running" no longer shows up by mistake when the AppImage sits inside the game folder (Linux), or for a TiTS.app in another folder (Mac). It now also notices TiTS.exe running through Wine, and it names the program it found.
 - After a TiTS update, old backups are moved aside by themselves (see above). Restore won't put an old version's files back.
 - An `enabled.txt` or `.mod` saved by Notepad with a hidden BOM mark works. Mod names whose capital letters differ from the file name work on Linux and Android too.
+- The Android patcher and app get the same TiTS-update, BOM and capital-letter fixes.
 - GUI: a quick double click can't start two jobs. A crash can't leave the panel stuck, and it goes into the bug report. A mistyped game folder doesn't replace the saved one. On a Mac, Browse... uses Finder's chooser.
 - CLI menu: shows again after each job (type 0 to quit), and says so when a number isn't on the list.
 
@@ -98,7 +100,7 @@ Using the same `@@name@@` twice in one needle means the same function both times
 - **Test first.** If anything says STOP, MISS or INVALID, nothing in the game was changed.
 - The first real patch saves clean copies of the game files in `nestmods/backup`. Every later patch starts from those clean copies, so turning a mod off really removes it.
 - If a write fails partway through, the game files are put back the way they were.
-- After a TiTS update, install the fresh game and patch again. The patcher moves the old backups aside by itself (CLI 1.12, GUI 0.14, Mac 1.9 or newer; on older versions delete `nestmods/backup` first).
+- After a TiTS update, install the fresh game and patch again. The patcher moves the old backups aside by itself (CLI 1.12, GUI 0.14, Mac 1.9, Android patcher 1.6, Android app 0.10 or newer; on older versions delete the `backup` folder first).
 - Always patch a fresh, unmodded game. A game folder someone already patched (and shared or copied) has no clean copies, so the patcher stops and says so instead of piling mods on top of mods. Unzip a fresh TiTS and patch that.
 
 ## The TN mods
@@ -108,8 +110,8 @@ The newest TN mod pack (Modv2.8, for TiTS 0.9.168) is in [`mods/`](mods/): the m
 ## For developers
 
 - `src/engine.py` is the shared patch engine. `src/cli.py` and `src/gui.py` are the front ends. `python src/build.py` glues them into the single-file scripts in `patchers/`. **Edit `src/`, not `patchers/`.** CI fails if `patchers/` is out of date.
-- The Mac patcher is built from `src/mac.py` plus `src/export.py`. `patchers/NestPatcher_TiTS_Android_v1.5.py` is standalone and edited directly.
-- `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.12.py`. More tests on the same fake game: `test_cli_extras.py` (BOM, capital letters, TiTS update, menu), `test_gui.py` (the GUI's web server, including two clicks at once), and `test_windows_running.py` / `test_linux_running.py` / `test_mac_running.py` (the "TiTS is running" check, with fake process lists).
+- The Mac patcher is built from `src/mac.py` plus `src/export.py`. `patchers/NestPatcher_TiTS_Android_v1.6.py` is standalone and edited directly.
+- `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.12.py`. More tests on the same fake game: `test_cli_extras.py` (BOM, capital letters, TiTS update, menu), `test_android_patcher.py` (the same for the Android patcher), `test_gui.py` (the GUI's web server, including two clicks at once), and `test_windows_running.py` / `test_linux_running.py` / `test_mac_running.py` (the "TiTS is running" check, with fake process lists).
 - `src/export.py` packs the patched game as a Mac app or AppImage (built into the same single-file scripts). `tests/test_export.py` checks it with fake Electron zips, so no download is needed. The Mac app is signed by a built-in ad-hoc signer; `tests/macsign_check.py` re-checks those signatures anywhere, and `tests/mac_real_check.sh` (CI, macOS) checks them with `codesign` and launches the app.
 - `packaging/build_bundles.sh` builds the AppImage and the Windows zip on Linux. It downloads pinned, checksum-verified Python ([python-build-standalone](https://github.com/astral-sh/python-build-standalone)) and Node.js. The Windows `.exe` is a small launcher from `src/launcher/`, compiled with MinGW.
 - GitHub Actions runs the smoke test on Windows, Linux and macOS for every push. It builds the bundles, checks the Windows bundle on a real Windows machine, builds the Android APK, and publishes a release by itself (tag `v<version>`, named `Patchers_v<version>`, with the bundles, APK and patchers attached) the first time a new version from `src/build.py` reaches main.

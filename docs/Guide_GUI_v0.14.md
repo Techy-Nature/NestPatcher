@@ -22,7 +22,7 @@ Both have Python and Node.js built in, so players don't install anything.
 3. Double-click it (or run it from a terminal to see its messages).
 4. If it says FUSE is missing (some Ubuntu/Debian installs): `sudo apt install libfuse2`, or run it with `--appimage-extract-and-run`.
 
-**Android:** use the NestPatcher Android app ([Guide_Android_App_v0.9.md](Guide_Android_App_v0.9.md)), or see "Running it on Android (Termux)" below.
+**Android:** use the NestPatcher Android app ([Guide_Android_App_v0.10.md](Guide_Android_App_v0.10.md)), or see "Running it on Android (Termux)" below.
 
 **Linux users with the Windows zip:** use the AppImage instead of running the Windows zip through Wine/Proton. The AppImage patches the Windows copy of TiTS (the `-win` folder) too.
 
@@ -140,7 +140,7 @@ With `REPORT_URL` set, **Open the report page** opens it with the title and text
 
 ## Android app
 
-There is an Android app now: [Guide_Android_App_v0.9.md](Guide_Android_App_v0.9.md). It carries every patcher in this repo, including this GUI's engine, and checks mods with the phone's own browser engine instead of Node.js.
+There is an Android app now: [Guide_Android_App_v0.10.md](Guide_Android_App_v0.10.md). It carries every patcher in this repo, including this GUI's engine, and checks mods with the phone's own browser engine instead of Node.js.
 
 ## Known limits of the draft
 

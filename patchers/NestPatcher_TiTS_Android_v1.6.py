@@ -10,6 +10,7 @@ import shutil
 import sys
 import subprocess
 import tempfile
+import time
 import argparse
 
 # What this patcher needs, for the NestPatcher Android app (read without running
@@ -134,7 +135,8 @@ def replace_first(text, block):
 
 
 def parse_mod(path):
-    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+    # utf-8-sig: a file saved with an invisible BOM mark at the start still parses.
+    with open(path, "r", encoding="utf-8-sig", errors="replace") as handle:
         text = handle.read().replace("\r\n", "\n").replace("\r", "\n")
     # Standalone # lines are .mod annotations, not replacement JavaScript.
     # Remove them before parsing to prevent accidentally splicing metadata into
@@ -185,10 +187,23 @@ def parse_mod(path):
     return blocks
 
 
-def enabled_mods():
+def mod_file_name(name):
+    """The real file name for a name in enabled.txt. Windows and Mac don't care about
+    capital letters but Android does, so a list written on Windows ('smoke.mod' for
+    Smoke.mod) still finds its files here."""
+    if os.path.isfile(os.path.join(MODS, name)):
+        return name
+    try:
+        matches = [real for real in os.listdir(MODS) if real.lower() == name.lower()]
+    except OSError:
+        return name
+    return matches[0] if len(matches) == 1 else name
+
+
+def enabled_mods(note=False):
     names = []
     if os.path.isfile(ENABLED):
-        for line in read_file(ENABLED).splitlines():
+        for line in read_file(ENABLED).lstrip("\ufeff").splitlines():
             line = line.split("#", 1)[0].strip()
             if line:
                 names.append(line)
@@ -198,7 +213,10 @@ def enabled_mods():
             if name.lower().endswith(".mod") or name.lower().endswith(".js")
         )
     resolved = []
-    for name in names:
+    for listed in names:
+        name = mod_file_name(listed)
+        if note and name != listed:
+            log("Note: enabled.txt says " + listed + "; using " + name + " (only capital letters differ).")
         path = os.path.join(MODS, name)
         if os.path.isfile(path):
             resolved.append(path)
@@ -301,6 +319,56 @@ def clean_index(source):
     )
 
 
+def game_script_names(source):
+    """The game's own <script src> files in an index.html (NestPatcher/KittyPatcher tags left out)."""
+    names = set()
+    for src in re.findall(r'<script\b[^>]*\bsrc=["\']?([^"\'\s>]+)', source, flags=re.IGNORECASE):
+        if not src.lower().startswith(("mods/kitty/", "mods/nest/")):
+            names.add(src)
+    return names
+
+
+def backup_from_other_game_version():
+    """True when the clean index.html backup belongs to another TiTS version than the
+    extracted game. After a TiTS update main.<hash>.js gets a new name, so the old
+    backup would point the game at files that no longer exist (black screen)."""
+    index_path = os.path.join(APP, "index.html")
+    backup_path = os.path.join(BACKUP, "index.html")
+    if not (os.path.isfile(index_path) and os.path.isfile(backup_path)):
+        return False
+    with open(index_path, encoding="utf-8", errors="replace") as handle:
+        current = game_script_names(handle.read())
+    with open(backup_path, encoding="utf-8", errors="replace") as handle:
+        saved = game_script_names(handle.read())
+    return bool(current) and bool(saved) and current != saved
+
+
+def set_aside_old_backup(dry_run=False):
+    """Move a backup made for another TiTS version out of the way. Returns True when it did."""
+    if not backup_from_other_game_version():
+        return False
+    if dry_run:
+        log("NOTE: the backups in " + BACKUP + " are from a different TiTS version than the game.")
+        log("  A real patch will move them aside (to backup-old-...) and make fresh ones from this game.")
+        return False
+    target = BACKUP.rstrip("/") + "-old-" + time.strftime("%Y-%m-%d_%H-%M-%S")
+    shutil.move(BACKUP, target)
+    # Bundles the update didn't change keep their file name (it is a hash of the
+    # content), so their clean copies are still right: keep using those.
+    kept = 0
+    for name in os.listdir(target):
+        if name.endswith(".js") and os.path.isfile(os.path.join(APP, name)):
+            os.makedirs(BACKUP, exist_ok=True)
+            shutil.copy2(os.path.join(target, name), os.path.join(BACKUP, name))
+            kept += 1
+    log("NOTE: the backups were made for a different TiTS version (the game was updated).")
+    if kept:
+        log("  Kept the clean copies of " + str(kept) + " game file(s) the update didn't change.")
+    log("  Moved them to " + target + " and will make fresh ones from this game.")
+    log("  You can delete that folder once the game works.")
+    return True
+
+
 def make_runtime(blocks):
     parts = ["/* NestPatcher runtime: generated; do not edit. */"]
     for block in blocks:
@@ -321,12 +389,14 @@ def apply(dry_run=False, fresh=False, validate=True):
         log("STOP: Node.js is required for JavaScript syntax checking. In proot-Debian: apt install nodejs")
         log("Nothing was changed. You may explicitly opt out using --skip-validation (not recommended).")
         return 1
+    if os.path.isdir(BACKUP):
+        set_aside_old_backup(dry_run)
     files = load_game_files()  # Backups, if present, are the clean baseline.
     log("Loaded " + str(len(files)) + " game scripts (using available backups)")
     backups = {}
     replacements, scripts, copy_js = [], [], []
     missing = []
-    for path in enabled_mods():
+    for path in enabled_mods(note=True):
         if path.lower().endswith(".js"):
             copy_js.append(path)
             log("Runtime script " + os.path.basename(path))
@@ -342,9 +412,9 @@ def apply(dry_run=False, fresh=False, validate=True):
                 log("Skip empty Replace in " + block["mod"])
     # enabled_mods logs missing names; stop on any missing dependency to avoid half-working builds.
     if os.path.isfile(ENABLED):
-        for raw in read_file(ENABLED).splitlines():
+        for raw in read_file(ENABLED).lstrip("\ufeff").splitlines():
             name = raw.split("#", 1)[0].strip()
-            if name and not os.path.isfile(os.path.join(MODS, name)):
+            if name and not os.path.isfile(os.path.join(MODS, mod_file_name(name))):
                 missing.append(name)
     if missing:
         log("STOP: Missing enabled files: " + ", ".join(missing))
