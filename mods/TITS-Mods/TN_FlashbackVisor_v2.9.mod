@@ -12,9 +12,9 @@ Author: Neston
 #   - No taint. Unlike Dr. Badger's Mindwash Visor it doesn't beam anything into your brain:
 #     it fogs your eyes and mind into a flashback, then shows you the memory you picked.
 #   - Each memory you relive takes one hour (a Both memory's fight and sex share that hour).
-#   - Copy Text / Save Text on a sex memory copies it to the clipboard or saves it as a .txt
-#     file; Save All in the visor menu saves every sex memory into one .txt. Works on Android,
-#     Windows, Linux and Mac (game's own save dialog where it has one, else a normal download).
+#   - Copy Text / Save Text on a memory (sex or fight) and Save All in the visor menu: the full
+#     scene text as .rtf (bold and italics kept), or a .zip with a folder per character. Needs
+#     TN_SceneText_v2.9.js (Scene Text Saver), which records the full text. Works on every build.
 #   - Menus: Sex (Sub or Domme -> who -> what went where -> the memory), Battle (who -> the
 #     fight), Both (a fight and the sex right after it). Every fight memory remembers whether
 #     you won or lost and opens with a two-paragraph "how it went" intro.
@@ -638,8 +638,8 @@ Add Javascript:
         else addDisabledButton(2, "Both", "Both", "You need a fight that ended in sex.");
         if (sx.length || fx.length) addButton(3, "Drift", F.drift, "Drift", "Stop choosing. Let the fog pick memories for you for a few hours.");
         else addDisabledButton(3, "Drift", "Drift", "Nothing to drift through yet.");
-        if (sx.some(function (m) { return m.txt && !m.f; })) addButton(5, "Save All", F.saveAll, "Save All Text", "Save the full text of every sex memory into one .txt file.");
-        else addDisabledButton(5, "Save All", "Save All Text", "No memories with text yet.");
+        if (!ST()) addDisabledButton(5, "Save All", "Save All Text", NEED_ST);
+        else addButton(5, "Save All", F.saveAll, "Save All Text", "Save every sex scene and fight as .rtf files in a .zip, with a folder for each character.");
         addButton(4, "Codex Link", F.link, "Codex Link: " + (flags.TN_FBV_LINK === 1 ? "On" : "Off"), flags.TN_FBV_LINK === 1 ? "Your flashback logs are shared with your Codex (Hand So can see them). Turn it off?" : "Share your flashback logs with your Codex so someone you trust (like Hand So) can see them.");
         addButton(14, "Take It Off", F.takeOff, "Take It Off", "Come back to the present.");
     };
@@ -745,145 +745,31 @@ Add Javascript:
 
     /* ---------- Replay a sex memory ---------- */
 
-    /* ---------- Copy / save scene text (every platform) ---------- */
-    function plainText(html) {
-        var t = String(html || "");
-        try {
-            if (typeof document !== "undefined" && document.createElement) {
-                var d = document.createElement("div");
-                d.innerHTML = t.replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n\n");
-                t = d.textContent || "";
-            } else throw 0;
-        } catch (err) {
-            t = t.replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n\n").replace(/<[^>]*>/g, "")
-                .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"")
-                .replace(/&#(\d+);/g, function (a, n) { return String.fromCharCode(+n); }).replace(/&amp;/g, "&");
-        }
-        return t.replace(/\r/g, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    /* ---------- Copy / save scene text (needs TN_SceneText_v2.9.js) ---------- */
+    function ST() { var t = window.tnSceneText; return t && typeof t.exportZip === "function" && (!t.on || t.on()) ? t : null; }
+    var NEED_ST = "Needs the Scene Text Saver mod (TN_SceneText_v2.9.js) turned on.";
+    function memRec(m) {
+        return { kind: "sex", chars: (m.who || []).slice(), title: m.ti || ("Memory, Day " + dayOf(m.d)), pages: String(m.txt || "").split(DIV),
+            d: m.d, loc: m.loc, busts: m.bu || [], pc: (pc && pc.short) || "Steele" };
     }
-    function sceneHeader(m) {
-        var h = ["Day " + dayOf(m.d) + (m.loc ? ", " + m.loc : ""),
-            "With: " + (m.who && m.who.length ? joinNames(m.who) : "Yourself"),
-            "Steele: " + (m.role === "sub" ? "Sub" : "Domme") + (m.yp || m.tp ? " (" + (giverLabel(m) + " into " + takerLabel(m)).toLowerCase() + ")" : "")];
-        var b = m.b ? byId(m.b) : null;
-        if (b) h.push("After a fight you " + (b.win ? "won" : "lost") + " against " + foeNames(b));
-        return h.join("\n");
-    }
-    F.sceneText = function (m) {
-        var who = (pc && pc.short) ? pc.short : "Steele";
-        return "Flashback Visor memory - " + who + "\n" + sceneHeader(m) + "\n\n" + plainText(m.txt);
+    F.copyMem = function (m) {
+        var t = ST(); if (!t) return;
+        t.find(String(m.txt || "").split(DIV).pop(), "sex").then(function (rec) { t.copy(t.toText(rec || memRec(m))); });
     };
-    function fileName(base) {
-        return String(base).replace(/[\\\/:*?"<>|]+/g, "").replace(/\s+/g, "_").slice(0, 80) + ".txt";
-    }
-    F.memFile = function (m) {
-        return fileName("Flashback_Day" + dayOf(m.d) + "_" + ((m.who && m.who[0]) || "Memory"));
+    F.saveMem = function (m) {
+        var t = ST(); if (!t) return;
+        t.find(String(m.txt || "").split(DIV).pop(), "sex").then(function (rec) { t.saveRtf(rec || memRec(m)); });
     };
-    function note(msg) { try { output("\n\n<i>" + msg + "</i>"); } catch (err) {} }
-    function manualCopy(text) {
-        // Last resort: show the text in a box the player can select and copy by hand.
-        try {
-            var old = document.getElementById("tnFbvCopyBox"); if (old) old.remove();
-            var wrap = document.createElement("div");
-            wrap.id = "tnFbvCopyBox";
-            wrap.style.cssText = "position:fixed;left:5%;top:8%;width:90%;height:80%;z-index:99999;background:#1b1b1f;border:1px solid #666;border-radius:10px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;";
-            var ta = document.createElement("textarea");
-            ta.value = text; ta.readOnly = true;
-            ta.style.cssText = "flex:1;width:100%;background:#111;color:#eee;font-size:14px;border:1px solid #444;border-radius:6px;padding:8px;box-sizing:border-box;";
-            var btn = document.createElement("button");
-            btn.textContent = "Close";
-            btn.style.cssText = "padding:10px;font-size:16px;border-radius:8px;background:#333;color:#eee;border:1px solid #666;";
-            btn.onclick = function () { wrap.remove(); };
-            wrap.appendChild(ta); wrap.appendChild(btn); document.body.appendChild(wrap);
-            ta.focus(); ta.select();
-            return true;
-        } catch (err) { return false; }
-    }
-    function execCopy(text) {
-        try {
-            var ta = document.createElement("textarea");
-            ta.value = text; ta.setAttribute("readonly", "");
-            ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;";
-            document.body.appendChild(ta); ta.select();
-            try { ta.setSelectionRange(0, text.length); } catch (err) {}
-            var ok = document.execCommand && document.execCommand("copy");
-            ta.remove();
-            return !!ok;
-        } catch (err) { return false; }
-    }
-    F.copyText = function (text) {
-        // execCommand first: it works inside the button tap on Android WebView, Electron and
-        // browsers alike. Then the clipboard API (with a time limit, since it can hang waiting
-        // for a permission), and last a box to copy by hand.
-        var good = "Copied the scene text. Paste it anywhere you like.";
-        if (execCopy(text)) { note(good); return; }
-        var done = false;
-        function last() {
-            if (done) return; done = true;
-            if (manualCopy(text)) note("Your device blocked copying, so the text is open in a box. Select it and copy it from there.");
-            else note("Copying didn’t work here. Try Save Text instead.");
-        }
-        try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(function () { if (!done) { done = true; note(good); } }, last);
-                setTimeout(last, 2000);
-                return;
-            }
-        } catch (err) {}
-        last();
-    };
-    function downloadFile(text, name) {
-        try {
-            var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-            var url = (window.URL || window.webkitURL).createObjectURL(blob);
-            var a = document.createElement("a");
-            a.style.display = "none"; a.href = url; a.download = name;
-            document.body.appendChild(a); a.click(); a.remove();
-            setTimeout(function () { try { (window.URL || window.webkitURL).revokeObjectURL(url); } catch (err) {} }, 60000);
-            return true;
-        } catch (err) {
-            try {
-                var b = document.createElement("a");
-                b.href = "data:text/plain;charset=utf-8," + encodeURIComponent(text); b.download = name;
-                document.body.appendChild(b); b.click(); b.remove();
-                return true;
-            } catch (err2) { return false; }
-        }
-    }
-    F.saveText = function (text, name) {
-        // Same route the game's own Save To File uses (cordova saveDialog) where it exists,
-        // otherwise a normal browser download (desktop builds, browser).
-        var sd = null;
-        try { sd = window.cordova && window.cordova.plugins && window.cordova.plugins.saveDialog; } catch (err) {}
-        function plain() {
-            if (downloadFile(text, name)) note("Saved as " + name + " (check your Downloads folder if no save window opened).");
-            else if (manualCopy(text)) note("Saving didn’t work here, so the text is open in a box to copy instead.");
-            else note("Saving didn’t work here.");
-        }
-        if (sd && typeof sd.saveFile === "function") {
-            try {
-                sd.saveFile(new Blob([text], { type: "text/plain" }), name).then(function (where) {
-                    note("Saved" + (where ? " to " + where : " as " + name) + ".");
-                }, function (err) {
-                    if (/cancel/i.test(String(err && (err.message || err)))) note("Save cancelled.");
-                    else plain();
-                });
-                return;
-            } catch (err) {}
-        }
-        plain();
+    F.saveFight = function (b) {
+        var t = ST(); if (!t) return;
+        t.findFight(b.who, !!b.win).then(function (rec) {
+            if (rec) t.saveRtf(rec);
+            else output("\n\n<i>There’s no full text for this fight yet. Fights are saved from the moment the Scene Text Saver is installed (only the newest " + (b.win ? "victory" : "defeat") + " against each enemy is kept).</i>");
+        });
     };
     F.saveAll = function () {
-        var list = sexMems().filter(function (m) { return m.txt && !m.f; })
-            .sort(function (a, b) { return (a.d || 0) - (b.d || 0); });
-        if (!list.length) { note("No memories with text to save yet."); return; }
-        var who = (pc && pc.short) ? pc.short : "Steele";
-        var out = ["Flashback Visor - every remembered scene - " + who, list.length + " scenes", ""];
-        list.forEach(function (m, i) {
-            out.push("==================== " + (i + 1) + " ====================");
-            out.push(sceneHeader(m)); out.push(""); out.push(plainText(m.txt)); out.push("");
-        });
-        F.saveText(out.join("\n"), fileName("Flashback_Visor_" + who + "_all"));
+        var t = ST(); if (!t) return;
+        t.exportZip(sexMems().filter(function (m) { return m.txt && !m.f; }).map(memRec));
     };
 
     F.playSex = function (m, back, sameHour) {
@@ -903,9 +789,12 @@ Add Javascript:
         addButton(0, "Again", function () { F.playSex(m, back); }, "Again", "Relive it one more time.");
         addButton(1, "Re-file", function () { F.refile(m, back); }, "Re-file", "File this memory as " + (m.role === "sub" ? "Domme" : "Sub") + " instead.");
         addButton(2, "Forget", function () { F.forget(m, back); }, "Forget", "Delete this memory from the visor.");
-        if (m.txt && !m.f) {
-            addButton(3, "Copy Text", function () { F.copyText(F.sceneText(m)); }, "Copy Text", "Copy this scene’s full text to your clipboard.");
-            addButton(4, "Save Text", function () { F.saveText(F.sceneText(m), F.memFile(m)); }, "Save Text", "Save this scene’s full text as a .txt file.");
+        if (!ST()) {
+            addDisabledButton(3, "Copy Text", "Copy Text", NEED_ST);
+            addDisabledButton(4, "Save Text", "Save Text", NEED_ST);
+        } else if (m.txt && !m.f) {
+            addButton(3, "Copy Text", function () { F.copyMem(m); }, "Copy Text", "Copy this scene’s full text to your clipboard.");
+            addButton(4, "Save Text", function () { F.saveMem(m); }, "Save Text", "Save this scene’s full text as an .rtf file (bold and italics kept).");
         } else {
             addDisabledButton(3, "Copy Text", "Copy Text", "This memory has faded. Live the scene again in the game to get its text back.");
             addDisabledButton(4, "Save Text", "Save Text", "This memory has faded. Live the scene again in the game to get its text back.");
@@ -965,6 +854,8 @@ Add Javascript:
         else addDisabledButton(0, "Fight It", "Fight It", "This fight is too foggy to step into. (The game can’t rebuild this enemy.)");
         var s = b.s ? byId(b.s) : null;
         if (s) addButton(1, both ? "Just the Sex" : "After", function () { F.playSex(s, back); }, "What Came After", "Skip to the sex that happened right after.");
+        if (ST()) addButton(4, "Save Text", function () { F.saveFight(b); }, "Save Text", "Save the full text of your newest " + (b.win ? "victory" : "defeat") + " against " + foeNames(b) + " as an .rtf file.");
+        else addDisabledButton(4, "Save Text", "Save Text", NEED_ST);
         addButton(14, "Back", back, "Back", "");
     };
 
