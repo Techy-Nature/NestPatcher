@@ -43,6 +43,18 @@ jobs:
       - name: Smoke test on macOS (Linux patcher logic)
         if: runner.os == 'macOS'
         run: python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v*.py
+      - name: Edge cases (BOM, capital letters, game update, menu) and GUI server
+        if: runner.os != 'Windows'
+        run: |
+          python tests/test_cli_extras.py patchers/NestPatcher_TiTS_Linux_v*.py
+          python tests/test_gui.py patchers/NestPatcher_TiTS_GUI_v*.py
+      - name: Edge cases and GUI server (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python tests/test_cli_extras.py (Get-ChildItem patchers/NestPatcher_TiTS_Windows_v*.py).FullName
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          python tests/test_gui.py (Get-ChildItem patchers/NestPatcher_TiTS_GUI_v*.py).FullName
       - name: Windows "TiTS is running" check (faked tasklist)
         if: runner.os == 'Linux'
         run: python tests/test_windows_running.py patchers/NestPatcher_TiTS_Windows_v*.py

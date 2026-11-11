@@ -125,8 +125,9 @@ Menu option **7** does the same. The zip lands in `NestExports\` inside your mod
 ## After a TiTS update
 
 1. Install the new TiTS (into the same folder, or a new one).
-2. Delete `nestmods\backup` (it holds the old version's files).
-3. Run option **1**, then **2**.
+2. Run option **1**, then **2**. Since 1.12 the patcher sees that `nestmods\backup` holds the old version's files, moves it to `nestmods\backup-old-<date>` and makes fresh backups (delete the old folder once the game works). Deleting `nestmods\backup` yourself first still works too.
+
+The menu comes back after each option, so you can test, patch and make a bug report in one go. Type **0** to quit.
 
 ## Full command list
 

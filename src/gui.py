@@ -39,6 +39,8 @@ LINES_LOCK = threading.Lock()
 LAST_PING = [None]   # set when the browser first opens the panel
 SERVER = [None]
 CONFIG_LOCK = threading.Lock()
+JOB_LOCK = threading.Lock()      # two quick clicks must not start two jobs at once
+PICK_LOCK = threading.Lock()     # only one folder picker window at a time
 
 
 def remember_line(message):
@@ -65,12 +67,12 @@ def mod_rows():
     # Keep enabled.txt's order, including mods that are switched off with #.
     listed = []
     if os.path.isfile(ENABLED):
-        with open(ENABLED, encoding="utf-8", errors="replace") as handle:
+        with open(ENABLED, encoding="utf-8-sig", errors="replace") as handle:
             for raw in handle:
                 stripped = raw.strip()
                 active = stripped.split("#", 1)[0].strip()
                 commented = COMMENTED.match(stripped)
-                name = active or (commented.group(1) if commented else "")
+                name = mod_file_name(active) if active else (commented.group(1) if commented else "")
                 if name and name not in listed and (active or name in files):
                     listed.append(name)
     order = listed + [name for name in files if name not in listed]
@@ -91,7 +93,7 @@ def write_enabled(turn_on):
     wanted = set(turn_on)
     lines = []
     if os.path.isfile(ENABLED):
-        with open(ENABLED, encoding="utf-8", errors="replace") as handle:
+        with open(ENABLED, encoding="utf-8-sig", errors="replace") as handle:
             lines = handle.read().splitlines()
         copy_file(ENABLED, ENABLED + ".bak")
     out, seen = [], set()
@@ -144,7 +146,29 @@ def open_url(url):
 
 
 def pick_folder(title):
-    """Native folder picker if Tk is available; otherwise the page asks the user to paste a path."""
+    """Native folder picker; None when there is none (the page then asks for a pasted path)."""
+    if not PICK_LOCK.acquire(blocking=False):
+        return ""        # a picker window is already open
+    try:
+        if PLATFORM == "mac":
+            return pick_folder_mac(title)
+        return pick_folder_tk(title)
+    finally:
+        PICK_LOCK.release()
+
+
+def pick_folder_mac(title):
+    """macOS only allows windows from a program's main thread, and this runs in a web
+    request thread, so Tk would crash the patcher. Finder's own chooser works."""
+    script = 'POSIX path of (choose folder with prompt "' + title.replace('"', "'") + '")'
+    try:
+        result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+    except OSError:
+        return None
+    return result.stdout.strip().rstrip("/") if result.returncode == 0 else ""
+
+
+def pick_folder_tk(title):
     try:
         import tkinter
         from tkinter import filedialog
@@ -182,6 +206,7 @@ def state():
 
 
 def run_job(action, payload):
+    result = 1
     try:
         if action == "dry":
             result = apply(dry_run=True)
@@ -214,16 +239,25 @@ def run_job(action, payload):
             say("Unknown action: " + action)
             result = 1
     except Exception as exc:
-        say("CRASH: " + type(exc).__name__ + ": " + str(exc))
+        # Written to the patch log too, so the bug report zip carries it.
+        crash_log("CRASH: " + type(exc).__name__ + ": " + str(exc))
         # Where it happened, so a bug report can point at the right line.
         import traceback
         for frame in traceback.extract_tb(exc.__traceback__)[-4:]:
-            say("  at " + os.path.basename(frame.filename) + " line " + str(frame.lineno) + " in " + frame.name)
+            crash_log("  at " + os.path.basename(frame.filename) + " line " + str(frame.lineno) + " in " + frame.name)
         say("Please make a bug report from the Report a bug tab.")
         result = 1
-    JOB["result"] = result
-    JOB["running"] = False
+    finally:
+        JOB["result"] = result
+        JOB["running"] = False
     say("[finished: " + ("OK" if result == 0 else "stopped, see the lines above") + "]")
+
+
+def crash_log(message):
+    try:
+        log(message)
+    except Exception:
+        say(message)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -289,8 +323,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/configure":
             if JOB["running"]:
                 return self.reply({"error": "Wait for the current job to finish."}, 409)
-            game = (payload.get("game") or "").strip() or None
-            mods = (payload.get("mods") or "").strip() or None
+            game = (payload.get("game") or "").strip().strip('"').strip("'") or None
+            mods = (payload.get("mods") or "").strip().strip('"').strip("'") or None
+            if game and not os.path.isdir(os.path.expanduser(game)):
+                # Don't swap a working saved folder for a typo.
+                return self.reply(dict(state(), ok=False, error="That game folder doesn't exist: " + game +
+                                       "\nCheck the spelling, or use Browse..."))
             with CONFIG_LOCK:
                 ok = configure(game, mods, remember=True, interactive=False)
                 return self.reply(dict(state(), ok=ok))
@@ -298,10 +336,11 @@ class Handler(BaseHTTPRequestHandler):
             chosen = pick_folder(payload.get("title") or "Choose a folder")
             return self.reply({"path": chosen, "unavailable": chosen is None})
         if path == "/api/run":
-            if JOB["running"]:
-                return self.reply({"error": "A job is already running."}, 409)
             action = payload.get("action", "")
-            JOB.update(running=True, action=action, result=None)
+            with JOB_LOCK:
+                if JOB["running"]:
+                    return self.reply({"error": "A job is already running."}, 409)
+                JOB.update(running=True, action=action, result=None)
             threading.Thread(target=run_job, args=(action, payload), daemon=True).start()
             return self.reply({"started": action})
         if path == "/api/mods":
@@ -580,7 +619,8 @@ function show(st){S=st;$("ver").textContent="v"+st.version+" · "+st.platform;
  $("expai").disabled=st.running||!aiOk;
 }
 async function refresh(){show(await api("/api/state"))}
-async function save(){const st=await api("/api/configure",{game:$("game").value,mods:$("mods").value});show(st);
+async function save(){const st=await api("/api/configure",{game:$("game").value,mods:$("mods").value});
+ if(st.error){banner(st.error,"bad");return}show(st);
  if(st.ok&&!st.problem)banner("Folders saved.","good")}
 $("save").onclick=save;
 async function pick(id,title){const r=await api("/api/pick",{title});if(r.unavailable){banner("No folder picker on this system. Paste the path into the box instead.","warn");return}
@@ -601,7 +641,7 @@ async function poll(){if(polling)return;polling=true;
   if(!r.running&&!r.lines.length)break;await new Promise(f=>setTimeout(f,r.running?400:50))}}
  finally{polling=false;refresh()}}
 async function run(action,extra){tab("patch");const r=await api("/api/run",Object.assign({action},extra||{}));
- if(r.error){banner(r.error,"warn");return}refresh();poll()}
+ if(r.error){banner(r.error,"warn");poll();return}refresh();poll()}
 $("dry").onclick=()=>run("dry");
 $("expmac").onclick=()=>run("export_mac",{arch:$("arch").value});
 $("expai").onclick=()=>run("export_appimage",{arch:$("arch").value});

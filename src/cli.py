@@ -38,13 +38,18 @@ def menu():
     for number, (label, _) in enumerate(MENU, 1):
         say("  " + str(number) + ") " + label)
     say("  0) Quit")
-    try:
-        answer = input("Type a number and press Enter: ").strip()
-    except EOFError:
-        return None
-    if answer.isdigit() and 1 <= int(answer) <= len(MENU):
-        return MENU[int(answer) - 1][1]
-    return None
+    while True:
+        try:
+            answer = input("Type a number and press Enter: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            return None
+        if answer in ("0", "q", "Q"):
+            return None
+        if not answer:
+            continue
+        if answer.isdigit() and 1 <= int(answer) <= len(MENU):
+            return MENU[int(answer) - 1][1]
+        say("'" + answer + "' is not on the list. Type a number from 0 to " + str(len(MENU)) + ".")
 
 
 def main(argv=None):
@@ -83,15 +88,27 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.menu:
-        picked = menu()
-        if picked is None:
-            return 0
+        # Show the menu again after each job, so one window can test, patch and
+        # make a bug report without being started again. 0 quits.
         keep = []
         if args.game:
             keep += ["--game", args.game]
         if args.mods:
             keep += ["--mods", args.mods]
-        return main(keep + picked)
+        result = 0
+        while True:
+            picked = menu()
+            if picked is None:
+                return result
+            try:
+                result = main(keep + picked)
+            except SystemExit as stop:
+                result = stop.code if isinstance(stop.code, int) else 1
+            except Exception as exc:
+                say("CRASH: " + type(exc).__name__ + ": " + str(exc))
+                say("Please make a bug report (menu option 4).")
+                result = 1
+            say("[finished: " + ("OK" if result == 0 else "stopped, see the lines above") + "]")
 
     if PLATFORM != PLATFORM_DEFAULT:
         say("Note: this is the " + PLATFORM_LABEL + " patcher but you seem to be on " + PLATFORM + ".")

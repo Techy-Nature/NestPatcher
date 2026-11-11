@@ -263,7 +263,7 @@ def main():
                          args=(one("NestPatcher_TiTS_GUI_v*.py"), root, "auto", "", NodeChecker(), sink),
                          daemon=True).start()
         url = ""
-        for _ in range(100):
+        for _ in range(300):  # up to 30 s on slow CI machines
             url = next((l.split("into it:", 1)[1].strip() for l in list(sink.lines) if "#k=" in l), "")
             if url:
                 break

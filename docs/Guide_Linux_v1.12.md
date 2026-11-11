@@ -140,8 +140,9 @@ Menu options **7** and **8** do the same. The file lands in `NestExports/` insid
 ## After a TiTS update
 
 1. Install the new TiTS.
-2. Delete `nestmods/backup`.
-3. Run options **1** then **2**.
+2. Run options **1** then **2**. Since 1.12 the patcher sees that `nestmods/backup` is from the old version, moves it to `nestmods/backup-old-<date>` and makes fresh backups (you can delete the old folder once the game works). Deleting `nestmods/backup` yourself first still works too.
+
+The menu comes back after each option, so you can test, patch and make a bug report in one go. Type **0** to quit.
 
 ## Full command list
 

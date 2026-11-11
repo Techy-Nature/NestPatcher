@@ -135,7 +135,7 @@ def load_settings():
     old = os.path.join(ROOT, SETTINGS_NAME.replace("NestPatcher", "KittyPatcher"))
     for path in (SETTINGS, old):
         try:
-            with open(path, "r", encoding="utf-8") as handle:
+            with open(path, "r", encoding="utf-8-sig") as handle:
                 return json.load(handle)
         except (OSError, ValueError):
             continue
@@ -374,7 +374,7 @@ def replace_first(text, block):
 
 
 def parse_mod(path):
-    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+    with open(path, "r", encoding="utf-8-sig", errors="replace") as handle:
         text = handle.read().replace("\r\n", "\n").replace("\r", "\n")
     # Standalone # lines are .mod annotations, not replacement JavaScript.
     # Remove them before parsing to prevent accidentally splicing metadata into
@@ -425,14 +425,34 @@ def parse_mod(path):
     return blocks
 
 
+CASE_FIXED = {}
+
+
+def mod_file_name(name):
+    """The real file name for a name in enabled.txt. Windows and Mac don't care about
+    capital letters but Linux and Android do, so a list written on Windows
+    ('smoke.mod' for Smoke.mod) still finds its files here."""
+    if os.path.isfile(os.path.join(MODS, name)):
+        return name
+    try:
+        matches = [real for real in os.listdir(MODS) if real.lower() == name.lower()]
+    except OSError:
+        return name
+    if len(matches) == 1:
+        CASE_FIXED[name] = matches[0]
+        return matches[0]
+    return name
+
+
 def enabled_names():
     names = []
     if os.path.isfile(ENABLED):
-        with open(ENABLED, "r", encoding="utf-8", errors="replace") as handle:
+        # utf-8-sig: Notepad can save enabled.txt with an invisible BOM mark at the start.
+        with open(ENABLED, "r", encoding="utf-8-sig", errors="replace") as handle:
             for line in handle:
                 line = line.split("#", 1)[0].strip()
                 if line:
-                    names.append(line)
+                    names.append(mod_file_name(line))
     else:
         names = sorted(
             name for name in os.listdir(MODS)
@@ -444,7 +464,11 @@ def enabled_names():
 
 def enabled_mods():
     resolved = []
-    for name in enabled_names():
+    CASE_FIXED.clear()
+    names = enabled_names()
+    for listed, real in sorted(CASE_FIXED.items()):
+        log("Note: enabled.txt says " + listed + "; using " + real + " (only capital letters differ).")
+    for name in names:
         path = os.path.join(MODS, name)
         if os.path.isfile(path):
             resolved.append(path)
@@ -519,6 +543,57 @@ def patched_without_backup():
     with open(index_path, encoding="utf-8", errors="replace") as handle:
         source = handle.read()
     return clean_index(source) != source
+
+def game_script_names(source):
+    """The game's own <script src> files in an index.html (NestPatcher/KittyPatcher tags left out)."""
+    names = set()
+    for src in re.findall(r'<script\b[^>]*\bsrc=["\']?([^"\'\s>]+)', source, flags=re.IGNORECASE):
+        if not src.lower().startswith(("mods/kitty/", "mods/nest/")):
+            names.add(src)
+    return names
+
+
+def backup_from_other_game_version():
+    """True when the clean index.html backup belongs to an older (or newer) TiTS than
+    the one in the game folder. After a TiTS update main.<hash>.js gets a new name, so
+    the old backup would point the game at files that no longer exist (black screen),
+    and Restore would put the old game's page back."""
+    index_path = os.path.join(APP, "index.html")
+    backup_path = os.path.join(BACKUP, "index.html")
+    if not (os.path.isfile(index_path) and os.path.isfile(backup_path)):
+        return False
+    with open(index_path, encoding="utf-8", errors="replace") as handle:
+        current = game_script_names(handle.read())
+    with open(backup_path, encoding="utf-8", errors="replace") as handle:
+        saved = game_script_names(handle.read())
+    return bool(current) and bool(saved) and current != saved
+
+
+def set_aside_old_backup(dry_run=False):
+    """Move a backup made for another TiTS version out of the way. Returns True when it did."""
+    if not backup_from_other_game_version():
+        return False
+    if dry_run:
+        log("NOTE: the backups in " + BACKUP + " are from a different TiTS version than the game.")
+        log("  A real patch will move them aside (to backup-old-...) and make fresh ones from this game.")
+        return False
+    stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+    target = BACKUP.rstrip("\\/") + "-old-" + stamp
+    shutil.move(BACKUP, target)
+    # Bundles the update didn't change keep their file name (it is a hash of the
+    # content), so their clean copies are still right: keep using those.
+    kept = 0
+    for name in os.listdir(target):
+        if name.endswith(".js") and os.path.isfile(os.path.join(APP, name)):
+            os.makedirs(BACKUP, exist_ok=True)
+            copy_file(os.path.join(target, name), os.path.join(BACKUP, name))
+            kept += 1
+    log("NOTE: the backups were made for a different TiTS version (the game was updated).")
+    if kept:
+        log("  Kept the clean copies of " + str(kept) + " game file(s) the update didn't change.")
+    log("  Moved them to " + target + " and will make fresh ones from this game.")
+    log("  You can delete that folder once the game works.")
+    return True
 
 
 def already_patched_help():
@@ -870,6 +945,8 @@ def apply(dry_run=False, fresh=False, validate=True, after_build=None):
     log("NestPatcher " + TOOL_VERSION + " (" + PLATFORM + ")")
     log("Game: " + APP)
     log("Mods: " + MODS)
+    if os.path.isdir(BACKUP):
+        set_aside_old_backup(dry_run)
     if patched_without_backup():
         already_patched_help()
         return 1
@@ -1056,6 +1133,12 @@ def restore_originals():
     problem = preflight()
     if problem:
         say(problem)
+        return 1
+    if backup_from_other_game_version():
+        say("The backups in " + BACKUP + " are from a different TiTS version than this game")
+        say("(the game was updated since they were made). Putting them back would break it.")
+        say("Nothing was changed. To turn mods off, unzip a fresh copy of this TiTS version,")
+        say("or turn every mod off on the Mods tab (or in enabled.txt) and patch again.")
         return 1
     if patched_without_backup():
         say("This game copy was patched, but " + BACKUP + " has no clean backup to put back.")
