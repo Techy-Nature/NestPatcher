@@ -4,8 +4,10 @@ Author: Neston
 # Keeps a modded game from talking to the game's servers about your game:
 #   - Error reporting is always off. The game's "Automatic Error Reporting" option (Disabled /
 #     Automatic / Prompt) can't be switched on: Automatic and Prompt just stay Disabled, the
-#     error screen's "Submit Error" button never shows, and the reporter (Sentry) is never
-#     started, even if an older options file had it on.
+#     reporter (Sentry) is never started, even if an older options file had it on.
+#   - The error screen's "Submit Error" button is now "Report Error": it copies the error
+#     message to your clipboard and opens the NestPatcher Error Reports channel on Neston's
+#     Stoat server (https://stt.gg/Fqfsc3bR). Nothing is sent by itself; you paste it there.
 #   - Online cloud saves (Fenoxo account save slots) are off. The cloud toggle in Save/Load
 #     does nothing, and the cloud save code can't log in, upload, download or delete. Normal
 #     save slots and Save To File / Load From File work as always.
@@ -31,9 +33,9 @@ With:
 setState({errorReportingMode:@@r@@.@@xj@@.Disabled})
 
 Replace [main.js]:
-getGameOptions().errorReportingMode===@@r@@.@@xj@@.Prompt&&this.addButton(1,"Submit Error"
+getGameOptions().errorReportingMode===@@r@@.@@xj@@.Prompt&&this.addButton(1,"Submit Error",(function(){@@s@@.@@tb@@(@@e@@),@@o@@.setButtonDisabled(1)}),"Submit Error","Submit an error to our internal error reporting system. This will provide the error message to us automatically and allow us to better keep track of this issue!")
 With:
-!1&&this.addButton(1,"Submit Error"
+this.addButton(1,"Report Error",(function(){window.tnReportError?window.tnReportError():window.open("https://stt.gg/Fqfsc3bR","_blank")}),"Report Error","Copies the error message and opens the NestPatcher Error Reports channel on Neston’s Stoat server, where the mods can actually get fixed. Nothing is sent automatically: paste the error there and say what you did before it happened.")
 
 Replace [main.js]:
 var @@e@@=getGameOptions();@@e@@.cloudSaves=!@@e@@.cloudSaves,this.updateSaveLoad()
@@ -95,6 +97,43 @@ Add Javascript:
         try { C.wpToken = null; C.isValidated = false; C.isUsingToken = false; C.cachedIsCloudSaveAvailable = false; } catch (err) {}
         C.__tnOffline = true;
     }
+    // "Report Error" on the game's error screen: copy the error, then open our Stoat channel.
+    var REPORT_URL = "https://stt.gg/Fqfsc3bR";
+    function copyText(text) {
+        try {
+            var ta = document.createElement("textarea");
+            ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;";
+            document.body.appendChild(ta); ta.select();
+            var ok = document.execCommand && document.execCommand("copy");
+            ta.remove();
+            if (ok) return true;
+        } catch (err) {}
+        try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text); return true; } } catch (err) {}
+        return false;
+    }
+    function openLink(url) {
+        try { if (window.cordova && window.cordova.InAppBrowser && typeof window.cordova.InAppBrowser.open === "function") { window.cordova.InAppBrowser.open(url, "_system"); return; } } catch (err) {}
+        try {
+            // Same kind of link the game's own text uses (target=_blank opens the system browser).
+            var a = document.createElement("a");
+            a.href = url; a.target = "_blank"; a.rel = "noopener";
+            a.style.display = "none"; document.body.appendChild(a); a.click(); a.remove();
+            return;
+        } catch (err) {}
+        try { window.open(url, "_blank"); } catch (err) {}
+    }
+    window.tnReportError = function () {
+        var text = "";
+        try { text = String((window.ui && ui.state && ui.state.preText) || ""); } catch (err) {}
+        text = text.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").trim();
+        var copied = text ? copyText(text) : false;
+        openLink(REPORT_URL);
+        try {
+            if (typeof output === "function") output("\n\n<b>" + (copied ? "The error message is copied. " : "") + "Opening the NestPatcher Error Reports channel on Neston’s Stoat server. Paste the error there and say what you did right before it happened.</b> If nothing opened, go to " + REPORT_URL);
+        } catch (err) {}
+    };
+    window.tnReportErrorUrl = REPORT_URL;
+
     var ticks = 0;
     (function tick() {
         ticks++;
