@@ -9,6 +9,9 @@ Author: Neston
 #   - Online cloud saves (Fenoxo account save slots) are off. The cloud toggle in Save/Load
 #     does nothing, and the cloud save code can't log in, upload, download or delete. Normal
 #     save slots and Save To File / Load From File work as always.
+#   - The game's update checker is off: it never asks Fenoxo's site for the newest version, the
+#     first-run "UPDATE NOTIFICATIONS" question is skipped, and "Automatic Update Checking" stays
+#     off. News about new mod packs comes from our own Changelog (changelog.md) instead.
 # No switch: this is always on while the mod is installed.
 # In-game author: Neston.
 
@@ -37,14 +40,24 @@ var @@e@@=getGameOptions();@@e@@.cloudSaves=!@@e@@.cloudSaves,this.updateSaveLoa
 With:
 var @@e@@=getGameOptions();@@e@@.cloudSaves=!1,this.updateSaveLoad()
 
+Replace [main.js]:
+if(!1!==getGameOptions().updateChecking){if(!@@t@@&&this.lastUpdateCheckTime)
+With:
+if(!1){if(!@@t@@&&this.lastUpdateCheckTime)
+
+Replace [main.js]:
+!1===@@t@@.hasPromptedForUpdateCheck&&(@@t@@.hasPromptedForUpdateCheck=!0,window.showDialog(
+With:
+!1===(@@t@@.updateChecking=!1,@@t@@.hasPromptedForUpdateCheck=!0,!0)&&(@@t@@.hasPromptedForUpdateCheck=!0,window.showDialog(
+
 Add Javascript:
 (function () {
     "use strict";
     if (window.__tnOfflineGuard) return;
     window.__tnOfflineGuard = true;
 
-    // Backup for anything the patches above don't reach: keep the options off and the cloud
-    // save code offline. Runs every few seconds; it only ever turns things off.
+    // Backup for anything the patches above don't reach: keep the options off (error reports,
+    // cloud saves, update checks) and the cloud save code offline. Runs every few seconds; it only ever turns things off.
     var disabled = null;
     function registry() {
         try {
@@ -64,6 +77,7 @@ Add Javascript:
         try { o = typeof getGameOptions === "function" ? getGameOptions() : null; } catch (err) {}
         if (!o) return;
         if (o.cloudSaves) o.cloudSaves = false;
+        if (o.updateChecking) { o.updateChecking = false; try { window.game.initUpdateChecks(false); } catch (err) {} }
         var d = disabledValue();
         if (d === null || d === undefined) return;
         if (o.errorReportingMode !== d) o.errorReportingMode = d;
