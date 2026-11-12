@@ -874,6 +874,8 @@ function buildCatalog(allFns, literalCount) {
     scenes.push({
       id, npc, area: r.area, place: areaLabel(r.area), title: title || (npc ? "Scene" : "Untitled scene"), author: authorFor(r), tags, summary,
       opening, fp: fps, fpId: fps.slice(0, fpIdCount), busts: bustsFor(u.starts), flagsSet: unitFlags(u),
+      // where the scene's function is (not written to the scene list; the full-text scanner uses it)
+      src: { file: r.file, start: r.start, end: r.end, tag: u.tag },
     });
     for (const f of fps) fpOwner.set(f, (fpOwner.get(f) || 0) + 1);
   }
@@ -1148,4 +1150,4 @@ async function main() {
 if (require.main === module) {
   main().catch((e) => { console.error(e && e.stack || e); process.exit(1); });
 }
-module.exports = { scanFile, buildCatalog, cleanText, pickFingerprints, readGalleryIndex, linkCharacters };
+module.exports = { setAcorn: (a) => { acorn = a; }, gameFiles: (app, backup) => { APP = app; BACKUP = backup; return gameFiles(); }, gameVersion, scanFile, buildCatalog, cleanText, pickFingerprints, readGalleryIndex, linkCharacters };

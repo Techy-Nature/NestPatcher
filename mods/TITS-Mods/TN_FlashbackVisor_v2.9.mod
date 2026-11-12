@@ -14,6 +14,8 @@ Author: Neston
 #   - Older: sex scenes your save went through before the visor was installed (the Sex Gallery
 #     reads them from the save). The visor never saw those pages, so it shows the scene's title,
 #     summary and how it began. Live one again in the game and the visor keeps the whole thing.
+#     With the Sex Gallery's full-text add-on (TN_SexGalleryText_v3.0.js) it shows the whole
+#     scene, written for Steele as they are now.
 #   - Each memory you relive takes one hour (a Both memory's fight and sex share that hour).
 #   - Copy Text / Save Text on a memory (sex or fight) and Save All in the visor menu: the full
 #     scene text as .rtf (bold and italics kept), or a .zip with a folder per character. Needs
@@ -693,7 +695,7 @@ Add Javascript:
         if (!ST()) addDisabledButton(5, "Save All", "Save All Text", NEED_ST);
         else addButton(5, "Save All", F.saveAll, "Save All Text", "Save every sex scene and fight as .rtf files in a .zip, with a folder for each character.");
         var ox = olderScenes();
-        if (ox.length) addButton(7, "Older", F.olderWho, "Older Memories", ox.length + (ox.length === 1 ? " sex scene" : " sex scenes") + " from your past that the visor never recorded (from before it was installed). It can only bring back how they began.");
+        if (ox.length) addButton(7, "Older", F.olderWho, "Older Memories", ox.length + (ox.length === 1 ? " sex scene" : " sex scenes") + " from your past that the visor never recorded (from before it was installed). " + (window.TN_SEX_GALLERY_TEXT ? "The Sex Gallery’s full-text add-on lets it rebuild them whole." : "It can only bring back how they began."));
         else addDisabledButton(7, "Older", "Older Memories", window.TnSexGallery ? "No older sex scenes found in this save." : "Needs the Sex Gallery mod (TN_SexGallery_v2.9.js), which knows which scenes your save has already been through.");
         if (ST()) addButton(6, "Scene Backup", F.backup, "Scene Backup", "Your saved scenes, packed into your save file as a backup code that travels with it.");
         else addDisabledButton(6, "Scene Backup", "Scene Backup", NEED_ST);
@@ -819,6 +821,14 @@ Add Javascript:
         return out;
     }
     F.olderScenes = olderScenes;
+    /* For the Sex Gallery's reader: the visor's own recording of a gallery scene (the text as it
+       played), newest first, or "" when the visor doesn't have it. */
+    F.galleryText = function (id) {
+        if (!id || !inGame()) return "";
+        var mems = sexMems();
+        for (var i = mems.length - 1; i >= 0; i--) if (mems[i].g === id && mems[i].txt && !mems[i].f) return mems[i].txt;
+        return "";
+    };
     function olderWho(sc) {
         var c = (sc.chars && sc.chars.length) ? sc.chars.slice() : (sc.npc ? [sc.npc] : []);
         return c.length ? c : ["Someone"];
@@ -848,8 +858,18 @@ Add Javascript:
             "You reach back further than the visor has ever watched. The fog resists, thick and grainy, and then gives way: " + (sc.place ? sc.place + ", " : "") + (who.length ? "you and " + joinNames(who) : "you") + ", from before you ever wore the visor.",
             sc.summary ? "<b>" + safeText(sc.title || "A memory") + ".</b> " + safeText(sc.summary) : "<b>" + safeText(sc.title || "A memory") + ".</b>"
         ]);
-        if (sc.opening) output("\n\n<i>" + safeText(sc.opening) + "</i>");
-        output(DIV + "The rest won’t come into focus. The visor can only rebuild how an older memory began. <i>(This scene happened before the Flashback Visor was recording. Live it again in the game and the visor will keep the whole thing.)</i>");
+        /* With the Sex Gallery's full-text add-on (TN_SexGalleryText_v3.0.js) the visor can rebuild
+           the whole scene, written for Steele as they are now. */
+        var full = null;
+        try { if (window.TnSexGallery && typeof window.TnSexGallery.fullText === "function" && window.TnSexGallery.hasFullText(sc.id)) full = window.TnSexGallery.fullText(sc.id); } catch (err) { full = null; }
+        if (full && full.html) {
+            output(DIV + "The fog thins, and the whole memory plays out around you, colored by who you are now.");
+            output(DIV + full.html);
+            if (full.unknown) output("\n\n<i>(Where the memory blurs between versions, the visor shows them all.)</i>");
+        } else {
+            if (sc.opening) output("\n\n<i>" + safeText(sc.opening) + "</i>");
+            output(DIV + "The rest won’t come into focus. The visor can only rebuild how an older memory began. <i>(This scene happened before the Flashback Visor was recording. Live it again in the game and the visor will keep the whole thing" + (window.TnSexGallery ? ", or add the Sex Gallery’s full-text add-on, TN_SexGalleryText_v3.0.js" : "") + ".)</i>");
+        }
         output(DIV + "The fog drifts back in, and the memory softens and lets you go.");
         spend(60); // each memory = one hour
         clearMenu();

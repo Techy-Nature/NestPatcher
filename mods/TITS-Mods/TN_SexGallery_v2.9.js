@@ -35,6 +35,11 @@
    Search: type any part of a character's name (or several words, in any order: "anno tail",
    "ride mhenga"). Matching characters show as buttons above the list; tap one to see their
    portrait and scenes. Curly and straight quotes and accents count as the same.
+   Full scene text (2026-11-12, optional add-on): with TN_SexGalleryText_v3.0.js in enabled.txt,
+   every unlocked scene gets a Read scene button that shows the whole scene, written out for your
+   Steele as they are now (the add-on packs the text; this file reads it, a chunk at a time). The
+   Flashback Visor's Older memories use it too. Leave the add-on out for the lite pack: the gallery
+   then works as before, with summaries and openings only. Reading never changes the save.
    Debug: window.TnSexGallery.status() */
 (function () {
     "use strict";
@@ -82,7 +87,7 @@
         try { return typeof flags !== "undefined" && flags && typeof pc !== "undefined" && pc && !!pc.short; } catch (err) { return false; }
     }
 
-    var settings = { toasts: true, newSceneToasts: true, spoilers: false, size: 1, saveUnlocks: true, sharedUnlocks: true };
+    var settings = { toasts: true, newSceneToasts: true, spoilers: false, size: 1, saveUnlocks: true, sharedUnlocks: true, readLocked: false };
     try {
         var raw = window.localStorage && localStorage.getItem(SETTINGS_KEY);
         if (raw) { var got = JSON.parse(raw); for (var k in got) if (Object.prototype.hasOwnProperty.call(settings, k)) settings[k] = got[k]; }
@@ -550,6 +555,11 @@
             + "#tnSexGal .sg-seen{float:right;font-size:.8em;color:var(--passiveColor,#D982EF);}"
             + "#tnSexGal .sg-note{opacity:.8;padding:1em .2em;line-height:1.5;}"
             + "#tnSexGal .sg-more{display:block;margin:1em auto;}"
+            + "#tnSexGal .sg-read{max-width:48em;margin:0 auto;}"
+            + "#tnSexGal.sg-reading .sg-bar,#tnSexGal.sg-reading .sg-count,#tnSexGal.sg-reading .sg-ach,#tnSexGal.sg-reading .sg-top>.sg-row+.sg-bar~.sg-row{display:none;}"
+            + "#tnSexGal .sg-read-head{display:flex;flex-wrap:wrap;gap:.45em;align-items:center;margin:.2em 0 .8em;}"
+            + "#tnSexGal .sg-read-text{white-space:pre-wrap;line-height:1.6;font-size:1.02em;background:var(--foregroundColorA,#333E52);border:1px solid var(--paleColor,#53677B);border-radius:.5em;padding:.9em 1.1em;}"
+            + "#tnSexGal .sg-read-text .sg-alts,#tnSexGal .sg-read-text .sg-page{white-space:normal;}"
             + "#tnSexGal select[data-sg=char]{max-width:100%;}"
             + "#tnSexGal .sg-who{display:flex;flex-wrap:wrap;gap:.4em;align-items:center;margin:.2em 0 .6em;}"
             + "#tnSexGal .sg-who-head{opacity:.8;font-size:.92em;}"
@@ -608,11 +618,355 @@
         toast("Achievement unlocked", a.name, a.text, true);
     }
 
+    // ------------------------------------------------------------------ full scene text (add-on)
+    // TN_SexGalleryText_v3.0.js (optional, made by mods/tools/sex_scene_text_scan_v3.0.js) holds
+    // the whole text of every scene, deflated in chunks of about 60 scenes. Only the chunk you
+    // open is unpacked, and only the last two are kept unpacked. Each scene is a small program:
+    //   "text" | [0, expr] text worked out from an expression | [1, cond, then, else] | [2] next page
+    // Checks are expression trees that this reader works out against the game as it is now (your
+    // Steele, the crew, the save's flags). It only looks things up and calls the read-only methods
+    // the scanner let through; it never runs game code from the add-on. A check it can't work out
+    // shows every version of that bit.
+    var TEXT_FILE = "TN_SexGalleryText_v3.0.js";
+    var textCache = [];   // [{ n, data }] newest last
+    var textStats = { chunks: 0, ms: 0, scenes: 0, failed: 0 };
+    function textPack() {
+        var d = window.TN_SEX_GALLERY_TEXT;
+        return d && d.index && d.chunks ? d : null;
+    }
+    function hasFullText(id) { var d = textPack(); return !!(d && Object.prototype.hasOwnProperty.call(d.index, id)); }
+
+    // raw deflate (RFC 1951), small and synchronous, so it works on every WebView
+    var LBASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+    var LEXT = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+    var DBASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+    var DEXT = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+    var CLORDER = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+    function inflateRaw(src) {
+        var out = new Uint8Array(Math.max(1024, src.length * 4)), op = 0;
+        var pos = 0, bitbuf = 0, bitcnt = 0;
+        function need(n) {
+            if (op + n <= out.length) return;
+            var o = new Uint8Array(Math.max(out.length * 2, op + n));
+            o.set(out.subarray(0, op));
+            out = o;
+        }
+        function bits(n) {
+            while (bitcnt < n) {
+                if (pos >= src.length) throw new Error("deflate data ends early");
+                bitbuf |= src[pos++] << bitcnt;
+                bitcnt += 8;
+            }
+            var v = bitbuf & ((1 << n) - 1);
+            bitbuf >>>= n;
+            bitcnt -= n;
+            return v;
+        }
+        function table(lengths, n) {
+            var count = new Uint16Array(16), offs = new Uint16Array(16), sym = new Uint16Array(n), i;
+            for (i = 0; i < n; i++) count[lengths[i]]++;
+            count[0] = 0;
+            for (i = 1; i < 16; i++) offs[i] = offs[i - 1] + count[i - 1];
+            for (i = 0; i < n; i++) if (lengths[i]) sym[offs[lengths[i]]++] = i;
+            return { count: count, sym: sym };
+        }
+        function decode(h) {
+            var code = 0, first = 0, index = 0;
+            for (var len = 1; len < 16; len++) {
+                code |= bits(1);
+                var c = h.count[len];
+                if (code - c < first) return h.sym[index + (code - first)];
+                index += c; first += c; first <<= 1; code <<= 1;
+            }
+            throw new Error("bad deflate code");
+        }
+        var fixedL = null, fixedD = null;
+        for (;;) {
+            var last = bits(1), type = bits(2), i;
+            if (type === 0) {
+                bitbuf = 0; bitcnt = 0;
+                var len = src[pos] | (src[pos + 1] << 8);
+                pos += 4;
+                need(len);
+                out.set(src.subarray(pos, pos + len), op);
+                op += len; pos += len;
+            } else {
+                var lt, dt;
+                if (type === 1) {
+                    if (!fixedL) {
+                        var l = new Uint8Array(288);
+                        for (i = 0; i < 144; i++) l[i] = 8;
+                        for (; i < 256; i++) l[i] = 9;
+                        for (; i < 280; i++) l[i] = 7;
+                        for (; i < 288; i++) l[i] = 8;
+                        fixedL = table(l, 288);
+                        var d = new Uint8Array(30);
+                        for (i = 0; i < 30; i++) d[i] = 5;
+                        fixedD = table(d, 30);
+                    }
+                    lt = fixedL; dt = fixedD;
+                } else if (type === 2) {
+                    var nlen = bits(5) + 257, ndist = bits(5) + 1, ncode = bits(4) + 4;
+                    var cl = new Uint8Array(19);
+                    for (i = 0; i < ncode; i++) cl[CLORDER[i]] = bits(3);
+                    var ct = table(cl, 19);
+                    var lens = new Uint8Array(nlen + ndist);
+                    for (i = 0; i < nlen + ndist;) {
+                        var sym = decode(ct);
+                        if (sym < 16) lens[i++] = sym;
+                        else {
+                            var rep = 0, val = 0;
+                            if (sym === 16) { if (!i) throw new Error("bad deflate repeat"); val = lens[i - 1]; rep = 3 + bits(2); }
+                            else if (sym === 17) rep = 3 + bits(3);
+                            else rep = 11 + bits(7);
+                            while (rep--) lens[i++] = val;
+                        }
+                    }
+                    lt = table(lens.subarray(0, nlen), nlen);
+                    dt = table(lens.subarray(nlen), ndist);
+                } else throw new Error("bad deflate block");
+                for (;;) {
+                    var s = decode(lt);
+                    if (s < 256) { need(1); out[op++] = s; }
+                    else if (s === 256) break;
+                    else {
+                        s -= 257;
+                        var n = LBASE[s] + bits(LEXT[s]);
+                        var ds = decode(dt);
+                        var dist = DBASE[ds] + bits(DEXT[ds]);
+                        need(n);
+                        for (var k = 0; k < n; k++) { out[op] = out[op - dist]; op++; }
+                    }
+                }
+            }
+            if (last) break;
+        }
+        return out.subarray(0, op);
+    }
+    function utf8(bytes) {
+        if (typeof TextDecoder === "function") return new TextDecoder("utf-8").decode(bytes);
+        var s = "";
+        for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+        return decodeURIComponent(escape(s));
+    }
+    function chunk(n) {
+        for (var i = 0; i < textCache.length; i++) if (textCache[i].n === n) {
+            var hit = textCache.splice(i, 1)[0];
+            textCache.push(hit);
+            return hit.data;
+        }
+        var d = textPack();
+        if (!d || !d.chunks[n]) return null;
+        var t0 = Date.now();
+        var bin = atob(d.chunks[n]);
+        var bytes = new Uint8Array(bin.length);
+        for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+        var data = JSON.parse(utf8(inflateRaw(bytes)));
+        textStats.chunks++;
+        textStats.ms += Date.now() - t0;
+        textCache.push({ n: n, data: data });
+        while (textCache.length > 2) textCache.shift();
+        return data;
+    }
+    function sceneProgram(id) {
+        var d = textPack();
+        if (!d || !Object.prototype.hasOwnProperty.call(d.index, id)) return null;
+        var c = chunk(d.index[id]);
+        return c && c[id] || null;
+    }
+
+    // expression trees: ["l", v] ["i", name] ["m", obj, "prop"] ["M", obj, expr] ["c", callee, args]
+    // ["u", op, x] ["b", op, a, b] ["L", op, a, b] ["?", c, a, b] ["t", quasis, exprs] ["a", items]
+    var CANT = { cant: true };
+    function ev(t) {
+        if (!t) throw CANT;
+        var a, b, o, i;
+        switch (t[0]) {
+            case "l": return t[1];
+            case "i":
+                if (!(t[1] in window)) throw CANT;
+                return window[t[1]];
+            case "m":
+                o = ev(t[1]);
+                if (o === null || o === undefined) throw CANT;
+                return o[t[2]];
+            case "M":
+                o = ev(t[1]);
+                if (o === null || o === undefined) throw CANT;
+                return o[ev(t[2])];
+            case "c": {
+                var self, fn;
+                if (t[1][0] === "m" || t[1][0] === "M") {
+                    self = ev(t[1][1]);
+                    if (self === null || self === undefined) throw CANT;
+                    fn = self[t[1][0] === "m" ? t[1][2] : ev(t[1][2])];
+                } else { self = undefined; fn = ev(t[1]); }
+                if (typeof fn !== "function") throw CANT;
+                var args = [];
+                for (i = 0; i < t[2].length; i++) args.push(ev(t[2][i]));
+                return fn.apply(self, args);
+            }
+            case "u":
+                if (t[1] === "typeof") { try { return typeof ev(t[2]); } catch (err) { if (err === CANT) return "undefined"; throw err; } }
+                a = ev(t[2]);
+                switch (t[1]) { case "!": return !a; case "-": return -a; case "+": return +a; case "~": return ~a; case "void": return undefined; }
+                throw CANT;
+            case "b":
+                a = ev(t[2]); b = ev(t[3]);
+                switch (t[1]) {
+                    case "==": return a == b; case "!=": return a != b; case "===": return a === b; case "!==": return a !== b;   // eslint-disable-line eqeqeq
+                    case "<": return a < b; case ">": return a > b; case "<=": return a <= b; case ">=": return a >= b;
+                    case "+": return a + b; case "-": return a - b; case "*": return a * b; case "/": return a / b; case "%": return a % b;
+                    case "&": return a & b; case "|": return a | b; case "^": return a ^ b;
+                    case "<<": return a << b; case ">>": return a >> b; case ">>>": return a >>> b;
+                    case "in": return (b !== null && typeof b === "object") ? a in b : false;
+                    case "**": return Math.pow(a, b);
+                }
+                throw CANT;
+            case "L":
+                a = ev(t[2]);
+                if (t[1] === "&&") return a ? ev(t[3]) : a;
+                if (t[1] === "||") return a ? a : ev(t[3]);
+                if (t[1] === "??") return (a === null || a === undefined) ? ev(t[3]) : a;
+                throw CANT;
+            case "?": return ev(t[1]) ? ev(t[2]) : ev(t[3]);
+            case "t": {
+                var s = t[1][0] || "";
+                for (i = 0; i < t[2].length; i++) s += String(ev(t[2][i])) + (t[1][i + 1] || "");
+                return s;
+            }
+            case "a": { var arr = []; for (i = 0; i < t[1].length; i++) arr.push(ev(t[1][i])); return arr; }
+        }
+        throw CANT;
+    }
+    function tryEv(t) {
+        if (!t) return CANT;
+        try { return ev(t); } catch (err) { return CANT; }
+    }
+
+    function parseText(s) {
+        if (!s) return "";
+        try { if (typeof ui !== "undefined" && ui && typeof ui.parse === "function") return String(ui.parse(s)); } catch (err) {}
+        // no parser (or it choked): show the text with parser tags tidied away
+        return esc(s).replace(/\[pc\.name\]/gi, "Steele").replace(/\[[^\]]*\]/g, "…");
+    }
+    function inTag(s) { return s.lastIndexOf("[") > s.lastIndexOf("]"); }
+    // the alternatives of a check we can't work out: [1, null, a, [[1, null, b, c]]] is a, b, c
+    function choices(it) {
+        var out = [it[2]];
+        var rest = it[3];
+        while (rest.length === 1 && Array.isArray(rest[0]) && rest[0][0] === 1 && !rest[0][1]) { out.push(rest[0][2]); rest = rest[0][3]; }
+        out.push(rest);
+        return out;
+    }
+    function plainLen(p) {
+        var n = 0;
+        for (var i = 0; i < p.length; i++) {
+            var it = p[i];
+            if (typeof it === "string") n += it.length;
+            else if (it[0] === 2) return 1e9;
+            else if (it[0] === 1) n += Math.max(plainLen(it[2]), plainLen(it[3]));
+            else n += 8;
+        }
+        return n;
+    }
+    // Renders a scene program to HTML. pages: false = one long text with dividers.
+    function renderProgram(prog) {
+        var st = { html: [], run: "", unknown: 0, known: 0 };
+        function flush() { if (st.run) { st.html.push(parseText(st.run)); st.run = ""; } }
+        function sub(p) {
+            var save = st.html, run = st.run;
+            st.html = []; st.run = "";
+            walk(p);
+            flush();
+            var h = st.html.join("");
+            st.html = save; st.run = run;
+            return h;
+        }
+        function walk(p) {
+            for (var i = 0; i < p.length; i++) {
+                var it = p[i];
+                if (typeof it === "string") { st.run += it; continue; }
+                if (it[0] === 0) {
+                    var v = tryEv(it[1]);
+                    if (v !== CANT && v !== null && v !== undefined && typeof v !== "object" && typeof v !== "function" && !/\bundefined\b|NaN|\[object /.test(String(v))) st.run += String(v);
+                    else if (inTag(st.run)) st.run += "0";
+                    else if (v === CANT) st.run += "…";
+                    continue;
+                }
+                if (it[0] === 2) {
+                    flush();
+                    st.html.push('<div class="sg-page" style="text-align:center;opacity:.6;margin:1.2em 0;letter-spacing:.4em">~ ~ ~</div>');
+                    continue;
+                }
+                var c = it[1] ? tryEv(it[1]) : CANT;
+                if (c !== CANT) { st.known++; walk(c ? it[2] : it[3]); continue; }
+                if (inTag(st.run)) { walk(it[2].length ? it[2] : it[3]); continue; }
+                st.unknown++;
+                var opts = choices(it);
+                var short = true;
+                for (var k = 0; k < opts.length; k++) if (plainLen(opts[k]) > 220) short = false;
+                flush();
+                if (short) {
+                    var parts = [];
+                    for (k = 0; k < opts.length; k++) { var h = sub(opts[k]); parts.push(h || "<i>(nothing)</i>"); }
+                    st.html.push('<span class="sg-alt" title="The game picks one of these" style="border-bottom:1px dotted var(--paleColor,#53677B);color:var(--hyperlinkColor,#D982EF)">⟨' +
+                        parts.join(' <b style="opacity:.6">|</b> ') + "⟩</span>");
+                } else {
+                    var box = '<div class="sg-alts" style="border:1px dashed var(--paleColor,#53677B);border-radius:.4em;padding:.4em .7em;margin:.6em 0">' +
+                        '<div style="font-size:.8em;opacity:.7;margin-bottom:.3em">The game picks one of these ' + opts.length + " versions:</div>";
+                    for (k = 0; k < opts.length; k++) {
+                        var hh = sub(opts[k]);
+                        box += '<div style="' + (k ? "border-top:1px solid var(--paleColor,#53677B);" : "") + 'padding:.35em 0"><b style="font-size:.8em;opacity:.75">Version ' + (k + 1) + ":</b> " + (hh || "<i>(nothing here)</i>") + "</div>";
+                    }
+                    st.html.push(box + "</div>");
+                }
+            }
+        }
+        walk(prog);
+        flush();
+        return { html: st.html.join(""), unknown: st.unknown, known: st.known };
+    }
+    function sceneHtml(id) {
+        var p = null;
+        try { p = sceneProgram(id); } catch (err) { textStats.failed++; debug("full text failed for " + id + ": " + err); return null; }
+        if (!p) return null;
+        textStats.scenes++;
+        // Some read-only methods quietly create a flag with its default value the first time
+        // they're asked (pippa's affection, ...). Put flags back exactly as they were, so reading
+        // a scene never changes the save.
+        var before = null;
+        try {
+            if (typeof flags !== "undefined" && flags) {
+                before = {};
+                for (var k in flags) if (Object.prototype.hasOwnProperty.call(flags, k)) before[k] = flags[k];
+            }
+        } catch (err) { before = null; }
+        try { return renderProgram(p); }
+        finally {
+            if (before) {
+                try {
+                    for (var k2 in flags) if (Object.prototype.hasOwnProperty.call(flags, k2) && !Object.prototype.hasOwnProperty.call(before, k2)) delete flags[k2];
+                    for (var k3 in before) if (flags[k3] !== before[k3]) flags[k3] = before[k3];
+                } catch (err) {}
+            }
+        }
+    }
+    // The Flashback Visor's own recording of this scene, if it has one (what you actually saw)
+    function livedHtml(id) {
+        try { if (window.tnFbv && typeof window.tnFbv.galleryText === "function") return window.tnFbv.galleryText(id) || ""; } catch (err) {}
+        return "";
+    }
+    function canRead(id, unlocked) {
+        return hasFullText(id) && (unlocked || settings.readLocked);
+    }
+
     // ------------------------------------------------------------------ gallery window
-    var view = { q: "", place: "", show: "all", char: "", shown: PAGE, revealed: {} };
+    var view = { q: "", place: "", show: "all", char: "", shown: PAGE, revealed: {}, reading: "", lived: false, listY: 0 };
     var keyHandler = null, backHandler = null;
 
     function closeGallery() {
+        view.reading = "";
         var root = document.getElementById("tnSexGal");
         if (root) root.remove();
         if (keyHandler) document.removeEventListener("keydown", keyHandler, true);
@@ -689,6 +1043,7 @@
             html += '<div class="sg-hidden">Summary hidden until you see this scene.</div>';
             html += '<button type="button" class="sg-reveal" data-sg="reveal" data-id="' + esc(s.id) + '">Show summary</button>';
         }
+        if (canRead(s.id, unlocked)) html += ' <button type="button" class="sg-reveal" data-sg="read" data-id="' + esc(s.id) + '">Read scene</button>';
         return html + "</div>";
     }
 
@@ -724,9 +1079,42 @@
         return opts;
     }
 
+    function renderReader(root, list, cat) {
+        var s = cat.byId[view.reading];
+        if (!s) { view.reading = ""; root.classList.remove("sg-reading"); return false; }
+        root.classList.add("sg-reading");
+        var lived = livedHtml(s.id);
+        var useLived = view.lived && !!lived;
+        var t0 = Date.now();
+        var r = useLived ? { html: lived, unknown: 0 } : sceneHtml(s.id);
+        var ms = Date.now() - t0;
+        var html = '<div class="sg-read"><div class="sg-read-head"><button type="button" data-sg="back">Back to the list</button>';
+        if (lived) html += '<button type="button" data-sg="lived">' + (useLived ? "Show it for your Steele now" : "As you lived it (visor)") + "</button>";
+        if (!useLived) html += '<button type="button" data-sg="reread">Read again</button>';
+        html += "</div>";
+        html += '<div class="sg-title">' + esc(s.title) + "</div>";
+        var meta = [s.npc || "Unknown partner", s.place];
+        if (s.author) meta.push("by " + s.author);
+        html += '<div class="sg-meta">' + esc(meta.join(" · ")) + "</div>";
+        if (!r) html += '<div class="sg-note">This scene’s text couldn’t be unpacked. Make sure <b>' + TEXT_FILE + "</b> and the scene list come from the same game version.</div>";
+        else {
+            html += '<div class="sg-note" style="font-size:.85em;padding:.2em 0 .7em">' + (useLived
+                ? "The Flashback Visor’s recording: the scene exactly as it played for you."
+                : "Written out for your Steele as they are now." + (r.unknown ? " Bits marked ⟨ | ⟩ or in a dashed box are where the game picks between versions in ways the gallery can’t work out." : "")) + "</div>";
+            html += '<div class="sg-read-text">' + r.html + "</div>";
+            html += '<div class="sg-read-head" style="margin-top:.9em"><button type="button" data-sg="back">Back to the list</button></div>';
+        }
+        list.innerHTML = html + "</div>";
+        list.scrollTop = 0;
+        debug("read " + s.id + " in " + ms + " ms" + (r ? " (" + r.unknown + " unknown checks)" : ""));
+        return true;
+    }
+
     function renderList(root) {
         var list = root.querySelector(".sg-list");
         var cat = loadCatalog();
+        if (cat && view.reading && renderReader(root, list, cat)) return;
+        root.classList.remove("sg-reading");
         if (!cat) {
             list.innerHTML = '<div class="sg-note">The scene list is missing. Put <b>' + SCENES_FILE + '</b> in your mods folder, add it to <b>enabled.txt</b>, and patch again.</div>';
             return;
@@ -760,8 +1148,11 @@
             html += cardHtml(s, seen[s.id] || 0, save[s.id] || "");
         }
         if (rows.length > upto) html += '<button type="button" class="sg-more" data-sg="more">Show more (' + (rows.length - upto) + " left)</button>";
+        var tp = textPack();
         html += '<div class="sg-note" style="font-size:.85em">Scene list: ' + cat.scenes.length + " scenes from TiTS " + esc(cat.data.game || "?") +
-            ". Some scenes rule each other out, so 100% takes more than one playthrough’s worth of choices. Summaries are made by the scanner from each scene’s button, tooltip and text.</div>";
+            ". Some scenes rule each other out, so 100% takes more than one playthrough’s worth of choices. Summaries are made by the scanner from each scene’s button, tooltip and text." +
+            (tp ? " Full scene text: " + tp.count + " scenes (TiTS " + esc(tp.game || "?") + "), readable once unlocked" + (settings.readLocked ? " (locked ones too, it’s turned on in the mod menu)" : "") + "."
+                : " Want to read whole scenes? Add <b>" + TEXT_FILE + "</b> (the full-text add-on).") + "</div>";
         list.innerHTML = html;
     }
 
@@ -836,6 +1227,7 @@
         var timer = null;
         root.querySelector("[data-sg=q]").addEventListener("input", function (ev) {
             view.q = ev.target.value;
+            view.reading = "";
             view.shown = PAGE;
             clearTimeout(timer);
             timer = setTimeout(function () { renderList(root); }, 200);
@@ -872,6 +1264,19 @@
                 if (sel) sel.value = "";
                 renderList(root);
             }
+            else if (act === "read") {
+                view.listY = root.querySelector(".sg-list").scrollTop;
+                view.reading = t.getAttribute("data-id") || "";
+                view.lived = false;
+                renderList(root);
+            }
+            else if (act === "back") {
+                view.reading = "";
+                renderList(root);
+                root.querySelector(".sg-list").scrollTop = view.listY || 0;
+            }
+            else if (act === "lived") { view.lived = !view.lived; renderList(root); }
+            else if (act === "reread") renderList(root);
             else if (act === "more") { view.shown += PAGE; var y = root.querySelector(".sg-list").scrollTop; renderList(root); root.querySelector(".sg-list").scrollTop = y; }
             else if (act === "reveal") { view.revealed[t.getAttribute("data-id")] = true; var y2 = root.querySelector(".sg-list").scrollTop; renderList(root); root.querySelector(".sg-list").scrollTop = y2; }
             else if (act === "bigger" || act === "smaller") {
@@ -881,8 +1286,12 @@
                 root.style.setProperty("--tnsg-size", String(settings.size));
             }
         });
-        keyHandler = function (ev) { if (ev.key === "Escape") { ev.stopPropagation(); ev.preventDefault(); closeGallery(); } };
-        backHandler = function (ev) { ev.stopImmediatePropagation(); ev.preventDefault(); closeGallery(); };
+        function backOrClose() {
+            if (view.reading) { view.reading = ""; renderList(root); root.querySelector(".sg-list").scrollTop = view.listY || 0; }
+            else closeGallery();
+        }
+        keyHandler = function (ev) { if (ev.key === "Escape") { ev.stopPropagation(); ev.preventDefault(); backOrClose(); } };
+        backHandler = function (ev) { ev.stopImmediatePropagation(); ev.preventDefault(); backOrClose(); };
         document.addEventListener("keydown", keyHandler, true);
         document.addEventListener("backbutton", backHandler, true);
         return true;
@@ -983,13 +1392,17 @@
             "\nNew scene pop-ups: <b>" + (settings.newSceneToasts ? "On" : "Off") + "</b>" +
             "\nShow summaries of scenes you haven't seen: <b>" + (settings.spoilers ? "On" : "Off") + "</b>" +
             "\nUnlock scenes your save's flags show you played: <b>" + (settings.saveUnlocks ? "On" : "Off") + "</b>" +
-            "\nUnlock shared counters (a flag a few scenes share unlocks all of them): <b>" + (settings.sharedUnlocks ? "On" : "Off") + "</b>";
+            "\nUnlock shared counters (a flag a few scenes share unlocks all of them): <b>" + (settings.sharedUnlocks ? "On" : "Off") + "</b>" +
+            (textPack() ? "\n\nFull scene text add-on: <b>" + textPack().count + " scenes</b>. Tap <b>Read scene</b> on an unlocked scene." +
+                "\nRead scenes you haven't unlocked yet: <b>" + (settings.readLocked ? "On" : "Off") + "</b>"
+                : "\n\nFull scene text: not installed (add " + TEXT_FILE + " to read whole scenes).");
         html += '<button type="button" data-mod-act="open">Open the gallery</button>';
         html += '<button type="button" data-mod-act="toasts">' + (settings.toasts ? "Turn off" : "Turn on") + " achievement pop-ups</button>";
         html += '<button type="button" data-mod-act="newtoasts">' + (settings.newSceneToasts ? "Turn off" : "Turn on") + " new scene pop-ups</button>";
         html += '<button type="button" data-mod-act="spoilers">' + (settings.spoilers ? "Hide" : "Show") + " unseen summaries</button>";
         html += '<button type="button" data-mod-act="saveunlocks">' + (settings.saveUnlocks ? "Turn off" : "Turn on") + " unlocking from save flags</button>";
         html += '<button type="button" data-mod-act="shared">' + (settings.sharedUnlocks ? "Turn off" : "Turn on") + " shared counters</button>";
+        if (textPack()) html += '<button type="button" data-mod-act="readlocked">' + (settings.readLocked ? "Turn off" : "Turn on") + " reading locked scenes</button>";
         return html;
     }
     function onMenuAct(act) {
@@ -1000,6 +1413,7 @@
         else if (act === "spoilers") settings.spoilers = !settings.spoilers;
         else if (act === "saveunlocks") settings.saveUnlocks = !settings.saveUnlocks;
         else if (act === "shared") settings.sharedUnlocks = !settings.sharedUnlocks;
+        else if (act === "readlocked") settings.readLocked = !settings.readLocked;
         else return false;
         saveSettings();
         if (act === "saveunlocks" || act === "shared") {
@@ -1047,6 +1461,12 @@
             return out;
         },
         scene: function (id) { var cat = loadCatalog(); return cat && cat.byId[id] || null; },
+        // Full scene text add-on (TN_SexGalleryText_v3.0.js): is it there for this scene, and the
+        // scene written out for the current Steele as HTML ({ html, unknown, known } or null).
+        hasFullText: function (id) { return hasFullText(String(id || "")); },
+        fullText: function (id) { return sceneHtml(String(id || "")); },
+        // open the gallery straight on one scene's full text
+        read: function (id) { if (!hasFullText(id)) return false; view.listY = 0; openGallery(); view.reading = String(id); view.lived = false; var r = document.getElementById("tnSexGal"); if (r) renderList(r); return true; },
         search: function (text) { var cat = loadCatalog(); if (!cat) return []; var old = view.q; view.q = String(text || ""); var r = filtered(cat, readSeen(), readSaveUnlocks()).map(function (x) { return x.id; }); var c = matchingChars(cat).map(function (x) { return x.name; }); view.q = old; return { scenes: r, characters: c }; },
         findScene: function (text) { return findScene(String(text || "")); },
         status: function () {
@@ -1057,7 +1477,8 @@
                 characters: cat ? cat.chars.length : 0, galleryDoubleTap: galleryHooked,
                 watching: { output: !!(window.output && window.output.__tnSexGallery), clearOutput: !!(window.clearOutput && window.clearOutput.__tnSexGallery), orgasm: orgasmWrapped },
                 counts: stats, lastMatch: lastMatch, progress: this.progress(),
-                saveUnlocks: { on: settings.saveUnlocks, shared: settings.sharedUnlocks, scenesWithFlags: cat ? cat.flagged.length : 0, unlockedNow: Object.keys(readSaveUnlocks()).length }
+                saveUnlocks: { on: settings.saveUnlocks, shared: settings.sharedUnlocks, scenesWithFlags: cat ? cat.flagged.length : 0, unlockedNow: Object.keys(readSaveUnlocks()).length },
+                fullText: textPack() ? { scenes: textPack().count, game: textPack().game, chunks: textPack().chunks.length, unpacked: textStats.chunks, unpackMs: textStats.ms, read: textStats.scenes, failed: textStats.failed, readLocked: settings.readLocked } : null
             };
         },
         // for testing: mark a scene by id as seen in this save
