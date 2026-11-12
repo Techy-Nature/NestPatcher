@@ -11,6 +11,9 @@ Author: Neston
 #     remembered in your save. Each time you put it on, the new memories sync.
 #   - No taint. Unlike Dr. Badger's Mindwash Visor it doesn't beam anything into your brain:
 #     it fogs your eyes and mind into a flashback, then shows you the memory you picked.
+#   - Older: sex scenes your save went through before the visor was installed (the Sex Gallery
+#     reads them from the save). The visor never saw those pages, so it shows the scene's title,
+#     summary and how it began. Live one again in the game and the visor keeps the whole thing.
 #   - Each memory you relive takes one hour (a Both memory's fight and sex share that hour).
 #   - Copy Text / Save Text on a memory (sex or fight) and Save All in the visor menu: the full
 #     scene text as .rtf (bold and italics kept), or a .zip with a folder per character. Needs
@@ -676,7 +679,8 @@ Add Javascript:
             output("The fog swirls patiently, waiting for you to choose." + (h >= 1 ? " <i>(You’ve been under for about " + h + (h === 1 ? " hour" : " hours") + ".)</i>" : ""));
         }
         var sx = sexMems(), fx = fightMems(), bx = bothMems();
-        output("\n\n<b>Memories:</b> " + sx.length + " sex, " + fx.length + " " + (fx.length === 1 ? "fight" : "fights") + " (" + fx.filter(function (m) { return m.win; }).length + " won, " + fx.filter(function (m) { return !m.win; }).length + " lost), " + bx.length + " with both.");
+        var older = olderScenes().length;
+        output("\n\n<b>Memories:</b> " + sx.length + " sex" + (older ? " (+" + older + " older)" : "") + ", " + fx.length + " " + (fx.length === 1 ? "fight" : "fights") + " (" + fx.filter(function (m) { return m.win; }).length + " won, " + fx.filter(function (m) { return !m.win; }).length + " lost), " + bx.length + " with both.");
         clearMenu();
         if (sx.length) addButton(0, "Sex", F.sexRole, "Sex", "Relive a sex scene you’ve been through.");
         else addDisabledButton(0, "Sex", "Sex", "The visor hasn’t sensed any sex scenes yet.");
@@ -688,6 +692,9 @@ Add Javascript:
         else addDisabledButton(3, "Drift", "Drift", "Nothing to drift through yet.");
         if (!ST()) addDisabledButton(5, "Save All", "Save All Text", NEED_ST);
         else addButton(5, "Save All", F.saveAll, "Save All Text", "Save every sex scene and fight as .rtf files in a .zip, with a folder for each character.");
+        var ox = olderScenes();
+        if (ox.length) addButton(7, "Older", F.olderWho, "Older Memories", ox.length + (ox.length === 1 ? " sex scene" : " sex scenes") + " from your past that the visor never recorded (from before it was installed). It can only bring back how they began.");
+        else addDisabledButton(7, "Older", "Older Memories", window.TnSexGallery ? "No older sex scenes found in this save." : "Needs the Sex Gallery mod (TN_SexGallery_v2.9.js), which knows which scenes your save has already been through.");
         if (ST()) addButton(6, "Scene Backup", F.backup, "Scene Backup", "Your saved scenes, packed into your save file as a backup code that travels with it.");
         else addDisabledButton(6, "Scene Backup", "Scene Backup", NEED_ST);
         addButton(4, "Codex Link", F.link, "Codex Link: " + (flags.TN_FBV_LINK === 1 ? "On" : "Off"), flags.TN_FBV_LINK === 1 ? "Your flashback logs are shared with your Codex (Hand So can see them). Turn it off?" : "Share your flashback logs with your Codex so someone you trust (like Hand So) can see them.");
@@ -763,6 +770,91 @@ Add Javascript:
         visorShow();
         output(give + " into " + take.charAt(0).toLowerCase() + take.slice(1) + ", with " + who + ". Pick a memory:");
         list(mems.map(function (m) { return { label: memLabel(m), tip: memTip(m), fn: function () { F.playSex(m, back); } }; }), function () { F.sexTake(role, who, give); });
+    };
+
+    /* ---------- Older memories: sex scenes from before the visor ----------
+       The Sex Gallery knows which scenes a save has been through, including ones from before any
+       mod was installed (it reads the save's own flags). The visor never recorded those pages, so
+       it offers them as older memories: the scene's title, summary and how it began. Nothing is
+       stored: the list is worked out from the Gallery each time, minus scenes the visor has. */
+    var olderCache = { key: null, list: [] }, galIndex = { src: null, map: {} };
+    function galScene(id) {
+        var D = window.TN_SEX_GALLERY_SCENES;
+        try { if (window.TnSexGallery && typeof window.TnSexGallery.scene === "function") { var x = window.TnSexGallery.scene(id); if (x) return x; } } catch (err) {}
+        if (!D || !Array.isArray(D.scenes)) return null;
+        if (galIndex.src !== D) { galIndex = { src: D, map: {} }; D.scenes.forEach(function (sc) { if (sc && sc.id) galIndex.map[sc.id] = sc; }); }
+        return galIndex.map[id] || null;
+    }
+    function galUnlocked() {
+        var G = window.TnSexGallery, ids = {};
+        try { if (G && typeof G.unlocked === "function") ids = G.unlocked() || {}; } catch (err) { ids = {}; }
+        if (!Object.keys(ids).length) {
+            /* Older Gallery builds: the seen list ("id:count,...") is in the save. */
+            String(flags.TN_SEXGAL_SEEN || "").split(",").forEach(function (p) {
+                var i = p.lastIndexOf(":"), id = i > 0 ? p.slice(0, i) : p;
+                if (id) ids[id] = { count: Number(p.slice(i + 1)) || 1 };
+            });
+            try {
+                if (G && typeof G.saveUnlocks === "function") {
+                    var su = G.saveUnlocks() || {};
+                    Object.keys(su).forEach(function (id) { if (!ids[id]) ids[id] = { count: 1, fromSave: true }; });
+                }
+            } catch (err) {}
+        }
+        return ids;
+    }
+    function olderScenes() {
+        if (!inGame() || !window.TnSexGallery) return [];
+        var ids = galUnlocked(), have = {};
+        sexMems().forEach(function (m) { if (m.g && m.txt && !m.f) have[m.g] = 1; });
+        var key = Object.keys(ids).sort().join(",") + "|" + Object.keys(have).sort().join(",");
+        if (olderCache.key === key && olderCache.flags === flags) return olderCache.list;
+        var out = [];
+        Object.keys(ids).forEach(function (id) {
+            if (have[id]) return;
+            var sc = galScene(id);
+            if (sc) out.push(sc);
+        });
+        olderCache = { key: key, flags: flags, list: out };
+        return out;
+    }
+    F.olderScenes = olderScenes;
+    function olderWho(sc) {
+        var c = (sc.chars && sc.chars.length) ? sc.chars.slice() : (sc.npc ? [sc.npc] : []);
+        return c.length ? c : ["Someone"];
+    }
+    F.olderWho = function () {
+        visorShow();
+        output("You push past the newest memories, further back, into the part of the fog the visor never got to watch. Older faces drift up, softer at the edges. Who do you want to remember?");
+        var groups = groupBy(olderScenes(), olderWho);
+        list(groups.map(function (g) {
+            return { label: g.key, tip: g.mems.length + (g.mems.length === 1 ? " older memory." : " older memories."), fn: function () { F.olderList(g.key); } };
+        }), function () { F.menu(); });
+    };
+    F.olderList = function (who) {
+        var mems = olderScenes().filter(function (sc) { return olderWho(sc).indexOf(who) >= 0; });
+        mems.sort(function (a, b) { return String(a.title || "").localeCompare(String(b.title || "")); });
+        visorShow();
+        output("Your older memories with " + who + ". Pick one:");
+        list(mems.map(function (sc) {
+            return { label: sc.title || "A memory", tip: (sc.place ? sc.place + ". " : "") + (sc.summary || ""), fn: function () { F.playOlder(sc, function () { F.olderList(who); }); } };
+        }), F.olderWho);
+    };
+    F.playOlder = function (sc, back) {
+        visorShow();
+        var who = olderWho(sc).filter(function (n) { return n !== "Someone"; });
+        try { if (who[0]) showName(String(who[0]).toUpperCase()); } catch (err) {}
+        say([
+            "You reach back further than the visor has ever watched. The fog resists, thick and grainy, and then gives way: " + (sc.place ? sc.place + ", " : "") + (who.length ? "you and " + joinNames(who) : "you") + ", from before you ever wore the visor.",
+            sc.summary ? "<b>" + safeText(sc.title || "A memory") + ".</b> " + safeText(sc.summary) : "<b>" + safeText(sc.title || "A memory") + ".</b>"
+        ]);
+        if (sc.opening) output("\n\n<i>" + safeText(sc.opening) + "</i>");
+        output(DIV + "The rest won’t come into focus. The visor can only rebuild how an older memory began. <i>(This scene happened before the Flashback Visor was recording. Live it again in the game and the visor will keep the whole thing.)</i>");
+        output(DIV + "The fog drifts back in, and the memory softens and lets you go.");
+        spend(60); // each memory = one hour
+        clearMenu();
+        addButton(0, "Again", function () { F.playOlder(sc, back); }, "Again", "Reach for it one more time.");
+        addButton(14, "Back", back, "Back", "");
     };
 
     /* ---------- Fight intros (two paragraphs) ---------- */
