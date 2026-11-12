@@ -20,8 +20,9 @@ Author: Neston
 #     fight), Both (a fight and the sex right after it). Every fight memory remembers whether
 #     you won or lost and opens with a two-paragraph "how it went" intro.
 #   - Battle flashbacks start a real fight against the same enemy, with their level, stats and
-#     weapons from back then, against "Flashback Steele": your level, stats and weapons from
-#     back then. Win or lose, nothing carries over. Your real level, stats, HP and gear come
+#     weapons from back then, against "Flashback Steele": your level, stats, weapons and
+#     specials/abilities from back then (fights recorded before abilities were tracked use the
+#     abilities you have now that fit your old level). Win or lose, nothing carries over. Your real level, stats, HP and gear come
 #     back when the flashback ends (even if the game is reloaded in between).
 #   - Codex Link (in the visor menu): lets Hand So see your flashback logs (Hand So's
 #     Redemption). She'll ask about them, and "Victory or Loss" becomes an answer in her quest.
@@ -153,6 +154,27 @@ Add Javascript:
         } catch (err) { return null; }
     }
     F.classByName = classByName;
+    /* The game's list of combat abilities (the Abilities and Special menus). */
+    function attackLib() {
+        if (F.atk) return F.atk;
+        var hit = function (m) { return m && m.P && typeof m.P.GetAttacksFor === "function" ? m.P : null; };
+        try { F.atk = hit(F.req(9505)); } catch (err) {}
+        if (!F.atk) {
+            try { var c = F.req.c || {}; for (var id in c) { var x = hit(c[id] && c[id].exports); if (x) { F.atk = x; break; } } } catch (err) {}
+        }
+        return F.atk || null;
+    }
+    /* Every ability the character could pick in a fight right now (names as the buttons show them). */
+    function abilitiesOf(c) {
+        var A = attackLib();
+        if (!A) return null;
+        try {
+            var list = (A.__tnFbvOrig || A.GetAttacksFor).call(A, c), out = [];
+            (list || []).forEach(function (a) { var n = a && String(a.ButtonName || ""); if (n && n !== "UNSET" && out.indexOf(n) < 0) out.push(n); });
+            return out;
+        } catch (err) { return null; }
+    }
+    F.abilitiesOf = abilitiesOf;
 
     /* ---------- Memory store (one JSON string in flags) ---------- */
     var store = null, storeRaw = null, storeFlags = null;
@@ -384,8 +406,13 @@ Add Javascript:
     }
     function pcShot() {
         var g = gear(pc);
-        return { lvl: Number(pc.level) || 1, st: statsOf(pc), hp: Number(pc.HPRaw) || 1, en: Number(pc.energyRaw) || 0, lu: Number(pc.lustRaw) || 0, sh: Number(pc.shieldsRaw) || 0,
+        var shot = { lvl: Number(pc.level) || 1, st: statsOf(pc), hp: Number(pc.HPRaw) || 1, en: Number(pc.energyRaw) || 0, lu: Number(pc.lustRaw) || 0, sh: Number(pc.shieldsRaw) || 0,
             mw: g.mw, mwn: g.mwn, rw: g.rw, rwn: g.rwn };
+        /* ab = the specials and abilities Steele had in this fight (missing on fights recorded
+           before this was added; those fall back to today's abilities, gated by the old level). */
+        var ab = abilitiesOf(pc);
+        if (ab) shot.ab = ab;
+        return shot;
     }
     function foeShot(e) {
         var g = gear(e), nm = "", tx = "";
@@ -496,6 +523,26 @@ Add Javascript:
             }
             wrapChars.done = true;
         } catch (err) {}
+    }
+    /* During a flashback fight Steele only gets the abilities recorded with that fight. */
+    function wrapAttacks() {
+        if (hooked.attacks) return true;
+        var A = attackLib();
+        if (!A) return false;
+        var orig = A.GetAttacksFor;
+        if (orig.__tnFbv) { hooked.attacks = true; return true; }
+        A.GetAttacksFor = marks(orig, function (c) {
+            var list = orig.apply(this, arguments);
+            try {
+                var keep = F.flash && F.flash.b && F.flash.b.pc && F.flash.b.pc.ab;
+                if (Array.isArray(keep) && Array.isArray(list) && typeof pc !== "undefined" && c === pc)
+                    list = list.filter(function (a) { return keep.indexOf(String(a && a.ButtonName)) >= 0; });
+            } catch (err) {}
+            return list;
+        });
+        A.__tnFbvOrig = orig;
+        hooked.attacks = true;
+        return true;
     }
     function wrapCombat() {
         var CM = window.CombatManager;
@@ -725,6 +772,11 @@ Add Javascript:
         if (p.rwn) w.push(p.rwn);
         return w.length ? "your " + w.join(" and your ") + " in hand" : "nothing but your fists and your wits";
     }
+    function abilityLine(p) {
+        if (!Array.isArray(p.ab)) return "Specials: whatever you can use now that fits level " + p.lvl + ". (This memory is older than the visor’s ability tracking.)";
+        return p.ab.length ? "Specials and abilities: " + p.ab.join(", ") + "." : "Specials and abilities: none yet.";
+    }
+    F.abilityLine = abilityLine;
     function foeNames(b) {
         var l = [];
         (b.foes || []).forEach(function (f) { var t = f.tx || f.nm; if (t && l.indexOf(t) < 0) l.push(t); });
@@ -876,6 +928,7 @@ Add Javascript:
         say(fightIntro(b));
         var ok = b.foes.every(function (f) { return !!classByName(f.c); });
         output("\n\n<i>Flashback Steele: level " + b.pc.lvl + ", " + weaponLine(b.pc) + ".</i>");
+        output("\n<i>" + abilityLine(b.pc) + "</i>");
         clearMenu();
         if (ok) addButton(0, "Fight It", function () { F.flashIntro(b, both, back); }, "Fight It", "Face " + foeNames(b) + " again as Flashback Steele. Win or lose, nothing carries over to reality.");
         else addDisabledButton(0, "Fight It", "Fight It", "This fight is too foggy to step into. (The game can’t rebuild this enemy.)");
@@ -987,6 +1040,14 @@ Add Javascript:
             return;
         }
         F.flash = { b: b, both: both, back: back };
+        /* The visor is opened from the Codex. Starting a fight there made the game pop its saved
+           Codex screens back over the fight's buttons (an empty button grid), so step out to the
+           main screen first. Taking the visor off then goes to the normal game screen. */
+        try {
+            var el = window.ui && ui.state ? ui.state.mainElement : null;
+            if (typeof window.popUIStateToMainText === "function") window.popUIStateToMainText();
+            if (window.ui && ui.state && ui.state.mainElement !== el) F.leftCodex = true;
+        } catch (err) { console.warn("[TN] Flashback Visor: leaving the Codex", err); }
         try {
             applyPast(b.pc);
             CM.newGroundCombat();
@@ -1344,6 +1405,12 @@ Add Javascript:
     };
 
     /* ---------- Codex > Extra ---------- */
+    /* After a flashback fight the Codex screen is gone (the game won't reopen it mid-scene),
+       so taking the visor off goes back to the normal game screen instead. */
+    function codexBack() {
+        if (F.leftCodex) { F.leftCodex = false; mainGameMenu(); return; }
+        window.showCodexExtra();
+    }
     function wrapCodex() {
         if (hooked.codex) return true;
         var orig = window.tnCodexExtraAddons;
@@ -1353,7 +1420,7 @@ Add Javascript:
             try {
                 if (!on() || !inGame() || !hasVisor() || !lst || typeof lst.push !== "function") return;
                 var item = { name: "Flashback Visor", desc: "Relive the fights and sex scenes you’ve been through.", txt: "Visor",
-                    f: function () { F.open(function () { window.showCodexExtra(); }); },
+                    f: function () { F.open(codexBack); },
                     ttH: "Flashback Visor", ttB: "Put on the Flashback Visor." };
                 var blocked = (typeof inCombat === "function" && inCombat()) || (window.ui && typeof ui.disableExtraCodexActions === "function" && ui.disableExtraCodexActions());
                 if (blocked) { item.f = null; item.ttB = "You cannot use this at this time."; }
@@ -1370,7 +1437,7 @@ Add Javascript:
         var s = inGame() ? load() : { m: [] };
         return { enabled: on(), visor: inGame() && hasVisor(), sex: s.m.filter(function (m) { return m.k === "s"; }).length, fights: s.m.filter(function (m) { return m.k === "b"; }).length,
             hooks: { clear: !!(window.clearOutput && window.clearOutput.__tnFbv), creature: creatureDone, combat: !!(window.CombatManager && window.CombatManager.beginCombat && window.CombatManager.beginCombat.__tnFbv),
-                menu: !!(window.mainGameMenu && window.mainGameMenu.__tnFbv), codex: !!(window.tnCodexExtraAddons && window.tnCodexExtraAddons.__tnFbv), dane: !!(window.tnDaneTalkMenu && window.tnDaneTalkMenu.__tnFbv) } };
+                attacks: !!hooked.attacks, menu: !!(window.mainGameMenu && window.mainGameMenu.__tnFbv), codex: !!(window.tnCodexExtraAddons && window.tnCodexExtraAddons.__tnFbv), dane: !!(window.tnDaneTalkMenu && window.tnDaneTalkMenu.__tnFbv) } };
     };
     var ticks = 0;
     (function tick() {
@@ -1378,6 +1445,7 @@ Add Javascript:
         try { wrapClear(); wrapBust(); } catch (err) {}
         try { wrapCreature(); wrapChars(); } catch (err) {}
         try { wrapCombat(); } catch (err) {}
+        try { wrapAttacks(); } catch (err) {}
         try { wrapMainMenu(); } catch (err) {}
         try { wrapCodex(); } catch (err) {}
         try { wrapDaneTalk(); } catch (err) {}
