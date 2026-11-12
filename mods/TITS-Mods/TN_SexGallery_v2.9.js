@@ -20,9 +20,21 @@
    before; it just waits a moment to see if a second tap is coming.
 
    How "seen" works: whenever someone in a scene orgasms, the mod checks the text printed on
-   that page against the scene list and marks the matching scene as seen. Progress is kept in
-   the save (flags.TN_SEXGAL_SEEN and flags.TN_SEXGAL_ACH, both plain text), so every save has
-   its own gallery and achievements. Scenes seen before the mod was installed are not known.
+   that page (and the page just before it, for scenes that orgasm and then turn the page)
+   against the scene list and marks the matching scene as seen. Progress is kept in the save
+   (flags.TN_SEXGAL_SEEN and flags.TN_SEXGAL_ACH, both plain text), so every save has its own
+   gallery and achievements.
+
+   Unlocking from a save (2026-11-12): many scenes leave a flag in the save when you play them
+   (ANNO_PETPLAYED, SEXED_ARDIA_RIDE, ...). The scene list says which flag belongs to which
+   scene, so loading a save unlocks every scene its flags show, even ones played before the
+   gallery was installed. A counter that a few scenes share (up to 12) unlocks all of them;
+   turn "Unlock shared counters" off in the mod menu to count only a scene's own flag. Scenes
+   that leave nothing in the save still unlock the normal way, by playing them.
+
+   Search: type any part of a character's name (or several words, in any order: "anno tail",
+   "ride mhenga"). Matching characters show as buttons above the list; tap one to see their
+   portrait and scenes. Curly and straight quotes and accents count as the same.
    Debug: window.TnSexGallery.status() */
 (function () {
     "use strict";
@@ -60,11 +72,17 @@
             return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c];
         });
     }
+    // for search: lower case, no accents, one kind of quote, single spaces
+    function norm(s) {
+        s = String(s == null ? "" : s).toLowerCase();
+        try { s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); } catch (err) {}
+        return s.replace(/[\u2018\u2019\u02bc`´]/g, "'").replace(/[\u201c\u201d]/g, "\"").replace(/[\u2013\u2014]/g, "-").replace(/\s+/g, " ").trim();
+    }
     function inGame() {
         try { return typeof flags !== "undefined" && flags && typeof pc !== "undefined" && pc && !!pc.short; } catch (err) { return false; }
     }
 
-    var settings = { toasts: true, newSceneToasts: true, spoilers: false, size: 1 };
+    var settings = { toasts: true, newSceneToasts: true, spoilers: false, size: 1, saveUnlocks: true, sharedUnlocks: true };
     try {
         var raw = window.localStorage && localStorage.getItem(SETTINGS_KEY);
         if (raw) { var got = JSON.parse(raw); for (var k in got) if (Object.prototype.hasOwnProperty.call(settings, k)) settings[k] = got[k]; }
@@ -93,8 +111,26 @@
         }
         var chars = Array.isArray(data.characters) ? data.characters.slice() : [];
         var charByName = {};
-        for (var c = 0; c < chars.length; c++) charByName[chars[c].name] = chars[c];
-        catalog = { data: data, scenes: data.scenes, byId: byId, index: index, chars: chars, charByName: charByName };
+        for (var c = 0; c < chars.length; c++) {
+            charByName[chars[c].name] = chars[c];
+            chars[c].hay = norm(chars[c].name + " " + (chars[c].gallery || ""));
+        }
+        // search text for each scene (the summary is added only once the scene is seen) and the
+        // save flags that unlock it
+        var flagged = [];
+        for (var h = 0; h < data.scenes.length; h++) {
+            var sc = data.scenes[h];
+            var who = [];
+            for (var w = 0; sc.chars && w < sc.chars.length; w++) {
+                who.push(sc.chars[w]);
+                var cc = charByName[sc.chars[w]];
+                if (cc && cc.gallery && cc.gallery !== cc.name) who.push(cc.gallery);
+            }
+            sc.hay = norm([sc.npc || "", who.join(" "), sc.title || "", sc.place || "", sc.area || "", sc.author || "", (sc.tags || []).join(" ")].join(" "));
+            sc.haySum = norm(sc.summary || "");
+            if ((sc.uf && sc.uf.length) || (sc.us && sc.us.length)) flagged.push(sc);
+        }
+        catalog = { data: data, scenes: data.scenes, byId: byId, index: index, chars: chars, charByName: charByName, flagged: flagged };
         debug("scene list loaded: " + data.scenes.length + " scenes (TiTS " + (data.game || "?") + ")");
         return catalog;
     }
@@ -137,13 +173,34 @@
         for (var id in ach) if (Object.prototype.hasOwnProperty.call(ach, id)) parts.push(id + ":" + ach[id]);
         flags[ACH_FLAG] = parts.join(",");
     }
+    // Scenes this save's flags show were played: { id: "own" | "shared" }
+    function flagOn(name) {
+        var v = flags[name];
+        return !(v === undefined || v === null || v === 0 || v === false || v === "" || v === "0");
+    }
+    function readSaveUnlocks() {
+        var out = {};
+        var cat = loadCatalog();
+        if (!cat || !inGame() || !settings.saveUnlocks) return out;
+        for (var i = 0; i < cat.flagged.length; i++) {
+            var s = cat.flagged[i], j;
+            for (j = 0; s.uf && j < s.uf.length; j++) if (flagOn(s.uf[j])) { out[s.id] = "own"; break; }
+            if (out[s.id] || !settings.sharedUnlocks) continue;
+            for (j = 0; s.us && j < s.us.length; j++) if (flagOn(s.us[j])) { out[s.id] = "shared"; break; }
+        }
+        return out;
+    }
     function progress() {
         var cat = loadCatalog();
         var seen = readSeen();
+        var save = readSaveUnlocks();
         var total = cat ? cat.scenes.length : 0;
-        var n = 0;
-        if (cat) for (var id in seen) if (cat.byId[id]) n++;
-        return { seen: n, total: total, pct: total ? (n * 100 / total) : 0, map: seen };
+        var n = 0, fromSave = 0;
+        if (cat) {
+            for (var id in seen) if (cat.byId[id]) n++;
+            for (var id2 in save) if (!seen[id2] && cat.byId[id2]) { n++; fromSave++; }
+        }
+        return { seen: n, total: total, pct: total ? (n * 100 / total) : 0, map: seen, save: save, fromSave: fromSave };
     }
 
     function checkAchievements(quiet) {
@@ -171,9 +228,10 @@
     // ------------------------------------------------------------------ recognising scenes
     var buf = [];
     var bufLen = 0;
+    var held = "";        // the page that was on screen when an orgasm turned the page
     var pending = false;
     var lastMatch = null;
-    var stats = { orgasms: 0, checks: 0, matches: 0 };
+    var stats = { orgasms: 0, checks: 0, matches: 0, prevPage: 0 };
 
     function bufferText(t) {
         if (typeof t !== "string" || !t) return;
@@ -205,17 +263,57 @@
         return best >= 0 ? cat.scenes[best] : null;
     }
 
+    // Save-flag unlocks seen at the last check, so a flag a scene sets while you play can catch
+    // a scene the text match missed. A different flags object means another save was loaded.
+    var knownFlags = null, knownSave = {};
+    function syncSaveUnlocks(announce) {
+        if (!inGame()) { knownFlags = null; knownSave = {}; return []; }
+        var now = readSaveUnlocks();
+        var fresh = [];
+        if (knownFlags === flags) {
+            for (var id in now) if (!knownSave[id]) fresh.push(id);
+        }
+        knownFlags = flags;
+        knownSave = now;
+        if (!announce) return fresh;
+        var cat = loadCatalog(), seen = readSeen(), told = 0;
+        for (var i = 0; i < fresh.length; i++) {
+            var sc = cat && cat.byId[fresh[i]];
+            if (!sc || seen[sc.id]) continue;
+            seen[sc.id] = 1;
+            told++;
+            debug("NEW (save flag) " + sc.id + " " + (sc.npc || "?") + ": " + sc.title);
+            if (settings.newSceneToasts && told <= 2) {
+                var p = progress();
+                toast("New in your gallery", (sc.npc ? sc.npc + ": " : "") + sc.title, p.seen + " / " + p.total + " scenes (" + p.pct.toFixed(1) + "%)", false);
+            }
+        }
+        if (told) { writeSeen(seen); checkAchievements(false); }
+        return fresh;
+    }
+
     function checkNow() {
         if (!pending) return;
         pending = false;
+        var before = held;
+        held = "";
         if (!modOn() || !inGame()) return;
         stats.checks++;
         var scene = null;
-        try { scene = findScene(buf.join("")); } catch (err) { debug("match failed: " + err); }
-        if (!scene) { debug("orgasm with no known scene on this page"); return; }
+        try {
+            // this page first; if the orgasm came just before the page was cleared, the page before
+            scene = findScene(buf.join(""));
+            if (!scene && before) { scene = findScene(before); if (scene) stats.prevPage++; }
+        } catch (err) { debug("match failed: " + err); }
+        if (!scene) {
+            debug("orgasm with no known scene on this page");
+            try { syncSaveUnlocks(true); } catch (err) {}
+            refreshButton();
+            return;
+        }
         stats.matches++;
         var seen = readSeen();
-        var first = !seen[scene.id];
+        var first = !seen[scene.id] && !knownSave[scene.id];
         seen[scene.id] = (seen[scene.id] || 0) + 1;
         writeSeen(seen);
         lastMatch = { id: scene.id, title: scene.title, npc: scene.npc, first: first };
@@ -227,6 +325,7 @@
             }
             checkAchievements(false);
         }
+        try { syncSaveUnlocks(true); } catch (err) {}
         refreshButton();
     }
 
@@ -254,7 +353,10 @@
         var c = window.clearOutput;
         if (typeof c !== "function" || c.__tnSexGallery) return !!c;
         var w = function () {
-            try { if (pending) checkNow(); } catch (err) {}
+            // Many scenes call pc.orgasm() and then clearOutput() to start the next page in the
+            // same breath. The scene text is on the page being cleared, so keep it for the check,
+            // which runs once the new page is printed.
+            try { if (pending) held = (held ? held + "\n" : "") + buf.join(""); } catch (err) {}
             resetBuffer();
             return c.apply(this, arguments);
         };
@@ -449,6 +551,10 @@
             + "#tnSexGal .sg-note{opacity:.8;padding:1em .2em;line-height:1.5;}"
             + "#tnSexGal .sg-more{display:block;margin:1em auto;}"
             + "#tnSexGal select[data-sg=char]{max-width:100%;}"
+            + "#tnSexGal .sg-who{display:flex;flex-wrap:wrap;gap:.4em;align-items:center;margin:.2em 0 .6em;}"
+            + "#tnSexGal .sg-who-head{opacity:.8;font-size:.92em;}"
+            + "#tnSexGal .sg-who button{min-height:2.2em;}"
+            + "#tnSexGal .sg-who-n{opacity:.7;font-weight:normal;font-size:.85em;}"
             + "#tnSexGal .sg-char{display:flex;gap:.9em;align-items:center;background:var(--foregroundColorA,#333E52);border:1px solid var(--paleColor,#53677B);border-radius:.55em;padding:.6em .8em;margin:.3em 0 .6em;}"
             + "#tnSexGal .sg-portrait{flex:0 0 auto;width:7.5em;height:7.5em;border-radius:.5em;background:var(--foregroundColorB,#2C3649);border:1px solid var(--paleColor,#53677B);overflow:hidden;display:flex;align-items:flex-end;justify-content:center;}"
             + "#tnSexGal .sg-portrait img{width:100%;height:100%;object-fit:cover;object-position:top center;}"
@@ -514,29 +620,55 @@
         keyHandler = backHandler = null;
     }
 
-    function filtered(cat, seen) {
-        var q = view.q.trim().toLowerCase();
+    function queryWords() {
+        var q = norm(view.q);
+        return q ? q.split(" ") : [];
+    }
+    function hasAll(hay, words) {
+        for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) < 0) return false;
+        return true;
+    }
+    function filtered(cat, seen, save) {
+        var words = queryWords();
         var out = [];
         for (var i = 0; i < cat.scenes.length; i++) {
             var s = cat.scenes[i];
-            var isSeen = !!seen[s.id];
+            var isSeen = !!(seen[s.id] || save[s.id]);
             if (view.show === "seen" && !isSeen) continue;
             if (view.show === "unseen" && isSeen) continue;
             if (view.place && s.place !== view.place) continue;
             if (view.char && !(s.chars && s.chars.indexOf(view.char) >= 0)) continue;
-            if (q) {
-                var hay = (s.npc + " " + s.title + " " + s.place + " " + s.author + " " + s.tags.join(" ") + " " + (isSeen || settings.spoilers ? s.summary : "")).toLowerCase();
-                if (hay.indexOf(q) < 0) continue;
+            if (words.length) {
+                var hay = s.hay + (isSeen || settings.spoilers || view.revealed[s.id] ? " " + s.haySum : "");
+                if (!hasAll(hay, words)) continue;
             }
             out.push(s);
         }
         return out;
     }
+    // characters whose name (or gallery name) has every word typed in the search box
+    function matchingChars(cat) {
+        var words = queryWords();
+        if (!words.length || !cat) return [];
+        var out = [];
+        for (var i = 0; i < cat.chars.length; i++) if (hasAll(cat.chars[i].hay, words)) out.push(cat.chars[i]);
+        // names that start with what was typed first
+        var q = words.join(" ");
+        out.sort(function (a, b) {
+            var sa = norm(a.name).indexOf(q) === 0 ? 0 : 1, sb = norm(b.name).indexOf(q) === 0 ? 0 : 1;
+            return (sa - sb) || a.name.localeCompare(b.name);
+        });
+        return out;
+    }
 
-    function cardHtml(s, seenCount) {
-        var open = !!seenCount || settings.spoilers || view.revealed[s.id];
-        var html = '<div class="sg-card' + (seenCount ? "" : " locked") + '">';
+    function cardHtml(s, seenCount, fromSave) {
+        var unlocked = !!seenCount || !!fromSave;
+        var open = unlocked || settings.spoilers || view.revealed[s.id];
+        var html = '<div class="sg-card' + (unlocked ? "" : " locked") + '">';
         if (seenCount) html += '<span class="sg-seen">Seen ' + seenCount + (seenCount === 1 ? " time" : " times") + "</span>";
+        else if (fromSave) html += '<span class="sg-seen" title="' + (fromSave === "shared"
+            ? "Your save's flags show you played this scene or one that shares its counter."
+            : "Your save's flags show you played this scene.") + '">Unlocked from your save</span>';
         else html += '<span class="sg-seen" style="color:var(--lowPriorityColor,#B793C4)">Not seen yet</span>';
         html += '<div class="sg-title">' + esc(s.title) + "</div>";
         var meta = [s.npc || "Unknown partner", s.place];
@@ -560,12 +692,12 @@
         return html + "</div>";
     }
 
-    function charCardHtml(cat, name, seen) {
+    function charCardHtml(cat, name, seen, save) {
         var c = cat.charByName[name] || { name: name, bust: "" };
         var total = 0, got = 0;
         for (var i = 0; i < cat.scenes.length; i++) {
             var s = cat.scenes[i];
-            if (s.chars && s.chars.indexOf(name) >= 0) { total++; if (seen[s.id]) got++; }
+            if (s.chars && s.chars.indexOf(name) >= 0) { total++; if (seen[s.id] || save[s.id]) got++; }
         }
         var src = portraitSrc(c.bust);
         var html = '<div class="sg-char"><div class="sg-portrait">';
@@ -600,9 +732,21 @@
             return;
         }
         var seen = readSeen();
-        var rows = filtered(cat, seen);
+        var save = readSaveUnlocks();
+        var rows = filtered(cat, seen, save);
         var html = "";
-        if (view.char) html += charCardHtml(cat, view.char, seen);
+        if (view.char) html += charCardHtml(cat, view.char, seen, save);
+        else {
+            var who = matchingChars(cat);
+            if (who.length) {
+                html += '<div class="sg-who"><span class="sg-who-head">Characters:</span>';
+                for (var w = 0; w < who.length && w < 24; w++) {
+                    html += '<button type="button" data-sg="pickchar" data-name="' + esc(who[w].name) + '">' + esc(who[w].name) + ' <span class="sg-who-n">' + (who[w].scenes || 0) + "</span></button>";
+                }
+                if (who.length > 24) html += '<span class="sg-who-head">and ' + (who.length - 24) + " more: type more of the name</span>";
+                html += "</div>";
+            }
+        }
         if (!inGame()) html += '<div class="sg-note">No save is loaded, so nothing is marked as seen. Load a save to see its gallery.</div>';
         if (!rows.length) html += '<div class="sg-note">' + (view.char && !cat.charByName[view.char]
             ? "The scene list doesn’t have any sex scenes for " + esc(view.char) + "."
@@ -613,7 +757,7 @@
             var s = rows[i];
             var group = s.place + " — " + (s.npc || "Other scenes");
             if (group !== lastGroup) { html += '<div class="sg-group">' + esc(group) + "</div>"; lastGroup = group; }
-            html += cardHtml(s, seen[s.id] || 0);
+            html += cardHtml(s, seen[s.id] || 0, save[s.id] || "");
         }
         if (rows.length > upto) html += '<button type="button" class="sg-more" data-sg="more">Show more (' + (rows.length - upto) + " left)</button>";
         html += '<div class="sg-note" style="font-size:.85em">Scene list: ' + cat.scenes.length + " scenes from TiTS " + esc(cat.data.game || "?") +
@@ -625,7 +769,8 @@
         var p = progress();
         var ach = readAch();
         root.querySelector(".sg-bar>div").style.width = Math.min(100, p.pct).toFixed(2) + "%";
-        root.querySelector(".sg-count").textContent = (inGame() ? p.seen + " of " + p.total + " scenes seen (" + p.pct.toFixed(1) + "%)" : p.total + " scenes in the game");
+        root.querySelector(".sg-count").textContent = (inGame() ? p.seen + " of " + p.total + " scenes seen (" + p.pct.toFixed(1) + "%)" +
+            (p.fromSave ? ", " + p.fromSave + " of them unlocked from your save" : "") : p.total + " scenes in the game");
         var html = "";
         for (var i = 0; i < ACHIEVEMENTS.length; i++) {
             var a = ACHIEVEMENTS[i];
@@ -674,7 +819,7 @@
             + '<div class="sg-count"></div>'
             + '<div class="sg-ach"></div>'
             + '<div class="sg-row">'
-            + '<input type="search" data-sg="q" placeholder="Search by name, place, act..." value="' + esc(view.q) + '">'
+            + '<input type="search" data-sg="q" placeholder="Search characters, places, acts..." aria-label="Search" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(view.q) + '">'
             + '<select data-sg="char" aria-label="Character">' + charOptions(cat) + "</select>"
             + '<select data-sg="place" aria-label="Place">' + opts + "</select>"
             + '<select data-sg="show" aria-label="Show">'
@@ -705,6 +850,22 @@
             if (!t) return;
             var act = t.getAttribute("data-sg");
             if (act === "close") closeGallery();
+            else if (act === "pickchar") {
+                // a character button under the search box: their portrait and all their scenes
+                view.char = t.getAttribute("data-name") || "";
+                view.q = ""; view.shown = PAGE;
+                var box = root.querySelector("[data-sg=q]");
+                if (box) box.value = "";
+                var sel2 = root.querySelector("[data-sg=char]");
+                if (sel2) {
+                    var has = false;
+                    for (var k = 0; k < sel2.options.length; k++) if (sel2.options[k].value === view.char) has = true;
+                    if (!has) sel2.innerHTML = charOptions(loadCatalog());
+                    sel2.value = view.char;
+                }
+                renderList(root);
+                root.querySelector(".sg-list").scrollTop = 0;
+            }
             else if (act === "allchars") {
                 view.char = ""; view.shown = PAGE;
                 var sel = root.querySelector("[data-sg=char]");
@@ -820,11 +981,15 @@
             (inGame() ? "This save: <b>" + p.seen + " of " + p.total + "</b> scenes (" + p.pct.toFixed(1) + "%)." : "Scenes in the list: <b>" + p.total + "</b>. Load a save to see its progress.") +
             "\n\nAchievement pop-ups: <b>" + (settings.toasts ? "On" : "Off") + "</b>" +
             "\nNew scene pop-ups: <b>" + (settings.newSceneToasts ? "On" : "Off") + "</b>" +
-            "\nShow summaries of scenes you haven't seen: <b>" + (settings.spoilers ? "On" : "Off") + "</b>";
+            "\nShow summaries of scenes you haven't seen: <b>" + (settings.spoilers ? "On" : "Off") + "</b>" +
+            "\nUnlock scenes your save's flags show you played: <b>" + (settings.saveUnlocks ? "On" : "Off") + "</b>" +
+            "\nUnlock shared counters (a flag a few scenes share unlocks all of them): <b>" + (settings.sharedUnlocks ? "On" : "Off") + "</b>";
         html += '<button type="button" data-mod-act="open">Open the gallery</button>';
         html += '<button type="button" data-mod-act="toasts">' + (settings.toasts ? "Turn off" : "Turn on") + " achievement pop-ups</button>";
         html += '<button type="button" data-mod-act="newtoasts">' + (settings.newSceneToasts ? "Turn off" : "Turn on") + " new scene pop-ups</button>";
         html += '<button type="button" data-mod-act="spoilers">' + (settings.spoilers ? "Hide" : "Show") + " unseen summaries</button>";
+        html += '<button type="button" data-mod-act="saveunlocks">' + (settings.saveUnlocks ? "Turn off" : "Turn on") + " unlocking from save flags</button>";
+        html += '<button type="button" data-mod-act="shared">' + (settings.sharedUnlocks ? "Turn off" : "Turn on") + " shared counters</button>";
         return html;
     }
     function onMenuAct(act) {
@@ -833,8 +998,15 @@
         if (act === "toasts") settings.toasts = !settings.toasts;
         else if (act === "newtoasts") settings.newSceneToasts = !settings.newSceneToasts;
         else if (act === "spoilers") settings.spoilers = !settings.spoilers;
+        else if (act === "saveunlocks") settings.saveUnlocks = !settings.saveUnlocks;
+        else if (act === "shared") settings.sharedUnlocks = !settings.sharedUnlocks;
         else return false;
         saveSettings();
+        if (act === "saveunlocks" || act === "shared") {
+            knownFlags = null;
+            try { syncSaveUnlocks(false); checkAchievements(true); refreshButton(); } catch (err) {}
+            try { window.dispatchEvent(new CustomEvent("tnSexGalleryUnlocks")); } catch (err) {}
+        }
         return true;
     }
     var registered = false;
@@ -862,7 +1034,20 @@
         characters: function () { var cat = loadCatalog(); return cat ? cat.chars.slice() : []; },
         portrait: function (name) { var cat = loadCatalog(); var c = cat && cat.charByName[name]; return c ? portraitSrc(c.bust) : ""; },
         close: closeGallery,
-        progress: function () { var p = progress(); return { seen: p.seen, total: p.total, pct: p.pct }; },
+        progress: function () { var p = progress(); return { seen: p.seen, total: p.total, pct: p.pct, fromSave: p.fromSave }; },
+        // For other mods (the Flashback Visor): the scenes this save's flags show were played,
+        // as { id: "own" | "shared" }, following the gallery's settings. Each scene in
+        // window.TN_SEX_GALLERY_SCENES.scenes lists its own flags in .uf and shared counters in .us.
+        saveUnlocks: function () { return readSaveUnlocks(); },
+        // every scene that counts as seen in this save: { id: { count, fromSave } }
+        unlocked: function () {
+            var out = {}, seen = readSeen(), save = readSaveUnlocks(), id;
+            for (id in seen) out[id] = { count: seen[id], fromSave: "" };
+            for (id in save) if (!out[id]) out[id] = { count: 0, fromSave: save[id] };
+            return out;
+        },
+        scene: function (id) { var cat = loadCatalog(); return cat && cat.byId[id] || null; },
+        search: function (text) { var cat = loadCatalog(); if (!cat) return []; var old = view.q; view.q = String(text || ""); var r = filtered(cat, readSeen(), readSaveUnlocks()).map(function (x) { return x.id; }); var c = matchingChars(cat).map(function (x) { return x.name; }); view.q = old; return { scenes: r, characters: c }; },
         findScene: function (text) { return findScene(String(text || "")); },
         status: function () {
             var cat = loadCatalog();
@@ -871,7 +1056,8 @@
                 mainMenu: !!(typeof ui !== "undefined" && ui && ui.generateMainMenuButtons && ui.generateMainMenuButtons.__tnSexGallery),
                 characters: cat ? cat.chars.length : 0, galleryDoubleTap: galleryHooked,
                 watching: { output: !!(window.output && window.output.__tnSexGallery), clearOutput: !!(window.clearOutput && window.clearOutput.__tnSexGallery), orgasm: orgasmWrapped },
-                counts: stats, lastMatch: lastMatch, progress: this.progress()
+                counts: stats, lastMatch: lastMatch, progress: this.progress(),
+                saveUnlocks: { on: settings.saveUnlocks, shared: settings.sharedUnlocks, scenesWithFlags: cat ? cat.flagged.length : 0, unlockedNow: Object.keys(readSaveUnlocks()).length }
             };
         },
         // for testing: mark a scene by id as seen in this save
@@ -894,6 +1080,8 @@
         try { addButton(); } catch (err) {}
         try { registerMenu(); } catch (err) {}
         try { hookCharacterGallery(); } catch (err) {}
+        // a save was loaded: unlock what its flags show (quietly) and catch up on achievements
+        try { if (modOn() && inGame() && knownFlags !== flags && loadCatalog()) { syncSaveUnlocks(false); checkAchievements(true); refreshButton(); } } catch (err) {}
         // keep checking: the game can replace output/clearOutput while it starts up
         setTimeout(tick, ticks < 60 ? 500 : 3000);
     }
