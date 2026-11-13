@@ -6,7 +6,8 @@
  * What it does
  *   Reads the game's clean scripts (the backup folder first, then the live files), parses
  *   them with acorn.js, and finds every sex scene: a scene is a game function that makes
- *   someone orgasm (pc.orgasm(), kiro.orgasm(), ...) and prints scene text with output().
+ *   someone orgasm (pc.orgasm(), kiro.orgasm(), ...) or records sex (anno.sexed(1)) and prints
+ *   scene text with output().
  *   Scenes that reach orgasm through a small helper function count too.
  *
  *   For each scene it works out
@@ -16,7 +17,10 @@
  *     - who wrote it (author("...")),
  *     - what happens in it (tags such as Vaginal, Anal, Oral, Taur),
  *     - a short summary,
- *     - a few unique bits of its text, so the gallery can tell when you have seen it.
+ *     - a few unique bits of its text, so the gallery can tell when you have seen it
+ *       (up to ten for scenes whose text is mostly inside if/else branches),
+ *     - the save flags it sets (flags.X++, IncrementFlag("X")) that nothing else sets, so a
+ *       loaded save can unlock scenes played before the gallery was installed.
  *
  *   It writes all of that to TN_SexGalleryScenes_v2.9.js in your mods folder. That file is
  *   the gallery's scene list, so keep it in enabled.txt next to TN_SexGallery_v2.9.js.
@@ -294,6 +298,20 @@ function calleeName(c) {
   if (c.type === "SequenceExpression" && c.expressions.length) return calleeName(c.expressions[c.expressions.length - 1]);
   return "";
 }
+// flags.NAME or flags["NAME"]
+function flagName(n) {
+  if (!n || n.type !== "MemberExpression" || n.object.type !== "Identifier" || n.object.name !== "flags") return "";
+  if (!n.computed && n.property.type === "Identifier") return n.property.name;
+  if (n.computed) return strArg(n.property) || "";
+  return "";
+}
+function isEmptyValue(n) {
+  if (!n) return true;
+  if (n.type === "Literal") return n.value === 0 || n.value === false || n.value === null || n.value === "";
+  if (n.type === "Identifier") return n.name === "undefined";
+  if (n.type === "UnaryExpression") return n.operator === "void" || (n.operator === "!" && n.argument.type === "Literal" && n.argument.value === 1);
+  return false;
+}
 function readableName(name) {
   if (!name || name.length < 4 || /^[a-z]{1,2}\d*$/i.test(name)) return "";
   return name;
@@ -317,7 +335,7 @@ function scanFile(file, src, ctx) {
     let r = info.get(fn);
     if (!r) {
       r = { fn, file: file.name, area: file.area, start: fn.start, end: fn.end, texts: [], orgasm: 0, names: [], busts: [], allBusts: [],
-            authors: [], flags: [], orgasmTags: new Set(), caseCallers: new Map(), npc: new Map(), calls: [], buttons: [], parent: null, readable: "", triggers: [] };
+            authors: [], flags: [], setFlags: [], orgasmTags: new Set(), caseCallers: new Map(), npc: new Map(), calls: [], buttons: [], parent: null, readable: "", triggers: [] };
       info.set(fn, r);
       fns.push(r);
     }
@@ -393,6 +411,13 @@ function scanFile(file, src, ctx) {
       const r = rec(n.right);
       if (!r.readable) r.readable = readableName(n.left.property.name);
       if (n.left.object.type === "Identifier" && n.left.object.name === "window") ctx.globals.set(n.left.property.name, n.right);
+    } else if ((n.type === "AssignmentExpression" || n.type === "UpdateExpression") && curFn !== ast &&
+               flagName(n.type === "UpdateExpression" ? n.argument : n.left)) {
+      // flags.ANNO_SEXED++, flags.X = 1, flags.X += 1: what a scene leaves behind in the save
+      // (setting a flag to 0 / false / undefined is a reset, not a sign the scene was played)
+      if (!(n.type === "AssignmentExpression" && n.operator === "=" && isEmptyValue(n.right))) {
+        rec(curFn).setFlags.push({ s: flagName(n.type === "UpdateExpression" ? n.argument : n.left), tag });
+      }
     } else if (COND.has(n.type)) {
       cond++;
     } else if (n.type === "CallExpression") {
@@ -416,7 +441,9 @@ function scanFile(file, src, ctx) {
             if (p.type === "CallExpression" && /^(concat)$/.test(calleeName(p.callee))) { for (const a of p.arguments) work.push({ p: a, c: w.c }); continue; }
           }
         }
-      } else if (name === "orgasm" && n.callee.type === "MemberExpression") {
+      } else if ((name === "orgasm" || (name === "sexed" && n.arguments.length && !(n.arguments[0].type === "Literal" && !n.arguments[0].value))) &&
+                 n.callee.type === "MemberExpression") {
+        // anno.sexed(1) records sex without an orgasm() call (Anno's vibrator scene), so it counts too
         if (r) {
           r.orgasm++;
           r.orgasmTags.add(tag);
@@ -432,7 +459,7 @@ function scanFile(file, src, ctx) {
         const s = strArg(n.arguments[0]); if (s) r.busts.push(s);
         for (const a of n.arguments) { const b = strArg(a); if (b) r.allBusts.push(b); }
       } else if ((name === "IncrementFlag" || name === "incrementFlag") && r) {
-        const s = strArg(n.arguments[0]); if (s) r.flags.push({ s, tag });
+        const s = strArg(n.arguments[0]); if (s) { r.flags.push({ s, tag }); r.setFlags.push({ s, tag }); }
       } else if (name === "author" && r) {
         const s = strArg(n.arguments[0]); if (s) r.authors.push(s);
       } else if (BUTTON_RE.test(name) && n.arguments.length >= 3) {
@@ -607,7 +634,7 @@ function pickFingerprints(texts, literalCount, max) {
       fp = best.slice(a, b);
     }
     fp = fp.trim();
-    if (fp.length >= 30) out.push(fp);
+    if (fp.length >= 30) { out.push(fp); if (t.cond) out.cond = (out.cond || 0) + 1; }
   }
   return out;
 }
@@ -758,13 +785,57 @@ function buildCatalog(allFns, literalCount) {
     }
   }
 
+  // 3. the save flags each scene sets (flags.ANNO_SEXED++, IncrementFlag("X"), flags.X = 1), so a
+  //    save loaded into the gallery can unlock the scenes it has already played. Only a flag that
+  //    nothing else in the game sets counts: a counter shared by several scenes can't say which one.
+  const flagSetters = new Map();   // flag -> Set of functions that set it
+  for (const r of allFns) for (const f of r.setFlags) {
+    if (!flagSetters.has(f.s)) flagSetters.set(f.s, new Set());
+    flagSetters.get(f.s).add(r);
+  }
+  function unitFlags(u) {
+    const mine = new Set([u.r]);
+    const names = new Set();
+    for (const f of u.r.setFlags) if (!u.tag || f.tag === u.tag) names.add(f.s);
+    // small helpers with no text that only this scene calls (the "after sex" bookkeeping)
+    for (const c of u.r.calls) {
+      if (c.texts.length || !(callers.get(c) || []).every((x) => x === u.r)) continue;
+      mine.add(c);
+      for (const f of c.setFlags) names.add(f.s);
+    }
+    // and buttons with no text of their own that set a flag and then start this scene:
+    // addButton(0, "Ride", function () { flags.X_RIDDEN++; rideScene(); })
+    if (!u.tag) for (const c of (callers.get(u.r) || [])) {
+      if (c.texts.length || c.calls.filter((x) => x.texts.length).some((x) => x !== u.r)) continue;
+      mine.add(c);
+      for (const f of c.setFlags) names.add(f.s);
+    }
+    const out = [], shared = [];
+    for (const n of names) {
+      const setters = flagSetters.get(n);
+      if (!setters) continue;
+      if ([...setters].every((x) => mine.has(x))) out.push(n);
+      else if ([...setters].every((x) => isScene.has(x) || (!x.texts.length && (callers.get(x) || []).every((y) => isScene.has(y))))) shared.push(n);
+    }
+    out.shared = shared;
+    return out;
+  }
+
   const scenes = [];
   const fpOwner = new Map();
   let skipped = 0;
   for (const u of units) {
     const r = u.r;
+    // the first five fingerprints make the scene id, so they stay the same as scanner 2.9 picked them;
+    // a scene whose text is mostly inside if/else branches gets up to five more, so whichever
+    // branch the player sees still has something to match
     const fps = pickFingerprints(u.texts, literalCount, 5);
     if (!fps.length) { skipped++; continue; }
+    // Up to 20 candidates: many are dropped below because the same words appear somewhere
+    // else (Anno's Tarkus scenes are nearly word for word her crew scenes), so pick from more
+    // and keep the first 5 (10 for a branchy scene) that are unique in the whole game.
+    const cands = pickFingerprints(u.texts, literalCount, 20);
+    const fpMax = fps.length - (fps.cond || 0) < 3 ? 10 : 5;
     const allText = u.texts.map((t) => t.s).join(" ");
     const npc = nameFor(r, u.starts);
     const trig = triggersFor(u.tag ? (r.caseCallers.get(u.tag) || []) : u.starts);
@@ -805,9 +876,9 @@ function buildCatalog(allFns, literalCount) {
     const id = r.area + "-" + hashId(fps[0]);
     scenes.push({
       id, npc, area: r.area, place: areaLabel(r.area), title: title || (npc ? "Scene" : "Untitled scene"), author: authorFor(r), tags, summary,
-      opening, fp: fps, busts: bustsFor(u.starts),
+      opening, fp: cands, fpMax, fpId: fps, busts: bustsFor(u.starts), flagsSet: unitFlags(u),
     });
-    for (const f of fps) fpOwner.set(f, (fpOwner.get(f) || 0) + 1);
+    for (const f of cands) fpOwner.set(f, (fpOwner.get(f) || 0) + 1);
   }
   // a fingerprint that shows up anywhere else in the game's text can't tell scenes apart
   const occurs = countInText([...fpOwner.keys()], literalCount);
@@ -816,11 +887,28 @@ function buildCatalog(allFns, literalCount) {
   const final = [];
   const ids = new Set();
   for (const s of scenes) {
-    s.fp = s.fp.filter((f) => fpOwner.get(f) === 1);
+    s.fp = s.fp.filter((f) => fpOwner.get(f) === 1).slice(0, s.fpMax);
     if (!s.fp.length) { skipped++; continue; }
-    if (ids.has(s.id)) s.id += "-" + hashId(s.fp.join("|")).slice(0, 4);
+    if (ids.has(s.id)) s.id += "-" + hashId(s.fpId.filter((f) => fpOwner.get(f) === 1).join("|")).slice(0, 4);
     ids.add(s.id);
     final.push(s);
+  }
+  // a flag two scenes (two cases of one function) both set can't tell them apart either, so it
+  // moves to the shared list: a counter that a few scenes (up to 12) bump. Only those scenes
+  // set it, so if it's above 0 the save has seen at least one of them. The gallery unlocks
+  // them all unless "Unlock shared counters" is turned off.
+  const flagClaims = new Map();
+  for (const s of final) for (const f of s.flagsSet) flagClaims.set(f, (flagClaims.get(f) || 0) + 1);
+  let flagged = 0;
+  let sharedOnly = 0;
+  const sharedClaims = new Map();
+  for (const s of final) for (const f of s.flagsSet.shared.concat(s.flagsSet)) sharedClaims.set(f, (sharedClaims.get(f) || 0) + 1);
+  for (const s of final) {
+    const shared = s.flagsSet.shared.concat(s.flagsSet.filter((f) => flagClaims.get(f) > 1)).filter((f) => sharedClaims.get(f) <= 12);
+    s.flagsSet = s.flagsSet.filter((f) => flagClaims.get(f) === 1);
+    s.flagsShared = shared;
+    if (s.flagsSet.length) flagged++;
+    else if (shared.length) sharedOnly++;
   }
   // number repeated titles for one NPC: "Ride Him", "Ride Him (2)"
   const titleSeen = new Map();
@@ -831,7 +919,7 @@ function buildCatalog(allFns, literalCount) {
     titleSeen.set(k, n);
     if (n > 1) s.title += " (" + n + ")";
   }
-  return { scenes: final, skipped, helpers: helpers.size };
+  return { scenes: final, skipped, helpers: helpers.size, flagged, sharedOnly };
 }
 
 // ------------------------------------------------------- character gallery link
@@ -986,6 +1074,8 @@ function writeCatalog(file, catalog, version) {
       const o = { id: s.id, npc: s.npc, area: s.area, place: s.place, title: s.title, author: s.author, tags: s.tags, summary: s.summary, fp: s.fp };
       if (s.chars && s.chars.length) o.chars = s.chars;
       if (s.opening) o.opening = s.opening;
+      if (s.flagsSet && s.flagsSet.length) o.uf = s.flagsSet;
+      else if (s.flagsShared && s.flagsShared.length) o.us = s.flagsShared;
       return o;
     }),
   };
@@ -1036,8 +1126,10 @@ async function main() {
   const byArea = {};
   for (const s of catalog.scenes) byArea[s.place] = (byArea[s.place] || 0) + 1;
   console.log("\nFound " + catalog.scenes.length + " sex scenes (" + catalog.skipped + " left out: no text of their own to recognise them by).");
+  console.log(catalog.flagged + " scenes leave a save flag only they set, and " + catalog.sharedOnly + " more share a counter with a few others,\n" +
+              "so a loaded save can unlock them even if they were played before the gallery was installed.");
   for (const k of Object.keys(byArea).sort()) console.log("  " + k + ": " + byArea[k]);
-  log.push("", "TiTS " + (version || "?") + ": " + catalog.scenes.length + " scenes, " + catalog.skipped + " left out", "");
+  log.push("", "TiTS " + (version || "?") + ": " + catalog.scenes.length + " scenes, " + catalog.skipped + " left out, " + catalog.flagged + " unlock from their own save flag, " + catalog.sharedOnly + " from a shared counter", "");
   for (const s of catalog.scenes) {
     const line = s.id + "  [" + s.place + "] " + (s.npc || "?") + " — " + s.title + (s.tags.length ? "  (" + s.tags.join(", ") + ")" : "") +
       (s.chars ? "  -> " + s.chars.join(", ") : "");
