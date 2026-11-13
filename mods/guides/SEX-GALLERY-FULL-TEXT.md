@@ -40,7 +40,7 @@ The second one uses the folders the first one saved. Both must come from the sam
 
 ## Tested (TiTS 0.9.168, headless Chromium, real game files + a real save)
 
-- All 3,013 scenes unpack and render with no errors; the save is byte-for-byte the same after reading all of them.
+- All 3,042 scenes unpack and render with no errors; the save is byte-for-byte the same after reading all of them.
 - Start-up time: the same as lite (within noise), on a normal PC and with the CPU slowed 6x to act like a low-end tablet.
 - Memory: about 13 MB more for the packed text, plus about 12 MB while you read (two chunks of about 60 scenes are kept unpacked).
 - Opening a scene: 20-50 ms on a PC, 0.1-0.3 s with the CPU slowed 6x.

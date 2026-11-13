@@ -6,7 +6,8 @@
  * What it does
  *   Reads the game's clean scripts (the backup folder first, then the live files), parses
  *   them with acorn.js, and finds every sex scene: a scene is a game function that makes
- *   someone orgasm (pc.orgasm(), kiro.orgasm(), ...) and prints scene text with output().
+ *   someone orgasm (pc.orgasm(), kiro.orgasm(), ...) or records sex (anno.sexed(1)) and prints
+ *   scene text with output().
  *   Scenes that reach orgasm through a small helper function count too.
  *
  *   For each scene it works out
@@ -17,7 +18,7 @@
  *     - what happens in it (tags such as Vaginal, Anal, Oral, Taur),
  *     - a short summary,
  *     - a few unique bits of its text, so the gallery can tell when you have seen it
- *       (scenes whose text is mostly inside if/else branches get up to ten),
+ *       (up to ten for scenes whose text is mostly inside if/else branches),
  *     - the save flags it sets (flags.X++, IncrementFlag("X")) that nothing else sets, so a
  *       loaded save can unlock scenes played before the gallery was installed.
  *
@@ -440,7 +441,9 @@ function scanFile(file, src, ctx) {
             if (p.type === "CallExpression" && /^(concat)$/.test(calleeName(p.callee))) { for (const a of p.arguments) work.push({ p: a, c: w.c }); continue; }
           }
         }
-      } else if (name === "orgasm" && n.callee.type === "MemberExpression") {
+      } else if ((name === "orgasm" || (name === "sexed" && n.arguments.length && !(n.arguments[0].type === "Literal" && !n.arguments[0].value))) &&
+                 n.callee.type === "MemberExpression") {
+        // anno.sexed(1) records sex without an orgasm() call (Anno's vibrator scene), so it counts too
         if (r) {
           r.orgasm++;
           r.orgasmTags.add(tag);
@@ -826,13 +829,13 @@ function buildCatalog(allFns, literalCount) {
     // the first five fingerprints make the scene id, so they stay the same as scanner 2.9 picked them;
     // a scene whose text is mostly inside if/else branches gets up to five more, so whichever
     // branch the player sees still has something to match
-    let fps = pickFingerprints(u.texts, literalCount, 5);
+    const fps = pickFingerprints(u.texts, literalCount, 5);
     if (!fps.length) { skipped++; continue; }
-    const fpIdCount = fps.length;
-    if (fps.length - (fps.cond || 0) < 3) {
-      const more = pickFingerprints(u.texts, literalCount, 10);
-      if (more.length > fps.length) fps = more;
-    }
+    // Up to 20 candidates: many are dropped below because the same words appear somewhere
+    // else (Anno's Tarkus scenes are nearly word for word her crew scenes), so pick from more
+    // and keep the first 5 (10 for a branchy scene) that are unique in the whole game.
+    const cands = pickFingerprints(u.texts, literalCount, 20);
+    const fpMax = fps.length - (fps.cond || 0) < 3 ? 10 : 5;
     const allText = u.texts.map((t) => t.s).join(" ");
     const npc = nameFor(r, u.starts);
     const trig = triggersFor(u.tag ? (r.caseCallers.get(u.tag) || []) : u.starts);
@@ -873,11 +876,11 @@ function buildCatalog(allFns, literalCount) {
     const id = r.area + "-" + hashId(fps[0]);
     scenes.push({
       id, npc, area: r.area, place: areaLabel(r.area), title: title || (npc ? "Scene" : "Untitled scene"), author: authorFor(r), tags, summary,
-      opening, fp: fps, fpId: fps.slice(0, fpIdCount), busts: bustsFor(u.starts), flagsSet: unitFlags(u),
+      opening, fp: cands, fpMax, fpId: fps, busts: bustsFor(u.starts), flagsSet: unitFlags(u),
       // where the scene's function is (not written to the scene list; the full-text scanner uses it)
       src: { file: r.file, start: r.start, end: r.end, tag: u.tag },
     });
-    for (const f of fps) fpOwner.set(f, (fpOwner.get(f) || 0) + 1);
+    for (const f of cands) fpOwner.set(f, (fpOwner.get(f) || 0) + 1);
   }
   // a fingerprint that shows up anywhere else in the game's text can't tell scenes apart
   const occurs = countInText([...fpOwner.keys()], literalCount);
@@ -886,7 +889,7 @@ function buildCatalog(allFns, literalCount) {
   const final = [];
   const ids = new Set();
   for (const s of scenes) {
-    s.fp = s.fp.filter((f) => fpOwner.get(f) === 1);
+    s.fp = s.fp.filter((f) => fpOwner.get(f) === 1).slice(0, s.fpMax);
     if (!s.fp.length) { skipped++; continue; }
     if (ids.has(s.id)) s.id += "-" + hashId(s.fpId.filter((f) => fpOwner.get(f) === 1).join("|")).slice(0, 4);
     ids.add(s.id);

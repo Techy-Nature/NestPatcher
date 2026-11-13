@@ -414,6 +414,24 @@
                 p.orgasm = w;
             }
         } catch (err) {}
+        // anno.sexed(1), pippa.sexed(1): some scenes only record the sex this way (Anno's vibrator
+        // scene has no orgasm() call). sexed() and sexed(0) just read the count, so they don't count.
+        try {
+            for (var q = Object.getPrototypeOf(obj); q && q !== Object.prototype; q = Object.getPrototypeOf(q)) {
+                if (!Object.prototype.hasOwnProperty.call(q, "sexed") || typeof q.sexed !== "function") continue;
+                if (!q.sexed.__tnSexGallery) {
+                    var origS = q.sexed;
+                    var ws = function (n) {
+                        try { if (arguments.length && n && n !== "0") noteOrgasm(); } catch (err) {}
+                        return origS.apply(this, arguments);
+                    };
+                    ws.__tnSexGallery = true;
+                    ws.__tnOriginal = origS;
+                    q.sexed = ws;
+                }
+                break;
+            }
+        } catch (err) {}
     }
     // A "Sex Gallery" button on the game's own main menu (New Game, Data, Gallery, Options,
     // Credits, ...) while a save is loaded, so it can be reached from inside a game.
@@ -454,9 +472,11 @@
         wrapMainMenu();
         wrapOrgasm();
         try {
-            if (orgasmWrapped && typeof chars !== "undefined" && chars && !wrapAll.charsDone) {
-                for (var id in chars) if (chars[id] && typeof chars[id].orgasm === "function") wrapOwn(chars[id]);
-                wrapAll.charsDone = true;
+            // again whenever the game makes a new chars list (a save was loaded)
+            if (orgasmWrapped && typeof chars !== "undefined" && chars && wrapAll.charsDone !== chars) {
+                var any = false;
+                for (var id in chars) if (chars[id] && typeof chars[id].orgasm === "function") { wrapOwn(chars[id]); any = true; }
+                if (any) wrapAll.charsDone = chars;
             }
         } catch (err) {}
     }
