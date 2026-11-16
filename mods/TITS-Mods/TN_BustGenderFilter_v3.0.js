@@ -8,7 +8,11 @@
    ui.getBustImages. The mod finds those two components when React first builds
    them and filters their bust list by that fighter's own genitals. A fighter with
    every bust hidden keeps an empty portrait box (name, bars and status stay).
-   Ships are never hidden. "Battle busts" on the settings page can turn this off.
+   Ships are never hidden. "Battle busts" on the settings page picks Filtered
+   (same switches as scenes), Hide all, or Always show.
+   Backup: a page watcher also hides any fight portrait <img> the hook missed
+   (marks it data-tn-bust-hidden), so battle busts are covered even if the React
+   hook can't attach. The settings page says whether the hook is on.
 
    An NPC's gender, first match wins ("By gender", the default since Modv2.9):
      a. A gender the game sets for them: a Force Male / Force Fem / Force It
@@ -49,13 +53,14 @@
     var indexBuilt = 0;
 
     function load() {
-        var base = { hide: {}, overrides: {}, showCombat: false, mode: "gender" };
+        var base = { hide: {}, overrides: {}, combat: "filter", mode: "gender" };
         try {
             var saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}");
             if (saved && typeof saved === "object") {
                 if (saved.hide && typeof saved.hide === "object") base.hide = saved.hide;
                 if (saved.overrides && typeof saved.overrides === "object") base.overrides = saved.overrides;
-                if (saved.showCombat === true) base.showCombat = true;
+                if (saved.showCombat === true) base.combat = "show";
+                if (saved.combat === "show" || saved.combat === "hideall") base.combat = saved.combat;
                 if (saved.mode === "genitals") base.mode = "genitals";
             }
         } catch (err) { console.warn("[TN] Bust filter settings unreadable", err); }
@@ -288,8 +293,9 @@
     // (combatBustOverride, else bustDisplay). They aren't exported, so we spot them
     // as React creates them: a class whose prototype has both a "busts" and a
     // "cycleFilter" getter. Then that getter is wrapped once, for every portrait.
-    var reactLib = null;
+    var reactLibs = [];
     var combatPatched = 0;
+    var domHidden = 0;
 
     function webpackRequire() {
         var chunks = window.webpackChunktits_html || self.webpackChunktits_html;
@@ -305,20 +311,25 @@
             typeof x.cloneElement === "function";
     }
 
-    function findReact() {
-        if (isReact(window.React)) return window.React;
-        var req = webpackRequire();
-        if (!req) return null;
-        try { var known = req(67294); if (isReact(known)) return known; } catch (err) {}
-        var cache = req.c || {};
-        var ids = Object.keys(cache);
-        for (var i = 0; i < ids.length; i++) {
-            try {
-                var ex = cache[ids[i]] && cache[ids[i]].exports;
-                if (isReact(ex)) return ex;
-            } catch (err2) {}
+    // Every React copy we can see (the game's webpack one, plus window.React if a
+    // page or mod put one there), so we never wrap only a copy the game doesn't use.
+    function findReacts() {
+        var found = [];
+        function add(x) {
+            if (x && x.__esModule && isReact(x["default"])) x = x["default"];
+            if (isReact(x) && found.indexOf(x) === -1) found.push(x);
         }
-        return null;
+        try { add(window.React); } catch (err0) {}
+        var req = webpackRequire();
+        if (req) {
+            try { add(req(67294)); } catch (err) {}
+            var cache = req.c || {};
+            var ids = Object.keys(cache);
+            for (var i = 0; i < ids.length; i++) {
+                try { add(cache[ids[i]] && cache[ids[i]].exports); } catch (err2) {}
+            }
+        }
+        return found;
     }
 
     function getterOf(proto, name) {
@@ -327,9 +338,10 @@
     }
 
     function filterCombat(list, creature) {
-        if (!Array.isArray(list) || !list.length || !active() || cfg.showCombat) return list;
+        if (!Array.isArray(list) || !list.length || !active() || cfg.combat === "show") return list;
         if (!creature || creature === window.pc) return list;
         try { if (creature.isShip) return list; } catch (err) {}
+        if (cfg.combat === "hideall") return null;
         var prev = contextCreature;
         contextCreature = creature;
         var out;
@@ -362,16 +374,104 @@
         } catch (err) { console.warn("[TN] Bust filter: battle bust hook failed", err); }
     }
 
-    function patchCombat() {
-        if (!reactLib) reactLib = findReact();
-        if (!reactLib || reactLib.createElement.__tnBustFilter) return;
-        var origCreate = reactLib.createElement;
+    function wrapReact(lib) {
+        if (!lib || lib.createElement.__tnBustFilter) return;
+        var origCreate = lib.createElement;
         var wrappedCreate = function (type) {
             if (typeof type === "function" && !type.__tnBustSeen) inspectType(type);
             return origCreate.apply(this, arguments);
         };
         wrappedCreate.__tnBustFilter = true;
-        reactLib.createElement = wrappedCreate;
+        try { lib.createElement = wrappedCreate; }
+        catch (err) { console.warn("[TN] Bust filter: React is read-only", err); }
+    }
+
+    function patchCombat() {
+        if (combatPatched >= 2) return;
+        var libs = findReacts();
+        for (var i = 0; i < libs.length; i++) {
+            if (reactLibs.indexOf(libs[i]) === -1) reactLibs.push(libs[i]);
+            wrapReact(libs[i]);
+        }
+    }
+
+    // ---- Battle busts, page watcher (backup for the hook above) ----
+    var PORTRAIT_SEL = ".soloBustContainer img[alt], .groupBustContainer img[alt]";
+    var HIDE_ATTR = "data-tn-bust-hidden";
+    var observer = null;
+    var scanQueued = false;
+
+    function addStyle() {
+        if (document.getElementById("tn-bust-filter-style")) return;
+        var st = document.createElement("style");
+        st.id = "tn-bust-filter-style";
+        st.textContent = "img[" + HIDE_ATTR + "]{visibility:hidden !important;}";
+        (document.head || document.documentElement).appendChild(st);
+    }
+
+    function actorBusts(actor) {
+        var b = actor.combatBustOverride || actor.bustDisplay;
+        return Array.isArray(b) ? b : [b];
+    }
+
+    // The fighter a portrait belongs to, by its bust name.
+    function fighterFor(id) {
+        var b = norm(id);
+        var actors = combatActors();
+        for (var i = 0; i < actors.length; i++) {
+            var a = actors[i];
+            if (!a) continue;
+            var list = actorBusts(a);
+            for (var j = 0; j < list.length; j++) if (norm(list[j]) === b) return a;
+        }
+        return null;
+    }
+
+    function hideDecision(id) {
+        if (!active() || cfg.combat === "show") return false;
+        if (PC_BUSTS[norm(id)]) return false;
+        var who = fighterFor(id);
+        if (who === window.pc) return false;
+        try { if (who && who.isShip) return false; } catch (err) {}
+        if (cfg.combat === "hideall") return true;
+        var prev = contextCreature;
+        contextCreature = who;
+        try { return !keep(id); }
+        finally { contextCreature = prev; }
+    }
+
+    function scanPortraits() {
+        scanQueued = false;
+        var imgs;
+        try { imgs = document.querySelectorAll(PORTRAIT_SEL); } catch (err) { return; }
+        var count = 0;
+        for (var i = 0; i < imgs.length; i++) {
+            var img = imgs[i];
+            var hide = false;
+            try { hide = hideDecision(img.getAttribute("alt")); } catch (err2) {}
+            if (hide) { count++; if (!img.hasAttribute(HIDE_ATTR)) img.setAttribute(HIDE_ATTR, "1"); }
+            else if (img.hasAttribute(HIDE_ATTR)) img.removeAttribute(HIDE_ATTR);
+        }
+        domHidden = count;
+    }
+
+    function queueScan() {
+        if (scanQueued) return;
+        scanQueued = true;
+        (window.requestAnimationFrame || setTimeout)(scanPortraits);
+    }
+
+    function watchPage() {
+        if (observer || typeof MutationObserver !== "function" || !document.body) return;
+        addStyle();
+        observer = new MutationObserver(function (records) {
+            for (var i = 0; i < records.length; i++) {
+                var r = records[i];
+                if (r.type === "attributes" || (r.addedNodes && r.addedNodes.length)) { queueScan(); return; }
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["alt", "src"] });
+        queueScan();
     }
 
     function esc(value) {
@@ -380,6 +480,10 @@
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;");
+    }
+
+    function combatLabel() {
+        return cfg.combat === "hideall" ? "Hide all" : cfg.combat === "show" ? "Always show" : "Filtered (same switches)";
     }
 
     function groupLabel(key) {
@@ -401,8 +505,9 @@
             var g = GROUPS[i];
             html += "\n" + g.num + ". " + g.label + ": <b>" + (cfg.hide[g.key] ? "Hidden" : "Shown") + "</b>";
         }
-        html += "\n\nBattle busts (the portraits in a fight): <b>" + (cfg.showCombat ? "Always shown" : "Filtered too") + "</b>. " +
-            "When they're filtered, a fighter whose bust is hidden keeps an empty portrait box. Ships are never hidden.";
+        html += "\n\nBattle busts (the portraits in a fight): <b>" + combatLabel() + "</b>. " +
+            "A fighter whose bust is hidden keeps an empty portrait box. Ships and you are never hidden.";
+        html += "\nBattle hook: " + (combatPatched ? "<b>on</b>" : "<b>waiting</b> (the page watcher covers fights meanwhile)") + ".";
         html += "\n\nIf a bust lands in the wrong group, open <b>Recent busts</b> and set it by hand.";
         for (var j = 0; j < GROUPS.length; j++) {
             var gg = GROUPS[j];
@@ -410,7 +515,7 @@
                 (cfg.hide[gg.key] ? "Show " : "Hide ") + gg.label + "</button>";
         }
         html += '<button type="button" data-mod-act="mode">' + (cfg.mode === "genitals" ? "Sort by gender" : "Sort by genitals only") + "</button>";
-        html += '<button type="button" data-mod-act="combat">' + (cfg.showCombat ? "Filter battle busts too" : "Always show battle busts") + "</button>";
+        html += '<button type="button" data-mod-act="combat">Battle busts: ' + combatLabel() + " (tap to change)</button>";
         html += '<button type="button" data-mod-act="recent">Recent busts</button>';
         html += '<button type="button" data-mod-act="showall">Show everything</button>';
         return html;
@@ -442,7 +547,12 @@
         if (act === "main") { view = "main"; return true; }
         if (act === "showall") { cfg.hide = {}; save(); return true; }
         if (act === "clearpicks") { cfg.overrides = {}; save(); return true; }
-        if (act === "combat") { cfg.showCombat = !cfg.showCombat; save(); return true; }
+        if (act === "combat") {
+            cfg.combat = cfg.combat === "filter" ? "hideall" : cfg.combat === "hideall" ? "show" : "filter";
+            save();
+            queueScan();
+            return true;
+        }
         if (act === "mode") { cfg.mode = cfg.mode === "genitals" ? "gender" : "genitals"; save(); return true; }
         if (act.indexOf("toggle:") === 0) {
             var key = act.slice(7);
@@ -490,7 +600,8 @@
         classify: classify,
         recent: function () { return recent.slice(); },
         settings: function () { return JSON.parse(JSON.stringify(cfg)); },
-        battleHooks: function () { return combatPatched; }
+        battleHooks: function () { return combatPatched; },
+        battleHiddenOnPage: function () { scanPortraits(); return domHidden; }
     };
 
     function tick() {
@@ -498,6 +609,8 @@
         try { patchUi(); } catch (err) {}
         try { patchShowAll(); } catch (err) {}
         try { patchCombat(); } catch (err) {}
+        try { watchPage(); } catch (err) {}
+        if (window.inCombat === true || document.querySelector(".soloBustContainer, .groupBustContainer")) queueScan();
     }
 
     setInterval(tick, 1000);
