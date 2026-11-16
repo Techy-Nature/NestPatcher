@@ -2,7 +2,7 @@ Name: Bianca's Clinic
 Author: Neston
 # TN_BiancaClinic - NestPatcher mod (TiTS 0.9.168), Modv2.9
 # Bianca opens a small shared practice on Tavros after your talk with her there.
-# Needs TN_BiancaClinic_v2.9.js, and Bianca Extras (TN_BiancaExtras_v2.9.mod + .js) loaded first.
+# Needs TN_BiancaClinic_v2.9.js, and Bianca Extras (TN_BiancaExtras_v3.0.mod + .js) loaded first.
 #   - Ketria Clinic: two new rooms on the Merchant Deck, west of the Merchant's Thoroughfare room
 #     between Anon's corner and the Treetop Tattoo street ("110"). Front desk (Nest) to the west,
 #     exam hall (Dr. Ketria, Dr. Rewell) north of the front desk.
