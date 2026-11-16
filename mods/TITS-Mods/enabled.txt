@@ -61,8 +61,8 @@ TN_FlashbackVisor_v2.9.mod
 TN_SceneText_v2.9.js
 TN_OfflineGuard_v2.9.mod
 TN_DaneDating_v2.9.js
-TN_BiancaExtras_v2.9.mod
-TN_BiancaExtras_v2.9.js
+TN_BiancaExtras_v3.0.mod
+TN_BiancaExtras_v3.0.js
 TN_BiancaClinic_v2.9.mod
 TN_BiancaClinic_v2.9.js
 TN_SteelePronouns_v2.9.js

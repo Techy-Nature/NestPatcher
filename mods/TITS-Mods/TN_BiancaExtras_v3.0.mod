@@ -1,8 +1,8 @@
 Name: Bianca Extras
 Author: Neston
-# TN_BiancaExtras - NestPatcher mod (TiTS 0.9.168), Modv2.9
+# TN_BiancaExtras - NestPatcher mod (TiTS 0.9.168), Modv3.0
 # Fills in what's missing from William's two Dr. Bianca Ketria docs (Part 1 Core, Part 2 Love &
-# Sexpac). Needs TN_BiancaExtras_v2.9.js (scenes, menus and story; it holds the details).
+# Sexpac). Needs TN_BiancaExtras_v3.0.js (scenes, menus and story; it holds the details).
 #   - Familiarity is no longer stuck at 49: 50 until you confront her, then up to 100.
 #   - Spend Time: Cuddle (3 times, then Confront / Back Off), Hug, Kiss (Ambush / Mutual).
 #   - After the confrontation she's gone a week, emails you, and waits on Tavros'
@@ -12,6 +12,8 @@ Author: Neston
 #   - Intro 12 + the cold booth, Ditzy to Normalcy, her own You OK? check-ins, the Treatment
 #     talk, the missing "Four teams" Stories paragraph, and the ring comes off after Confront.
 #   - Taur/naga get their own lines when the taur/naga bypass switch is on.
+#   - Fixes (Modv3.0): Confess now really makes her your lover (unlocks Intimate, Int. Doggy and
+#     the bar Cuddle), and the game's own bar Stealth Sex no longer loops at the end.
 # Needles use @@name@@ wildcards for minified names so they match PC and Android builds.
 
 # Familiarity cap (49 when the mod is off, 50 before Confront, 100 after)
@@ -91,3 +93,21 @@ Replace [content_tavros.js]:
 elevators are."]))))},@@o@@.addRoom(@@ee@@);
 With:
 elevators are."])))),window.tnBiancaPlazaBonus&&window.tnBiancaPlazaBonus()},@@o@@.addRoom(@@ee@@);
+
+# Lover: the game's Bianca.isLover() always said no, even after Confess set BIANCA_LOVER
+Replace [main.js]:
+{key:"isCrew",value:function(){return!1}},{key:"isLover",value:function(){return!1}},{key:"familiarity",value:function(){var @@e@@=arguments
+With:
+{key:"isCrew",value:function(){return!1}},{key:"isLover",value:function(){return 1===flags.BIANCA_LOVER}},{key:"familiarity",value:function(){var @@e@@=arguments
+
+# Bar Stealth Sex (over 50%): the game never added buttons after "Take her up on that?", so Next looped
+Replace [main.js]:
+output("\n\nTake her up on that?"))}))}),"You"
+With:
+output("\n\nTake her up on that?"),window.tnBiancaStealthEnd?window.tnBiancaStealthEnd():(clearMenu(),addButton(0,"Next",(function(){window.biancaGoneForTheDay(),mainGameMenu()}))))}))}),"You"
+
+# Bar Stealth Sex at 100%: the game had no opening text at all
+Replace [main.js]:
+output("\n\nUh oh."))),processTime(5),pc.changeLust(5),clearMenu(),addButton(0,"You"
+With:
+output("\n\nUh oh."))),bianca.familiarity()>=100&&window.tnBiancaStealth100&&window.tnBiancaStealth100(),processTime(5),pc.changeLust(5),clearMenu(),addButton(0,"You"

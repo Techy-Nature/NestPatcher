@@ -1,8 +1,8 @@
 /*
- * TN_BiancaExtras_v2.9.js - "Bianca Extras" (NestPatcher runtime mod, TiTS 0.9.168), Modv2.9
+ * TN_BiancaExtras_v3.0.js - "Bianca Extras" (NestPatcher runtime mod, TiTS 0.9.168), Modv3.0
  * Author: Neston. Scene text by William (Dr. Bianca Ketria Part 1 and Part 2 docs) unless marked.
  *
- * Needs TN_BiancaExtras_v2.9.mod (the game hooks). Fills in the parts of William's two Bianca
+ * Needs TN_BiancaExtras_v3.0.mod (the game hooks). Fills in the parts of William's two Bianca
  * docs that never made it into the game:
  *   Part 1: the Direct / Playful / Lewd approaches when you find her on a tile (51%+),
  *     Intro 12 + the cold booth (after the third cuddle, until you confront her), the one-time
@@ -26,6 +26,15 @@
  *   TN_BX_CONFRONT_TS, TN_BX_SHIP (nights aboard), TN_BX_MISSIONARY, TN_BX_ANAL, TN_BX_DITZY,
  *   TN_BX_TREATED, TN_BX_BOOTHCOLD, TN_BX_MET_KASE. Sets the game's own
  *   BIANCA_CONFRONTED and BIANCA_MET_ANNO flags.
+ * Fixes (Modv3.0, 2026-11-16):
+ *   - Confess never counted: the game's Bianca.isLover() always says no, even after
+ *     makeLover() sets BIANCA_LOVER. Now lover = BIANCA_LOVER (the .mod fixes isLover too),
+ *     so Intimate / Int. Doggy on your ship and the bar Cuddle open after you confess.
+ *     Saves that already confessed unlock right away.
+ *   - The game's own bar Stealth Sex (over 50%) ended on "Take her up on that?" with no
+ *     buttons, so Next replayed the last page forever with no time passing. Now it asks
+ *     Yes (straight to a night on your ship) or Not Tonight.
+ *   - At 100% that Stealth Sex had no opening text at all; it has one now.
  * Toggle: Options -> Android Mods -> "Bianca Extras". Turning it off hides everything this mod
  *   adds, but her familiarity is never pulled back down, so nothing is lost.
  */
@@ -133,6 +142,11 @@
     S["surprise_outro"]=function(){return "Both girls collect themselves and take their seats either side of you, resting their heads on your shoulders. You wrap your arms around them and cuddle in the velveteen afterglow.\n\n<i>“That hit the spot, [pc.name]. Thanks for that.”</i> Anno says, twirling a finger on your chest. Bianca says nothing, just chuckling quietly while enjoying the company.\n\n<i>“Feel like taking us to bed? Could use some rest after that.”</i> The snowy pup suggests, and Bianca perks up. <i>“Or, you know… A little moooreee…”</i>\n\nThere’s an idea...!";};
     S["bar_init1"]=function(){return "<i>“[pc.name],”</i> Bianca starts well before you open your mouth, <i>“"+((C.wild())?("how are you doing today?"):(((!C.wild())?("how was your day today?"):(""))))+"”</i>\n\nThis is new. You tell her about what you were up to today, and a little bit about yesterday. She asks a multitude of questions about your health, your energy... and your lust. You assure her that you’re just fine.\n\n<i>“I’m glad!”</i> She exclaims cheerily. <i>“So, anything on your mind?”</i>";};
     S["bar_init2"]=function(){return "Before you open your mouth to talk, Bianca runs her hands down all over you in an impromptu checkup. Happy that you’re in good shape, she hugs you. <i>“Was your day alright? Have you made progress in your search?”</i>\n\nYou explain what you’ve been up to as succinctly as possible, and her fears are allayed. For now.\n\nShe can be so cute sometimes.";};
+    /* Neston: the game's bar Stealth Sex, its 100% opening and its missing ending (Modv3.0 fix). */
+    S["stealth_100"]=function(){return "Bianca has you tucked under one arm, her "+((C.loverSeen())?("three"):("two"))+" tails curled around your waist like a seatbelt nobody else can see. She hasn’t said a word in minutes. She doesn’t have to; the slow circles her thumb draws on your hip say it all, and so does the way she keeps glancing at the floor beneath the table, then back at you.\n\nWhen you finally catch her at it, she doesn’t even pretend to be embarrassed. <i>“You know me too well by now, [pc.name],”</i> she murmurs, leaning in until her glasses nearly bump your cheek. "+((C.loverSeen())?("<i>“And I know you. So tell me, love. Who is getting spoiled tonight?”</i>"):("<i>“I have stopped pretending I don’t want this. So, who is getting spoiled tonight?”</i>"))+"\n\nThe bar is loud, the booth is dark, and the two of you are very, very close.";};
+    S["stealth_yes"]=function(){return "You don’t trust your voice yet, so you just nod. Bianca’s grin goes wide and wicked. She dabs the last of the mess from your face, tucks her napkin away like a surgeon finishing up, and takes your hand under the table.\n\n<i>“Then let’s not keep your bed waiting.”</i>\n\nShe leads you out of the bar at a pace that’s almost indecent, "+((C.exhibLow())?("and you keep your head down past every table, sure that someone can tell exactly what you were just doing."):("and you don’t bother hiding your dopey smile from anyone who glances your way."))+" Her tails wag the whole way to the landing pad. By the time your airlock hisses open, she’s already pulling you inside for a kiss that tastes like her, and she doesn’t let go of your hand until you reach your quarters.";};
+    S["stealth_yes_first"]=function(){return "You don’t trust your voice yet, so you just nod. Bianca’s grin goes wide. She dabs the last of the mess from your face and settles back into the booth, waiting for you to catch your breath, her fingers drumming on your knee.\n\nOnce you can think in full sentences again, an old memory surfaces: the first time you sat with her like this, and the question you asked her back then.";};
+    S["stealth_no"]=function(){return "As tempting as she makes it sound, you’ve still got things to do tonight. You tell her so, and ask for a rain check.\n\n<i>“A rain check,”</i> Bianca repeats, mock-offended, before she melts into a fond smile. She kisses your temple and straightens your clothes for you, fussing like the doctor she is. <i>“I will hold you to that, [pc.name]. Go. Drink some water, and be careful out there.”</i>\n\nShe gathers her things and slips out of the booth, her tails brushing your [pc.legs] one last time on the way past.";};
 
     /* ---------- State ---------- */
     var CTX = {};          // per-encounter / per-night context
@@ -148,7 +162,7 @@
         return s;
     }
     function loveTrack() { return st() >= 4; }
-    function isLover() { return safe(function () { return bianca.isLover(); }, false); }
+    function isLover() { return num("BIANCA_LOVER") === 1 || safe(function () { return bianca.isLover(); }, false); }
     function bypass() { return safe(function () { return !!(window.tnBB && window.tnBB(pc)); }, false); }
     function compatible() {
         return safe(function () {
@@ -633,29 +647,30 @@
     }
 
     /* ---------- Your Ship ---------- */
-    function doShip() {
+    function doShip(fromStealth) {
         CTX = { wild: false, night: true };
         var first = !num("TN_BX_SHIP");
-        if (first) { play(["ship_first"], nightMenu, { bust: "NUDE" }); return; }
+        if (first) { play(fromStealth === true ? ["stealth_yes_first", "\f", "ship_first"] : ["ship_first"], nightMenu, { bust: "NUDE" }); return; }
+        var lead = fromStealth === true ? "stealth_yes" : "ship_repeat";
         var sw = safe(function () { return window.getCrewSleepWith(); }, "");
         var annoOk = sw === "ANNO" && safe(function () { return anno.isCrew(); }, false);
         var kaseOk = sw === "KASE" && safe(function () { return kase.isCrew(); }, false) && flags.BIANCA_TALKED_KASE !== undefined;
         if (annoOk) {
-            play(["ship_repeat", "ship_anno"], function () {
+            play([lead, "ship_anno"], function () {
                 flags.BIANCA_MET_ANNO = 1;
                 clearMenu();
                 addButton(0, "Anno Stays", function () { CTX.annoStay = true; clearMenu(); nightMenu(); }, "Anno Stays", "Sharing a bed with two horny girls seems like the right idea!");
                 addButton(1, "Anno Leaves", function () { play(["ship_anno_leaves"], nightMenu, { bust: "NUDE" }); }, "Anno Leaves", "Your perky pup’s going to have to sit this one out.");
             }, { bust: "NUDE" });
         } else if (kaseOk) {
-            play(["ship_repeat", "ship_kase"], function () {
+            play([lead, "ship_kase"], function () {
                 flags.TN_BX_MET_KASE = 1;
                 clearMenu();
                 addButton(0, "Kase Stays", function () { CTX.kaseStay = true; clearMenu(); nightMenu(); }, "Kase Stays", "Bianca seems smitten with the kitty. Of course he can stay!");
                 addButton(1, "Kase Leaves", function () { play(["ship_kase_leaves"], nightMenu, { bust: "NUDE" }); }, "Kase Leaves", "You’ve set this night aside for Bianca alone. Kase will have to sit this one out.");
             }, { bust: "NUDE" });
         } else {
-            play(["ship_repeat", "ship_alone"], nightMenu, { bust: "NUDE" });
+            play([lead, "ship_alone"], nightMenu, { bust: "NUDE" });
         }
     }
     function nightSex(nm, flag, opts) {
@@ -716,6 +731,35 @@
         safe(function () { bianca.familiarity(1); });
         play(["ship_morning"], function () { CTX = {}; next(mainGameMenu); }, { bust: "CASUAL", author: "Neston" });
     }
+
+    /* ---------- The game's own bar Stealth Sex: its missing ending + 100% opening ---------- */
+    // The game ends the over-50% version on "Take her up on that?" and never adds buttons, so
+    // the old Next button replays that page forever. The .mod calls this there instead.
+    function stealthDone() { CTX = {}; safe(function () { window.biancaGoneForTheDay(); }); mainGameMenu(); }
+    window.tnBiancaStealthEnd = function () {
+        try {
+            clearMenu();
+            if (!on() || !loveTrack()) {
+                addButton(0, "Next", stealthDone);
+                return;
+            }
+            addButton(0, "Yes", function () { doShip(true); }, "Yes", "Let her march you back to your ship. The night is far from over.");
+            addButton(1, "Not Tonight", function () {
+                CTX = { wild: false };
+                play(["stealth_no"], function () { safe(function () { processTime(5); }); next(stealthDone); }, { bust: "CASUAL", author: "Neston" });
+            }, "Not Tonight", "You’ve got other things to do. Promise her a rain check.");
+        } catch (err) {
+            if (window.console) console.error("[Bianca Extras] stealth end", err);
+            clearMenu(); addButton(0, "Next", stealthDone);
+        }
+    };
+    window.tnBiancaStealth100 = function () {
+        try {
+            if (!on() || fam() < 100) return;
+            CTX = { wild: false };
+            output(pagesOf(["stealth_100"]).join("\n\n"));
+        } catch (err) {}
+    };
 
     /* ---------- Bar menu hook ---------- */
     window.tnBiancaBarMenu = function () {

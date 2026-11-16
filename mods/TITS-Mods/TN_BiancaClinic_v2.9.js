@@ -2,7 +2,7 @@
  * TN_BiancaClinic_v2.9.js - "Bianca's Clinic" (NestPatcher runtime mod, TiTS 0.9.168), Modv2.9
  * Author: Neston
  *
- * Needs Bianca Extras (TN_BiancaExtras_v2.9.mod + .js) and TN_BiancaClinic_v2.9.mod (hooks).
+ * Needs Bianca Extras (TN_BiancaExtras_v3.0.mod + .js) and TN_BiancaClinic_v2.9.mod (hooks).
  * After your talk with Bianca on Tavros (the start of her love track), she opens Ketria Clinic,
  * a small shared practice on Tavros' Merchant Deck, just west of the Merchant's Thoroughfare
  * corner between Anon's Bar and the Treetop Tattoo street. It gives her steady work without
