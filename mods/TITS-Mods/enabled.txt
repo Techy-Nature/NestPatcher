@@ -72,3 +72,4 @@ TN_ShekkaGeneTalk_v2.9.js
 TN_ShekkaEggs_v2.9.js
 TN_RooCrew_v2.9.mod
 TN_RooCrew_v2.9.js
+TN_HapticsPlus_v3.0.js
