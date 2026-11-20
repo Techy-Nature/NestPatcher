@@ -1,6 +1,6 @@
 Name: Bimbo-Sub Siegwulfe
 Author: Neston
-# TN_SiegwulfeSub - NestPatcher mod (TiTS 0.9.168), Modv2.9
+# TN_SiegwulfeSub - NestPatcher mod (TiTS 0.9.168), Modv2.9 (collar scene flipped in Modv3.0)
 # Dr. Badger can flip your bimbo-domme Siegwulfe's code around: same body, same stats, same
 # hardlight cock, but now she's the one who's infatuated. She's submissive to Steele and
 # nobody else, and anyone who threatens Steele gets a faceful of her whip-tail.
@@ -17,18 +17,33 @@ Author: Neston
 #   - When her lust runs high she doesn't pounce any more: she asks, and takes no for an answer.
 #   - Combat: same damage as her domme self, new lines. She plants herself between you and
 #     the enemy and lashes them with her three-tendril tail.
-#   - Her domme extras (leash, belly ride, custom collar, treats) wait until she's flipped back.
+#   - Custom collar (Tavros, a week after she goes sub): Steele has a collar made for HER,
+#     picking the material and the tag engraving. The game's domme version (her collaring
+#     Steele) only shows while she's a domme.
+#   - Her other domme extras (leash, belly ride, treats) wait until she's flipped back.
 # Toggle: Options -> Android Mods -> "Bimbo-Sub Siegwulfe". Turned off, she acts like her
 # domme self again (her sub setting is kept for when you turn it back on).
 # Flags: TN_WULFE_SUB (1 = sub code), TN_WULFE_SUB_PENDING, TN_WULFE_SUB_NAME, TN_WULFE_SUB_TS,
-# TN_WULFE_SUB_SEXED, TN_WULFE_HACKED.
+# TN_WULFE_SUB_SEXED, TN_WULFE_HACKED, TN_WULFE_SUB_COLLAR(_LASTASK/_MAT/_TAG).
 
 # --- Siegwulfe menus (content_follower) ---
 
 Replace [content_follower.js]:
-wulfe.isDom()&&(@@n@@||@@a@@)?window.bimbowulfeDomCustomCollar():(@@e@@?(wulfe.isDom()&&!InShipInterior()?(author("Wsan")
+>=900&&@@o@@;wulfe.isDom()&&(@@n@@||@@a@@)?window.bimbowulfeDomCustomCollar():(@@e@@?(wulfe.isDom()&&!InShipInterior()?(author("Wsan")
 With:
-wulfe.isDom()&&(@@n@@||@@a@@)&&!(window.tnWulfeSubOn&&window.tnWulfeSubOn())?window.bimbowulfeDomCustomCollar():(@@e@@?(window.tnWulfeSubOn&&window.tnWulfeSubOn()?window.tnWulfeSubGreet():wulfe.isDom()&&!InShipInterior()?(author("Wsan")
+>=900&&@@o@@;(window.tnWulfeSubOn&&window.tnWulfeSubOn()?!(!window.tnWulfeSubCollarDue||!window.tnWulfeSubCollarDue(@@o@@)):wulfe.isDom()&&(@@n@@||@@a@@))?window.bimbowulfeDomCustomCollar():(@@e@@?(window.tnWulfeSubOn&&window.tnWulfeSubOn()?window.tnWulfeSubGreet():wulfe.isDom()&&!InShipInterior()?(author("Wsan")
+
+# Custom collar: in sub mode Steele has one made for HER (the game's scene has her collaring Steele).
+# Covers both ways in: approaching her on Tavros (above) and the Tavros landing event (main.js).
+Replace [content_follower.js]:
+void @@iH@@()})),addButton(1,"Want More",@@cH@@)},window.bimbowulfeDomCustomCollar=function(){
+With:
+void @@iH@@()})),addButton(1,"Want More",@@cH@@)},window.bimbowulfeDomCustomCollar=function(){if(window.tnWulfeSubOn&&window.tnWulfeSubOn())return window.tnWulfeSubCollar(@@iH@@);
+
+Replace [content_follower.js]:
+window.bimbowulfeDomCanCustomCollarOffer=@@IH@@,
+With:
+window.bimbowulfeDomCanCustomCollarOffer=function(){return window.tnWulfeSubOn&&window.tnWulfeSubOn()?!(!window.tnWulfeSubCollarDue||!window.tnWulfeSubCollarDue(!0)):@@IH@@()},
 
 Replace [content_follower.js]:
 function @@iH@@(){clearMenu();var @@e@@=wulfe.isDom(),@@t@@=InRoomWithFlag(@@Ba@@.tb.FAPPING_ILLEGAL);if(@@e@@){
@@ -234,7 +249,8 @@ Add Javascript:
     };
 
     window.tnWulfeSubLooks = function () {
-        output(" a sign of submission and of your ownership of her again. She touches her dog-tags whenever she catches you looking at them.");
+        if (flags.TN_WULFE_SUB_COLLAR === 2) output(" or it did, until you had a new one made just for her. Now a custom " + flags.TN_WULFE_SUB_COLLAR_MAT + " collar sits there in its place, its little tag engraved <i>“" + collarTag(flags.TN_WULFE_SUB_COLLAR_TAG) + "”</i>. Her old dog-tags are tucked safely away inside her chassis. She touches the new tag whenever she catches you looking at it.");
+        else output(" a sign of submission and of your ownership of her again. She touches her dog-tags whenever she catches you looking at them.");
         output("\n\nBelow her stomach an inconspicuous port hides her scandalous secret: a thick, hulking dogcock with a gigantic knot, twenty-five inches of projected pleasure when she switches it on. Since Dr. Badger’s second visit, it only comes out when you say so.");
     };
     window.tnWulfeSubLeave = function () {
@@ -261,6 +277,151 @@ Add Javascript:
         ]);
         if (pc.lust() < 20) pc.changeLust(5);
         IncrementFlag("WULFE_PETTED");
+        addButton(0, "Next", back);
+    }
+
+    // ---------- her collar (sub version of the game's custom collar offer) ----------
+    // The game's own scene has her collaring Steele. In sub mode Steele gets one made for her.
+    // Flags: TN_WULFE_SUB_COLLAR (1 = asked, said later; 2 = made), TN_WULFE_SUB_COLLAR_LASTASK,
+    // TN_WULFE_SUB_COLLAR_MAT, TN_WULFE_SUB_COLLAR_TAG. The domme's own collar flags are left alone.
+    var COLLAR_MATS = [
+        ["black leather", 250, "Black Leather"],
+        ["pink leather", 250, "Pink Leather"],
+        ["reinforced red silk", 500, "Red Silk"],
+        ["carbon fiber", 1000, "Carbon Fiber"],
+        ["polished chrome", 2500, "Chrome"],
+        ["silver", 10000, "Silver"],
+        ["gold", 20000, "Gold"]
+    ];
+    function collarTag(key) {
+        if (key === "property") return "Property of " + pc.short;
+        if (key === "goodgirl") return "Good Girl";
+        return wulfe.short;
+    }
+    window.tnWulfeSubCollarDue = function (onTavros) {
+        try {
+            if (!subOn() || onTavros === false) return false;
+            var st = flags.TN_WULFE_SUB_COLLAR;
+            if (st === 2) return false;
+            var now = GetGameTimestamp();
+            if (st === 1) return now - (flags.TN_WULFE_SUB_COLLAR_LASTASK || 0) >= 900;
+            if (!flags.TN_WULFE_SUB_TS) { flags.TN_WULFE_SUB_TS = now; return false; }
+            return now - flags.TN_WULFE_SUB_TS >= 7 * 1440;
+        } catch (err) { return false; }
+    };
+    window.tnWulfeSubCollar = function (back) {
+        if (typeof back !== "function") back = mainGameMenu;
+        var again = flags.TN_WULFE_SUB_COLLAR === 1;
+        flags.TN_WULFE_SUB_COLLAR = 1;
+        flags.TN_WULFE_SUB_COLLAR_LASTASK = GetGameTimestamp();
+        scene(false);
+        processTime(3 + rand(3));
+        var lines = [];
+        if (again) {
+            lines.push("[wulfe.name] is fiddling with her dog-tags again. She’s been doing that a lot since you brought it up, turning the scuffed old tags over and over between her claws, then letting them drop the moment she thinks you might notice.");
+        } else {
+            lines.push("You catch [wulfe.name] fiddling with her collar. It’s the same tight strip of leather she wore before Dr. Badger ever got her paws on her, scuffed at the edges now, the dog-tags scratched from a hundred fights she threw herself into on your behalf. She turns them over and over between her claws, then lets them drop the moment she sees you looking.");
+            lines.push(q("Sorry, " + N() + ",") + " she says quickly. " + q("It’s, like, nothing. It just itches sometimes."));
+        }
+        lines.push(body({
+            biped: "You step in close and tip her chin up with two fingers. She goes still at once and folds her forelegs, lowering herself without being asked so you don’t have to reach.",
+            taur: "You step in alongside her, flank against chrome flank, and reach over to tip her chin up with two fingers. She goes still at once, leaning her weight into your side.",
+            naga: "You rise up on your coils until you’re level with her and tip her chin up with two fingers. She goes still at once, and her tail slides around a loop of your scales to hold on."
+        }));
+        lines.push("Slowly, you trace a finger along the old leather, all the way around her neck, until you’re back where you started at the front of her throat. Her ears swivel forward and stay there. You can hear her cooling fans spin up.");
+        lines.push(q("I was thinking,") + " you tell her, " + q("it’s about time you had a collar that was actually made for you. Something new. With a proper tag, so everybody on this station knows exactly whose girl you are."));
+        lines.push("For a second she doesn’t say anything at all. Then her visor slides all the way up and she just stares at you, red eyes huge.");
+        lines.push(q("You’d...") + " She swallows, which is a very organic thing for a machine to do. " + q("You’d get me one? Like, pick it out and put it on me and everything? Just for me?"));
+        lines.push(q("Just for you."));
+        lines.push("Her tail curls tight around you" + body({ biped: "r waist", taur: "r flank", naga: "r coils" }) + ", and she presses her cheek into your palm. " + q("Yes. Please, " + N() + ". I want everyone to know. And,") + " her voice drops flat for half a breath, " + q("anybody who doesn’t like it can take it up with my tail."));
+        say(lines);
+        clearMenu();
+        addButton(0, "Maybe Later", function () { collarLater(back); }, "Maybe Later", "Not right now. She can wait.");
+        addButton(1, "Get Her One", function () { collarShop(back); }, "Get Her One", "Take her to the merchant deck and have one made for her.");
+    };
+    function collarLater(back) {
+        scene(false);
+        processTime(2);
+        say([
+            "You tell her you’re in a bit of a hurry right now, but you mean it. Soon.",
+            "[wulfe.name]’s ears dip for just a moment before they come back up. " + q("Okay, " + N() + ". That’s okay.") + " Her claws find her old tags again, gently this time. " + q("I’m, like, really good at waiting for you now. I’ll be right here.")
+        ]);
+        clearMenu();
+        addButton(0, "Next", back);
+    }
+    function collarShop(back) {
+        scene(false);
+        processTime(10 + rand(6));
+        say([
+            "You head for the merchant deck with [wulfe.name] at your heel, so close her shoulder keeps brushing your " + body({ biped: "hip", taur: "flank", naga: "side" }) + ". Every time somebody in the crowd drifts too near you, her visor drops and her ears pin back, and they discover somewhere else to be. She looks up at you each time, as if to check you saw her being good.",
+            "It doesn’t take long to find a shop that does custom accessories. Display cases line the brightly lit interior: belts, bracelets, even ultraviolet optical shields. At the far end a stylishly dressed laquine with orange fur looks up with a practiced customer-service smile.",
+            q("Hello, [pc.mister], how may I help you today?") + " she asks, gaze locked firmly on your face and very much not on [wulfe.name]’s enormous, entirely bare chest.",
+            q("She needs a collar,") + " you say, laying a hand on [wulfe.name]’s helm. " + q("A new one, made just for her. Only the best."),
+            "[wulfe.name] makes a small, happy sound and leans into your hand so hard you nearly lose your footing.",
+            q("Oh! Of course.") + " The laquine looks almost relieved, which makes you wonder what sort of customers she usually gets with a droid like this one. She leads you to a mounted holo pad next to a case full of sample textiles, metals and gemstones. " + q("Everything we can work with is listed here, with prices. Pick the material and the engraving, and we’ll have it ready while you wait."),
+            "[wulfe.name] doesn’t even look at the samples. She’s watching you choose."
+        ]);
+        collarPickMat(back);
+    }
+    function collarPickMat(back) {
+        clearMenu();
+        COLLAR_MATS.forEach(function (m, i) {
+            var label = m[2];
+            var tip = "Base it on " + m[0] + ".\n\n<b>Cost:</b> " + m[1].toLocaleString() + " Credits";
+            if (pc.credits < m[1]) addDisabledButton(i, label, label, "You can’t afford " + m[0] + ".\n\n<b>Cost:</b> " + m[1].toLocaleString() + " Credits");
+            else addButton(i, label, function () { collarPickTag(back, m); }, label, tip);
+        });
+        addButton(14, "Never Mind", function () { collarLater(back); }, "Never Mind", "Maybe another day.");
+    }
+    function collarPickTag(back, mat) {
+        clearOutput();
+        author("Neston");
+        wulfe.showAll();
+        say([
+            "You settle on " + mat[0] + ". [wulfe.name]’s tail gives one slow, delighted swish.",
+            "Next, the tag. The holo pad offers a blank one, waiting for an engraving."
+        ]);
+        clearMenu();
+        var tags = [
+            ["name", "Her Name", "Engrave it with her name: “" + wulfe.short + "”."],
+            ["property", "Yours", "Engrave it: “Property of " + pc.short + "”."],
+            ["goodgirl", "Good Girl", "Engrave it: “Good Girl”."]
+        ];
+        tags.forEach(function (t, i) {
+            addButton(i, t[1], function () { collarBuy(back, mat, t[0]); }, t[1], t[2] + "\n\n<b>Total:</b> " + mat[1].toLocaleString() + " Credits");
+        });
+        addButton(14, "Back", function () { collarPickMat(back); });
+    }
+    function collarBuy(back, mat, tagKey) {
+        pc.credits -= mat[1];
+        flags.TN_WULFE_SUB_COLLAR = 2;
+        flags.TN_WULFE_SUB_COLLAR_MAT = mat[0];
+        flags.TN_WULFE_SUB_COLLAR_TAG = tagKey;
+        delete flags.TN_WULFE_SUB_COLLAR_LASTASK;
+        scene(false);
+        processTime(25 + rand(11));
+        var tag = collarTag(tagKey);
+        var lines = [
+            "You pay, and the laquine disappears into the back. Twenty minutes later she returns with a slim box and sets it on the counter in front of you, not [wulfe.name].",
+            "Inside, nestled in velvet, is a collar of " + mat[0] + ", cut to the exact measure of your Siegwulfe’s neck, with a small polished tag hanging from the ring. The engraving catches the light: <b>“" + tag + "”</b>.",
+            body({
+                biped: "[wulfe.name] folds down in front of you before you’ve even picked it up, forelegs tucked, head bowed so you can reach the buckle of her old collar.",
+                taur: "You step in alongside [wulfe.name] again, and she bows her head beside your shoulder so you can reach the buckle of her old collar.",
+                naga: "You coil up to her height, and [wulfe.name] bows her head into the curve of your body so you can reach the buckle of her old collar."
+            }),
+            "The old leather comes away. She shivers at the bare air on her neck, and for a heartbeat she looks almost lost. " + q("Can I keep the old tags?") + " she whispers. " + q("They were, like, the first thing you ever gave me.") + " You press them into her hand, and she tucks them carefully into a panel in her chassis.",
+            "Then you fasten the new one. The buckle clicks shut, and [wulfe.name] lets out a breath she doesn’t technically need, long and shaky. She lifts a hand to the tag and turns it so she can read it, then reads it again.",
+            (tagKey === "property" ? q("Property of " + pc.short + ",") + " she reads aloud, and her voice catches on your name." :
+                tagKey === "goodgirl" ? q("Good girl,") + " she reads aloud, and then, much quieter, as if she’s checking: " + q("...Am I?") + " You tell her she is. Her ears go straight up." :
+                q("That’s me,") + " she says, sounding a little amazed. " + q("You put my name on it. Like, my name, that you gave me.")),
+            q("How does it feel?") + " you ask.",
+            q("Like I’m yours,") + " she says simply. " + q("Like, I always was, but now everybody can </i>see<i> it.") + " Her tail wraps around you" + body({ biped: "r waist", taur: "r flank", naga: "r coils" }) + " and squeezes. " + q("Thank you, " + N() + ". I’ll never take it off. Not ever."),
+            "On the way out, a dock worker lets his eyes linger on you a little too long. [wulfe.name]’s visor snaps down, her tail lifts with all three tendrils fanned, and the new tag gives a bright little <i>clink</i> as she steps between you. The worker suddenly remembers urgent business elsewhere.",
+            "When you glance down at her, the visor is already back up, and she’s smiling at you like nothing happened. Her fingers are resting on the tag."
+        ];
+        say(lines);
+        IncrementFlag("WULFE_PETTED");
+        clearMenu();
         addButton(0, "Next", back);
     }
 
