@@ -1,9 +1,9 @@
 /*
- * TN_ShekkaEggs_v2.9.js - "Shekka's Eggs" (NestPatcher runtime mod, TiTS 0.9.168), Modv2.9
+ * TN_ShekkaEggs_v3.0.js - "Shekka's Eggs" (NestPatcher runtime mod, TiTS 0.9.168), Modv3.0
  * Author: Neston
  *
- * The happy ending for Shekka's Gene Talk (TN_ShekkaGeneTalk_v2.9.mod + .js, needed).
- * A week after Dr. Rewell's last treatment, Shekka is ready: she asks Steele to give her eggs.
+ * The happy ending for Shekka's Gene Talk (TN_ShekkaGeneTalk_v3.0.mod + .js, needed).
+ * A week after her last treatment (Dr. Rewell's or Dr. McAllister's), Shekka is ready: she asks Steele to give her eggs.
  *   - "Eggs" in crew Shekka's Talk menu (slot 6). Steele needs a cock that fits her and some
  *     virility. Sex scene with biped, taur and naga versions. It always takes.
  *   - Two weeks of pregnancy. Shekka stays on the ship and keeps working, and you can check on
@@ -45,7 +45,7 @@
             id: MOD_ID,
             name: "Shekka's Eggs",
             author: "Neston",
-            description: "The happy ending for Shekka's Gene Talk: once Dr. Rewell's treatment is done, Shekka asks you for eggs of her own. She carries on the ship, lays her egg, and sends it to your nursery on Tavros, where Briget gives it the best care and then some. Needs Shekka's Gene Talk.",
+            description: "The happy ending for Shekka's Gene Talk: once her treatment is done (Dr. Rewell's or Dr. McAllister's), Shekka asks you for eggs of her own. She carries on the ship, lays her egg, and sends it to your nursery on Tavros, where Briget gives it the best care and then some. Needs Shekka's Gene Talk.",
             supportsToggle: true
         });
         return true;
@@ -419,9 +419,15 @@
         return {
             content: function () {
                 var first = n === 1;
+                var mca = safe(function () { return window.tnShekkaGeneTalk.route() === "mcallister"; }, false);
+                var scan1 = mca
+                    ? "Dr. McAllister of Xenogen had its first scans sent to him on Myrellion this morning, free of charge, and called back within the hour to pronounce it, quote, \"Magnificent! Look at that heartbeat, eh?\" He talked for two hours. A gold myr queen he apparently knows sent over a jar of honey, addressed to the mother."
+                    : "Dr. Rewell came by from Ketria Clinic this morning to scan it, free of charge, and pronounced it, quote, \"Perfect. Absolutely perfect. Look at that heartbeat.\" He stayed for two hours. A receptionist from the same clinic sent over a little knitted cozy for the incubator. It has wings on it.";
+                var scan2 = mca ? "Dr. McAllister looked over its scans from Myrellion this morning and says it is magnificent." : "Dr. Rewell scanned it this morning and says it is perfect.";
+                var heirloom = mca ? "its older sibling's honey jar (empty, washed, and much admired) has been passed down" : "its older sibling's knitted cozy has been passed down";
                 var t = "Dear [pc.name],\n\n" + (first
-                    ? "Your egg has arrived safely at the nursery, along with a twelve-page set of handling instructions from its mother. I have read all twelve pages. I have also implemented all twelve pages. And then some.\n\nThe incubator has been retuned to the exact temperature and humidity of a Tarkus sand nest in the warm season, per page three. It has been padded with a blanket that smells of its mother, per page five. Its shell is turned by hand every four hours, per page seven, and I sing to it while I do it, which is not on any page but which I did for you, too.\n\nDr. Rewell came by from Ketria Clinic this morning to scan it, free of charge, and pronounced it, quote, \"Perfect. Absolutely perfect. Look at that heartbeat.\" He stayed for two hours. A receptionist from the same clinic sent over a little knitted cozy for the incubator. It has wings on it.\n\nWe have also hired a raskvel tutor, a soil-chemistry engineer and a children's mechanic for when the little one is ready. I believe its mother will approve.\n\nI will write again the moment it hatches. Expect about two weeks."
-                    : "Another egg from Shekka has arrived safely, along with an updated set of handling instructions. Fourteen pages this time. I have implemented all fourteen, the old incubator has been warmed back up, and its older sibling's knitted cozy has been passed down with great ceremony. Dr. Rewell scanned it this morning and says it is perfect.\n\nI will write again when it hatches.") + "\n\nWith love,\n\nBriget";
+                    ? "Your egg has arrived safely at the nursery, along with a twelve-page set of handling instructions from its mother. I have read all twelve pages. I have also implemented all twelve pages. And then some.\n\nThe incubator has been retuned to the exact temperature and humidity of a Tarkus sand nest in the warm season, per page three. It has been padded with a blanket that smells of its mother, per page five. Its shell is turned by hand every four hours, per page seven, and I sing to it while I do it, which is not on any page but which I did for you, too.\n\n" + scan1 + "\n\nWe have also hired a raskvel tutor, a soil-chemistry engineer and a children's mechanic for when the little one is ready. I believe its mother will approve.\n\nI will write again the moment it hatches. Expect about two weeks."
+                    : "Another egg from Shekka has arrived safely, along with an updated set of handling instructions. Fourteen pages this time. I have implemented all fourteen, the old incubator has been warmed back up, and " + heirloom + " with great ceremony. " + scan2 + "\n\nI will write again when it hatches.") + "\n\nWith love,\n\nBriget";
                 return parse(t);
             },
             subject: n === 1 ? "Your egg has arrived" : "Another egg has arrived",
