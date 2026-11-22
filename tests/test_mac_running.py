@@ -1,7 +1,7 @@
 """Checks the Mac "is TiTS running?" test with fake `ps` output.
 
     python tests/test_mac_running.py patchers/NestPatcher_TiTS_Mac_v1.9.py
-    python tests/test_mac_running.py patchers/NestPatcher_TiTS_Linux_v1.12.py
+    python tests/test_mac_running.py patchers/NestPatcher_TiTS_Linux_v1.13.py
 """
 import sys
 import importlib.util
@@ -39,7 +39,7 @@ check("an exported TiTS.app in NestExports is not this game",
 check("the patcher inside the game folder is not the game",
       not nest.mac_running_from_game(ps(*base[:2], (me, 200, "/usr/bin/python3 " + win + "/NestPatcher_TiTS_Mac_v1.9.py")), win, me))
 check("the patcher's parent (a launcher in the game folder) is not the game",
-      not nest.mac_running_from_game(ps(base[0], (200, 1, win + "/NestPatcher_GUI_v0.14"), (me, 200, "python3 x.py")), win, me))
+      not nest.mac_running_from_game(ps(base[0], (200, 1, win + "/NestPatcher_GUI_v0.15"), (me, 200, "python3 x.py")), win, me))
 found = nest.mac_running_from_game(ps(*base, (500, 1, "wine64-preloader Z:" + win.replace("/", "\\") + "\\TiTS.exe")), win, me)
 check("TiTS.exe through Wine/CrossOver is the game", bool(found) and "500" in found)
 

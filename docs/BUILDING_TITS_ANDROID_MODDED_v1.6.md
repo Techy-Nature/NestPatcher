@@ -1,6 +1,6 @@
 # Building a Modded TiTS Android APK with NestPatcher
 
-For **NestPatcher Android patcher 1.6** and the **NestPatcher Android app 0.10** (part of the Patchers_v1.12 release). NestPatcher is based on KittyPatcher by LibraKitty, but it is not KittyPatcher: don't use both on the same game.
+For **NestPatcher Android patcher 1.6** and the **NestPatcher Android app 0.10** (part of the Patchers_v1.13 release). NestPatcher is based on KittyPatcher by LibraKitty, but it is not KittyPatcher: don't use both on the same game.
 
 This guide takes the game you extracted with [EXTRACTING_TITS_ANDROID_APK_v1.6.md](EXTRACTING_TITS_ANDROID_APK_v1.6.md), patches your mods into it, packs it back into an APK, signs it, and installs it. Everything happens on the phone, in **Termux**. Signing runs in **Debian through `proot-distro`**, because Termux's own Java crashes on some Android 16 phones.
 
@@ -98,7 +98,7 @@ ls -lh extracted/apk/assets/www/index.html
 
 ## 4. Get NestPatcher
 
-1. On GitHub, open **Techy-Nature/NestPatcher → Releases** and open the newest **Patchers_v…** release (Patchers_v1.12 right now).
+1. On GitHub, open **Techy-Nature/NestPatcher → Releases** and open the newest **Patchers_v…** release (Patchers_v1.13 right now).
 2. Download `NestPatcher_TiTS_Android_v1.6.py`.
 3. Move it into `TITS-Modding/TITS-Patcher/` with the Files app.
 4. Delete any older patcher from that folder (`KittyPatcher_TiTS_Android.py`, `NestPatcher_TiTS_Android_v1.5.py`, …) so you can't run the wrong one.

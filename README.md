@@ -18,18 +18,18 @@ NestPatcher puts mods (`.mod` patch files and `.js` scripts) into **Trials in Ta
 
 | You are on | Use | Guide |
 |---|---|---|
-| Windows 10/11, no installing | `NestPatcher_GUI_v0.14_Windows.zip` from [Releases](../../releases) | [Guide_GUI_v0.14.md](docs/Guide_GUI_v0.14.md) |
-| Linux, no installing | `NestPatcher_GUI_v0.14-x86_64.AppImage` from [Releases](../../releases) | [Guide_GUI_v0.14.md](docs/Guide_GUI_v0.14.md) |
-| Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.12.py`](patchers/) + `NestPatcher_Windows_v1.12.bat` | [Guide_Windows_v1.12.md](docs/Guide_Windows_v1.12.md) |
-| Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.12.py`](patchers/) + `nestpatcher_linux_v1.12.sh` | [Guide_Linux_v1.12.md](docs/Guide_Linux_v1.12.md) |
+| Windows 10/11, no installing | `NestPatcher_GUI_v0.15_Windows.zip` from [Releases](../../releases) | [Guide_GUI_v0.15.md](docs/Guide_GUI_v0.15.md) |
+| Linux, no installing | `NestPatcher_GUI_v0.15-x86_64.AppImage` from [Releases](../../releases) | [Guide_GUI_v0.15.md](docs/Guide_GUI_v0.15.md) |
+| Windows, command line | [`patchers/NestPatcher_TiTS_Windows_v1.13.py`](patchers/) + `NestPatcher_Windows_v1.13.bat` | [Guide_Windows_v1.13.md](docs/Guide_Windows_v1.13.md) |
+| Debian, Ubuntu, Mint, Fedora, Nobara | [`patchers/NestPatcher_TiTS_Linux_v1.13.py`](patchers/) + `nestpatcher_linux_v1.13.sh` | [Guide_Linux_v1.13.md](docs/Guide_Linux_v1.13.md) |
 | macOS, with only the Windows game (TiTS.exe) | [`patchers/NestPatcher_TiTS_Mac_v1.9.py`](patchers/) `--app` the Windows game folder: it patches it and makes TiTS.app | [NestPatcher_Mac_Guide_v1.9.md](docs/NestPatcher_Mac_Guide_v1.9.md) |
 | macOS | [`patchers/NestPatcher_TiTS_Mac_v1.9.py`](patchers/) | [NestPatcher_Mac_Guide_v1.9.md](docs/NestPatcher_Mac_Guide_v1.9.md) |
-| Make a **Mac app** or **Linux AppImage** of the patched game | GUI 0.14 (**Make Mac app** / **Make AppImage**) or `--export-mac` / `--export-appimage` | [Guide_Export_Mac_AppImage_v1.12.md](docs/Guide_Export_Mac_AppImage_v1.12.md) |
+| Make a **Mac app** or **Linux AppImage** of the patched game | GUI 0.15 (**Make Mac app** / **Make AppImage**) or `--export-mac` / `--export-appimage` | [Guide_Export_Mac_AppImage_v1.13.md](docs/Guide_Export_Mac_AppImage_v1.13.md) |
 | Android, no Termux (app) | `NestPatcher_Android_App_v0.10.apk` from [Actions](../../actions) or [Releases](../../releases) | [Guide_Android_App_v0.10.md](docs/Guide_Android_App_v0.10.md) |
-| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.6.py`](patchers/), or the GUI script in Termux | [BUILDING_TITS_ANDROID_MODDED_v1.6.md](docs/BUILDING_TITS_ANDROID_MODDED_v1.6.md) (Termux), [Guide_GUI_v0.14.md](docs/Guide_GUI_v0.14.md) (GUI) |
+| Android (Termux, extracted APK) | [`patchers/NestPatcher_TiTS_Android_v1.6.py`](patchers/), or the GUI script in Termux | [BUILDING_TITS_ANDROID_MODDED_v1.6.md](docs/BUILDING_TITS_ANDROID_MODDED_v1.6.md) (Termux), [Guide_GUI_v0.15.md](docs/Guide_GUI_v0.15.md) (GUI) |
 | Android: unpack the TiTS APK, then pack, sign and install the modded one | `unzip`, `zip`, `zipalign`, `apksigner` in Termux | [EXTRACTING_TITS_ANDROID_APK_v1.6.md](docs/EXTRACTING_TITS_ANDROID_APK_v1.6.md), then [BUILDING_TITS_ANDROID_MODDED_v1.6.md](docs/BUILDING_TITS_ANDROID_MODDED_v1.6.md) |
 
-Newest versions: **CLI 1.12, GUI 0.14, Mac 1.9** (Android patcher 1.6, Android app 0.10). See [What's new](#whats-new) and [Updating](#updating).
+Newest versions: **CLI 1.13, GUI 0.15, Mac 1.9** (Android patcher 1.6, Android app 0.10). See [What's new](#whats-new) and [Updating](#updating).
 
 The GUI bundles include Python and Node.js. The command-line versions need Python 3 and Node.js installed (Node.js checks every mod for mistakes before the game is touched).
 
@@ -61,6 +61,10 @@ If you used the Windows zip **through Wine/Proton on Linux**, switch to the Linu
 3. **Test my mods**, then **Patch the game**. `nestmods/backup` stays as it is: it holds the game's clean files, not the mods.
 
 ## What's new
+
+**CLI 1.13, GUI 0.15:**
+- **Make AppImage** now makes an x86_64 (Intel or AMD) AppImage by default, which runs on almost every Linux PC and the Steam Deck, even when you make it on an ARM tablet, phone or Mac. Before, it made an ARM AppImage there that normal PCs couldn't open.
+- New **Both** choice (`--arch both`): makes one x86_64 and one ARM (aarch64) file in one go.
 
 **CLI 1.12, GUI 0.14, Mac 1.9, Android patcher 1.6, Android app 0.10:**
 - The Windows GUI no longer crashes with `[WinError 1168] Element not found` when it runs through Wine/Proton, and it suggests the Linux AppImage when it sees Wine.
@@ -112,12 +116,12 @@ The newest TN mod pack (Modv2.8, for TiTS 0.9.168) is in [`mods/`](mods/): the m
 
 - `src/engine.py` is the shared patch engine. `src/cli.py` and `src/gui.py` are the front ends. `python src/build.py` glues them into the single-file scripts in `patchers/`. **Edit `src/`, not `patchers/`.** CI fails if `patchers/` is out of date.
 - The Mac patcher is built from `src/mac.py` plus `src/export.py`. `patchers/NestPatcher_TiTS_Android_v1.6.py` is standalone and edited directly.
-- `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.12.py`. More tests on the same fake game: `test_cli_extras.py` (BOM, capital letters, TiTS update, menu), `test_android_patcher.py` (the same for the Android patcher), `test_gui.py` (the GUI's web server, including two clicks at once), and `test_windows_running.py` / `test_linux_running.py` / `test_mac_running.py` (the "TiTS is running" check, with fake process lists).
+- `tests/smoke_test.py` patches a tiny fake game, so no TiTS files are needed: `python tests/smoke_test.py patchers/NestPatcher_TiTS_Linux_v1.13.py`. More tests on the same fake game: `test_cli_extras.py` (BOM, capital letters, TiTS update, menu), `test_android_patcher.py` (the same for the Android patcher), `test_gui.py` (the GUI's web server, including two clicks at once), and `test_windows_running.py` / `test_linux_running.py` / `test_mac_running.py` (the "TiTS is running" check, with fake process lists).
 - `src/export.py` packs the patched game as a Mac app or AppImage (built into the same single-file scripts). `tests/test_export.py` checks it with fake Electron zips, so no download is needed. The Mac app is signed by a built-in ad-hoc signer; `tests/macsign_check.py` re-checks those signatures anywhere, and `tests/mac_real_check.sh` (CI, macOS) checks them with `codesign` and launches the app.
 - `packaging/build_bundles.sh` builds the AppImage and the Windows zip on Linux. It downloads pinned, checksum-verified Python ([python-build-standalone](https://github.com/astral-sh/python-build-standalone)) and Node.js. The Windows `.exe` is a small launcher from `src/launcher/`, compiled with MinGW.
 - GitHub Actions runs the smoke test on Windows, Linux and macOS for every push. It builds the bundles, checks the Windows bundle on a real Windows machine, builds the Android APK, and publishes a release by itself (tag `v<version>`, named `Patchers_v<version>`, with the bundles, APK and patchers attached) the first time a new version from `src/build.py` reaches main.
 - `android/` is the Android app (Kotlin + [Chaquopy](https://chaquo.com/chaquopy/) Python). It carries every script in `patchers/`, runs the Android one by default, asks for the folders each patcher needs (a custom .py can list its own with `NEST_NEEDS`), and checks JavaScript with the phone's WebView instead of Node.js. `android/app/src/main/python/nest_android.py` is the glue, tested on a PC by `tests/test_android_harness.py`. CI builds the APK with `gradle assembleRelease`.
-- Version numbers go in file names (for example `_v1.12`), so it's always clear which copy is newer.
+- Version numbers go in file names (for example `_v1.13`), so it's always clear which copy is newer.
 
 ### Making a new NestPatcher version
 

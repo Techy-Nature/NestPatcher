@@ -1,6 +1,6 @@
 """Checks the GUI's web server on a tiny fake game (no browser needed).
 
-    python tests/test_gui.py patchers/NestPatcher_TiTS_GUI_v0.14.py
+    python tests/test_gui.py patchers/NestPatcher_TiTS_GUI_v0.15.py
 """
 import json
 import os

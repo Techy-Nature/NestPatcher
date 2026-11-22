@@ -40,7 +40,7 @@ The AppImage is packed with `mksquashfs` when it's installed. Everywhere else (A
 
 ## Using the GUI (easiest)
 
-1. Start NestPatcher GUI 0.14 and check the **Setup** tab: game found, mods found.
+1. Start NestPatcher GUI 0.15 and check the **Setup** tab: game found, mods found.
 2. Go to **2. Patch** and press **Patch the game**. Wait for `DONE`.
 3. In the card **Make an app to play on another computer**, choose **Computer it is for**:
    - **Intel or AMD (x64)**: works on every Mac (Apple Silicon runs it through Rosetta) and on normal Linux PCs.
@@ -60,29 +60,29 @@ Open a terminal in your NestPatcher folder (where `nestmods` is).
 **Linux:**
 ```bash
 # 1. Patch
-python3 NestPatcher_TiTS_Linux_v1.12.py
+python3 NestPatcher_TiTS_Linux_v1.13.py
 # 2a. Make the AppImage
-python3 NestPatcher_TiTS_Linux_v1.12.py --export-appimage
+python3 NestPatcher_TiTS_Linux_v1.13.py --export-appimage
 # 2b. Make the Mac app
-python3 NestPatcher_TiTS_Linux_v1.12.py --export-mac
+python3 NestPatcher_TiTS_Linux_v1.13.py --export-mac
 ```
 
 **Windows:**
 ```bat
-py NestPatcher_TiTS_Windows_v1.12.py
-py NestPatcher_TiTS_Windows_v1.12.py --export-mac
+py NestPatcher_TiTS_Windows_v1.13.py
+py NestPatcher_TiTS_Windows_v1.13.py --export-mac
 ```
 
-Or use the menu (`./nestpatcher_linux_v1.12.sh` or `NestPatcher_Windows_v1.12.bat`): option **7** makes the Mac app, option **8** the AppImage.
+Or use the menu (`./nestpatcher_linux_v1.13.sh` or `NestPatcher_Windows_v1.13.bat`): option **7** makes the Mac app, option **8** the AppImage.
 
-Without `--arch`, the AppImage is always **x86_64** (Intel or AMD), the kind nearly every Linux PC and the Steam Deck run, even when you make it on an ARM phone, tablet or Mac. The one exception is a game that is already an ARM Linux build: then its own Electron is kept.
+Since CLI 1.13 / GUI 0.15, without `--arch` the AppImage is always **x86_64** (Intel or AMD), the kind nearly every Linux PC and the Steam Deck run, even when you make it on an ARM phone, tablet or Mac. The one exception is a game that is already an ARM Linux build: then its own Electron is kept.
 
 The file goes into `NestExports` inside your mods folder (for example `nestmods/NestExports`). Extra options:
 
 | Option | What it does |
 |---|---|
 | `--arch arm64` | Build for Apple Silicon Macs or ARM Linux instead of x64. |
-| `--arch both` | Make two files, one x64 and one arm64. |
+| `--arch both` | Make two files, one x64 and one arm64 (CLI 1.13 / GUI 0.15 or newer). |
 | `--out FOLDER` | Save somewhere else. |
 | `--electron 28.3.3` | Use this Electron version instead of the game's own. |
 | `--electron-zip FILE` | Use an Electron zip you downloaded yourself (no internet needed). |
