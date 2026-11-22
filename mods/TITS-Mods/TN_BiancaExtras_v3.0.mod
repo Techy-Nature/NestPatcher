@@ -14,6 +14,8 @@ Author: Neston
 #   - Taur/naga get their own lines when the taur/naga bypass switch is on.
 #   - Fixes (Modv3.0): Confess now really makes her your lover (unlocks Intimate, Int. Doggy and
 #     the bar Cuddle), and the game's own bar Stealth Sex no longer loops at the end.
+#   - Codex > Log > Roaming Encounters > Bianca: a relationship meter, her stage, and nights
+#     aboard toward Confess, under the game's Affection line.
 # Needles use @@name@@ wildcards for minified names so they match PC and Android builds.
 
 # Familiarity cap (49 when the mod is off, 50 before Confront, 100 after)
@@ -111,3 +113,9 @@ Replace [main.js]:
 output("\n\nUh oh."))),processTime(5),pc.changeLust(5),clearMenu(),addButton(0,"You"
 With:
 output("\n\nUh oh."))),bianca.familiarity()>=100&&window.tnBiancaStealth100&&window.tnBiancaStealth100(),processTime(5),pc.changeLust(5),clearMenu(),addButton(0,"You"
+
+# Codex log: relationship meter, stage and nights aboard under Bianca's Affection line
+Replace [main.js]:
+@@Bu@@+=@@cS@@("Affection",@@re@@.m.percent(bianca.familiarity())+(100!==bianca.familiarityMax()?" ("+@@re@@.m.percent(bianca.familiarityMax())+" Max)":""))
+With:
+@@Bu@@+=@@cS@@("Affection",@@re@@.m.percent(bianca.familiarity())+(100!==bianca.familiarityMax()?" ("+@@re@@.m.percent(bianca.familiarityMax())+" Max)":"")),window.tnBiancaCodexLog&&(@@Bu@@+=window.tnBiancaCodexLog(@@cS@@))
