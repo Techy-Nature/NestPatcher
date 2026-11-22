@@ -64,7 +64,7 @@ At the top of the panel:
 
 ## Making a Mac app or an AppImage
 
-On the **2. Patch** tab, after patching, the card **Make an app to play on another computer** packs the patched game as a **Mac app** (zip with `TiTS.app`) or a single **AppImage** file. Pick **Intel or AMD (x64)** or **Apple Silicon / ARM (arm64)** first. Files go into `NestExports` inside your mods folder (**Open NestExports folder** button). The Mac app is already signed; on the Mac, unzip it and double-click **Open TiTS.command**. Full steps: [Guide_Export_Mac_AppImage_v1.12.md](Guide_Export_Mac_AppImage_v1.12.md).
+On the **2. Patch** tab, after patching, the card **Make an app to play on another computer** packs the patched game as a **Mac app** (zip with `TiTS.app`) or a single **AppImage** file. Pick **Intel or AMD (x64)**, **Apple Silicon / ARM (arm64)** or **Both** first. x64 is right for almost every Linux PC. Files go into `NestExports` inside your mods folder (**Open NestExports folder** button). The Mac app is already signed; on the Mac, unzip it and double-click **Open TiTS.command**. Full steps: [Guide_Export_Mac_AppImage_v1.12.md](Guide_Export_Mac_AppImage_v1.12.md).
 
 ## Running it on Windows
 

@@ -1706,6 +1706,23 @@ def host_arch():
     return "arm64" if machine in ("arm64", "aarch64", "armv8l") else "x64"
 
 
+def export_each(make, arch=None, **options):
+    """Run one export, or one per system when arch is "both" (x64 first, then arm64).
+    An AppImage can only hold one kind of program, so "both" makes two files."""
+    if arch != "both":
+        return make(arch=arch, **options)
+    if make is export_mac and source_kind() == "mac" and not options.get("version") \
+            and not options.get("electron_zip_path") and not options.get("simple_shell"):
+        # A TiTS.app keeps its own Electron, so there is only one Mac app to make.
+        return make(arch=None, **options)
+    result = 0
+    for one in ("x64", "arm64"):
+        say("")
+        say("--- " + one + " (" + ("Intel or AMD" if one == "x64" else "ARM") + ") ---")
+        result = make(arch=one, **options) or result
+    return result
+
+
 def export_folder(out=None):
     folder = os.path.abspath(os.path.expanduser(out)) if out else os.path.join(MODS, "NestExports")
     os.makedirs(folder, exist_ok=True)
@@ -2990,13 +3007,17 @@ def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, i
     kind = source_kind()
     game_ver = plain_version(game_version())
     reuse = kind in ("linux", "appdir") and not version and not electron_zip_path and not simple_shell
+    own_arch = ""
     if reuse:
         own = linux_game_binary(GAME)
-        found = elf_arch(os.path.join(GAME, own)) if own else ""
-        if arch and found and arch != found:
-            say("Note: the game's own Electron is " + found + ", so the AppImage is " + found + " (not " + arch + ").")
-        arch = found or arch or host_arch()
-    arch = arch or host_arch()
+        own_arch = elf_arch(os.path.join(GAME, own)) if own else ""
+    # x64 (Intel or AMD) is what nearly every Linux PC and the Steam Deck run, so it is
+    # the default everywhere, also when the export is made on an ARM phone, tablet or Mac.
+    # arm64 only when asked for, or when the game itself is an ARM Linux build.
+    arch = arch or own_arch or "x64"
+    if reuse and own_arch and own_arch != arch:
+        say("The game's own Electron is " + own_arch + ", so Electron for " + arch + " is downloaded for this AppImage.")
+        reuse = False
     machine = APPIMAGE_ARCH[arch]
     out_dir = export_folder(out)
     target = os.path.join(out_dir, EXPORT_NAME + "_v" + (game_ver or "unknown") + "_NestPatched-" + machine + ".AppImage")
@@ -3545,11 +3566,8 @@ def run_job(action, payload):
                     text = handle.read()
                 say(text[:200000] + ("\n... (cut; open the full file from the logs folder)" if len(text) > 200000 else ""))
         elif action in ("export_mac", "export_appimage"):
-            arch = payload.get("arch") if payload.get("arch") in ("x64", "arm64") else None
-            if action == "export_mac":
-                result = export_mac(arch=arch)
-            else:
-                result = export_appimage(arch=arch)
+            arch = payload.get("arch") if payload.get("arch") in ("x64", "arm64", "both") else None
+            result = export_each(export_mac if action == "export_mac" else export_appimage, arch)
         elif action == "appimage":
             target = extract_appimage(payload.get("path", ""))
             result = 0 if target else 1
@@ -3876,7 +3894,7 @@ font:.8125rem/1.45 ui-monospace,Consolas,"DejaVu Sans Mono",monospace;white-spac
  <div class="card"><h2>Make an app to play on another computer</h2>
   <p class="hint">Patch first. This packs the patched game into a <b>macOS app</b> (a zip with TiTS.app inside) or a <b>Linux AppImage</b> (one file you double-click). If it needs a different Electron than your game has, NestPatcher downloads it once (about 100 MB) and checks it. Files go in the <b>NestExports</b> folder next to NestPatcher.</p>
   <label for="arch">Computer it is for</label>
-  <select id="arch" class="b" style="padding:8px 10px"><option value="x64">Intel or AMD (x64), works on every Mac</option><option value="arm64">Apple Silicon M1–M4 / ARM Linux (arm64)</option></select>
+  <select id="arch" class="b" style="padding:8px 10px"><option value="x64">Intel or AMD (x64), works on every Mac</option><option value="arm64">Apple Silicon M1–M4 / ARM Linux (arm64)</option><option value="both">Both (one file for each)</option></select>
   <div class="row" style="margin-top:12px"><button class="b p" id="expmac">Make Mac app</button><button class="b p" id="expai">Make AppImage</button>
   <button class="b" id="openexp">Open NestExports folder</button></div>
   <p class="hint" id="aihint" hidden></p>

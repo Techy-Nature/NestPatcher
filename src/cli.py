@@ -72,7 +72,8 @@ def main(argv=None):
     parser.add_argument("--export-mac", action="store_true", help="pack the patched game as a macOS TiTS.app (zip; on a Mac also unpacked and signed)")
     parser.add_argument("--export-appimage", action="store_true", help="pack the patched game as one Linux .AppImage file (uses mksquashfs if installed, else a built-in packer)")
     parser.add_argument("--out", metavar="FOLDER", help="with --export-*: where to save it (default: NestExports inside the mods folder)")
-    parser.add_argument("--arch", choices=["x64", "arm64"], help="with --export-*: x64 (Intel/AMD, the default off-Mac) or arm64 (Apple Silicon, ARM Linux)")
+    parser.add_argument("--arch", choices=["x64", "arm64", "both"],
+                        help="with --export-*: x64 (Intel/AMD, the default: runs on almost every PC), arm64 (Apple Silicon, ARM Linux) or both (one file each)")
     parser.add_argument("--electron", metavar="VERSION", help="with --export-*: use this Electron version instead of the game's own")
     parser.add_argument("--electron-zip", metavar="FILE", help="with --export-*: an Electron zip you downloaded yourself (no internet needed)")
     parser.add_argument("--appimage-runtime", metavar="FILE", help="with --export-appimage: an AppImage runtime file you downloaded yourself")
@@ -132,13 +133,13 @@ def main(argv=None):
     if args.unpack_asar:
         return unpack_asar()
     if args.export_mac or args.export_appimage:
-        options = dict(out=args.out, arch=args.arch, version=args.electron,
+        options = dict(out=args.out, version=args.electron,
                        electron_zip_path=args.electron_zip, icon=args.icon, simple_shell=args.simple_shell)
         result = 0
         if args.export_mac:
-            result = export_mac(**options)
+            result = export_each(export_mac, args.arch, **options)
         if args.export_appimage and result == 0:
-            result = export_appimage(runtime=args.appimage_runtime, **options)
+            result = export_each(export_appimage, args.arch, runtime=args.appimage_runtime, **options)
         return result
     if args.restore:
         return restore_originals()

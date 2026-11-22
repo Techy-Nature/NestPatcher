@@ -226,11 +226,8 @@ def run_job(action, payload):
                     text = handle.read()
                 say(text[:200000] + ("\n... (cut; open the full file from the logs folder)" if len(text) > 200000 else ""))
         elif action in ("export_mac", "export_appimage"):
-            arch = payload.get("arch") if payload.get("arch") in ("x64", "arm64") else None
-            if action == "export_mac":
-                result = export_mac(arch=arch)
-            else:
-                result = export_appimage(arch=arch)
+            arch = payload.get("arch") if payload.get("arch") in ("x64", "arm64", "both") else None
+            result = export_each(export_mac if action == "export_mac" else export_appimage, arch)
         elif action == "appimage":
             target = extract_appimage(payload.get("path", ""))
             result = 0 if target else 1
@@ -557,7 +554,7 @@ font:.8125rem/1.45 ui-monospace,Consolas,"DejaVu Sans Mono",monospace;white-spac
  <div class="card"><h2>Make an app to play on another computer</h2>
   <p class="hint">Patch first. This packs the patched game into a <b>macOS app</b> (a zip with TiTS.app inside) or a <b>Linux AppImage</b> (one file you double-click). If it needs a different Electron than your game has, NestPatcher downloads it once (about 100 MB) and checks it. Files go in the <b>NestExports</b> folder next to NestPatcher.</p>
   <label for="arch">Computer it is for</label>
-  <select id="arch" class="b" style="padding:8px 10px"><option value="x64">Intel or AMD (x64), works on every Mac</option><option value="arm64">Apple Silicon M1–M4 / ARM Linux (arm64)</option></select>
+  <select id="arch" class="b" style="padding:8px 10px"><option value="x64">Intel or AMD (x64), works on every Mac</option><option value="arm64">Apple Silicon M1–M4 / ARM Linux (arm64)</option><option value="both">Both (one file for each)</option></select>
   <div class="row" style="margin-top:12px"><button class="b p" id="expmac">Make Mac app</button><button class="b p" id="expai">Make AppImage</button>
   <button class="b" id="openexp">Open NestExports folder</button></div>
   <p class="hint" id="aihint" hidden></p>

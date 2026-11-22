@@ -44,7 +44,8 @@ The AppImage is packed with `mksquashfs` when it's installed. Everywhere else (A
 2. Go to **2. Patch** and press **Patch the game**. Wait for `DONE`.
 3. In the card **Make an app to play on another computer**, choose **Computer it is for**:
    - **Intel or AMD (x64)**: works on every Mac (Apple Silicon runs it through Rosetta) and on normal Linux PCs.
-   - **Apple Silicon M1–M4 / ARM Linux (arm64)**: faster on newer Macs, but won't open on an Intel Mac.
+   - **Apple Silicon M1–M4 / ARM Linux (arm64)**: faster on newer Macs, but won't open on an Intel Mac or a normal Linux PC.
+   - **Both (one file for each)**: makes an x64 file and an arm64 file. One AppImage can only hold one kind of program, so this is how you cover every Linux computer.
 4. Press **Make Mac app** or **Make AppImage**.
 5. When the log says `DONE`, press **Open NestExports folder**. Your file is there.
 
@@ -74,11 +75,14 @@ py NestPatcher_TiTS_Windows_v1.12.py --export-mac
 
 Or use the menu (`./nestpatcher_linux_v1.12.sh` or `NestPatcher_Windows_v1.12.bat`): option **7** makes the Mac app, option **8** the AppImage.
 
+Without `--arch`, the AppImage is always **x86_64** (Intel or AMD), the kind nearly every Linux PC and the Steam Deck run, even when you make it on an ARM phone, tablet or Mac. The one exception is a game that is already an ARM Linux build: then its own Electron is kept.
+
 The file goes into `NestExports` inside your mods folder (for example `nestmods/NestExports`). Extra options:
 
 | Option | What it does |
 |---|---|
 | `--arch arm64` | Build for Apple Silicon Macs or ARM Linux instead of x64. |
+| `--arch both` | Make two files, one x64 and one arm64. |
 | `--out FOLDER` | Save somewhere else. |
 | `--electron 28.3.3` | Use this Electron version instead of the game's own. |
 | `--electron-zip FILE` | Use an Electron zip you downloaded yourself (no internet needed). |

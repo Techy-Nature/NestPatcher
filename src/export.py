@@ -71,6 +71,23 @@ def host_arch():
     return "arm64" if machine in ("arm64", "aarch64", "armv8l") else "x64"
 
 
+def export_each(make, arch=None, **options):
+    """Run one export, or one per system when arch is "both" (x64 first, then arm64).
+    An AppImage can only hold one kind of program, so "both" makes two files."""
+    if arch != "both":
+        return make(arch=arch, **options)
+    if make is export_mac and source_kind() == "mac" and not options.get("version") \
+            and not options.get("electron_zip_path") and not options.get("simple_shell"):
+        # A TiTS.app keeps its own Electron, so there is only one Mac app to make.
+        return make(arch=None, **options)
+    result = 0
+    for one in ("x64", "arm64"):
+        say("")
+        say("--- " + one + " (" + ("Intel or AMD" if one == "x64" else "ARM") + ") ---")
+        result = make(arch=one, **options) or result
+    return result
+
+
 def export_folder(out=None):
     folder = os.path.abspath(os.path.expanduser(out)) if out else os.path.join(MODS, "NestExports")
     os.makedirs(folder, exist_ok=True)
@@ -1355,13 +1372,17 @@ def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, i
     kind = source_kind()
     game_ver = plain_version(game_version())
     reuse = kind in ("linux", "appdir") and not version and not electron_zip_path and not simple_shell
+    own_arch = ""
     if reuse:
         own = linux_game_binary(GAME)
-        found = elf_arch(os.path.join(GAME, own)) if own else ""
-        if arch and found and arch != found:
-            say("Note: the game's own Electron is " + found + ", so the AppImage is " + found + " (not " + arch + ").")
-        arch = found or arch or host_arch()
-    arch = arch or host_arch()
+        own_arch = elf_arch(os.path.join(GAME, own)) if own else ""
+    # x64 (Intel or AMD) is what nearly every Linux PC and the Steam Deck run, so it is
+    # the default everywhere, also when the export is made on an ARM phone, tablet or Mac.
+    # arm64 only when asked for, or when the game itself is an ARM Linux build.
+    arch = arch or own_arch or "x64"
+    if reuse and own_arch and own_arch != arch:
+        say("The game's own Electron is " + own_arch + ", so Electron for " + arch + " is downloaded for this AppImage.")
+        reuse = False
     machine = APPIMAGE_ARCH[arch]
     out_dir = export_folder(out)
     target = os.path.join(out_dir, EXPORT_NAME + "_v" + (game_ver or "unknown") + "_NestPatched-" + machine + ".AppImage")

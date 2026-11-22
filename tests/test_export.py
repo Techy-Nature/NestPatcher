@@ -246,6 +246,28 @@ def main():
                                              text=True, env=dict(os.environ, NEST_NO_SANDBOX="1"))
                     check("built-in image starts", "FAKE-ELECTRON-OK --no-sandbox --hello" in started.stdout)
 
+            # Made on an ARM phone, tablet or Mac with no --arch, the AppImage is still
+            # x86_64, which is what almost every Linux PC runs.
+            probe = subprocess.run([args.python, "-c",
+                                    "import runpy,sys;g=runpy.run_path(sys.argv[1],run_name='probe');"
+                                    "g['platform'].machine=lambda:'aarch64';"
+                                    "g['configure'](sys.argv[2],None,remember=False,interactive=False);"
+                                    "print('HOST',g['host_arch']());"
+                                    "print('RESULT',g['export_appimage'](out=sys.argv[3],electron_zip_path=sys.argv[4],runtime=sys.argv[5]))",
+                                    local, game, os.path.join(root, "armhost"), linux_zip, runtime],
+                                   cwd=tool, capture_output=True, text=True, encoding="utf-8", errors="replace")
+            print(probe.stdout[-1500:] + probe.stderr[-1500:])
+            check("ARM host still makes an x86_64 AppImage by default", "HOST arm64" in probe.stdout
+                  and "RESULT 0" in probe.stdout
+                  and os.listdir(os.path.join(root, "armhost")) == ["TiTS_v0.9.999_NestPatched-x86_64.AppImage"])
+
+            # --arch both makes one AppImage for each kind of PC.
+            result = run("--export-appimage", "--electron-zip", linux_zip, "--appimage-runtime", runtime,
+                         "--arch", "both", "--out", os.path.join(root, "both"))
+            check("--arch both makes x86_64 and aarch64 AppImages", result.returncode == 0
+                  and sorted(os.listdir(os.path.join(root, "both"))) == ["TiTS_v0.9.999_NestPatched-aarch64.AppImage",
+                                                                        "TiTS_v0.9.999_NestPatched-x86_64.AppImage"])
+
             # A Linux game folder keeps its own Electron.
             linux_game = os.path.join(root, "linuxgame")
             os.makedirs(os.path.join(linux_game, "resources"))
@@ -258,7 +280,8 @@ def main():
             result = run("--export-appimage", "--appimage-runtime", runtime, "--out", os.path.join(root, "linout"),
                          where=linux_game)
             check("Linux game exports with its own Electron", result.returncode == 0
-                  and "already a Linux game" in result.stdout and "(TiTS-bin)" in result.stdout)
+                  and "already a Linux game" in result.stdout and "(TiTS-bin)" in result.stdout
+                  and os.path.isfile(os.path.join(root, "linout", "TiTS_v0.9.999_NestPatched-x86_64.AppImage")))
 
             result = run("--export-appimage", "--appimage-runtime", runtime, "--out", os.path.join(root, "x"),
                          where=os.path.join(root, "nowhere"))
