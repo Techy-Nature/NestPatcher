@@ -1714,6 +1714,23 @@ def host_arch():
     return "arm64" if machine in ("arm64", "aarch64", "armv8l") else "x64"
 
 
+def export_each(make, arch=None, **options):
+    """Run one export, or one per system when arch is "both" (x64 first, then arm64).
+    An AppImage can only hold one kind of program, so "both" makes two files."""
+    if arch != "both":
+        return make(arch=arch, **options)
+    if make is export_mac and source_kind() == "mac" and not options.get("version") \
+            and not options.get("electron_zip_path") and not options.get("simple_shell"):
+        # A TiTS.app keeps its own Electron, so there is only one Mac app to make.
+        return make(arch=None, **options)
+    result = 0
+    for one in ("x64", "arm64"):
+        say("")
+        say("--- " + one + " (" + ("Intel or AMD" if one == "x64" else "ARM") + ") ---")
+        result = make(arch=one, **options) or result
+    return result
+
+
 def export_folder(out=None):
     folder = os.path.abspath(os.path.expanduser(out)) if out else os.path.join(MODS, "NestExports")
     os.makedirs(folder, exist_ok=True)
@@ -2998,13 +3015,17 @@ def export_appimage(out=None, arch=None, version=None, electron_zip_path=None, i
     kind = source_kind()
     game_ver = plain_version(game_version())
     reuse = kind in ("linux", "appdir") and not version and not electron_zip_path and not simple_shell
+    own_arch = ""
     if reuse:
         own = linux_game_binary(GAME)
-        found = elf_arch(os.path.join(GAME, own)) if own else ""
-        if arch and found and arch != found:
-            say("Note: the game's own Electron is " + found + ", so the AppImage is " + found + " (not " + arch + ").")
-        arch = found or arch or host_arch()
-    arch = arch or host_arch()
+        own_arch = elf_arch(os.path.join(GAME, own)) if own else ""
+    # x64 (Intel or AMD) is what nearly every Linux PC and the Steam Deck run, so it is
+    # the default everywhere, also when the export is made on an ARM phone, tablet or Mac.
+    # arm64 only when asked for, or when the game itself is an ARM Linux build.
+    arch = arch or own_arch or "x64"
+    if reuse and own_arch and own_arch != arch:
+        say("The game's own Electron is " + own_arch + ", so Electron for " + arch + " is downloaded for this AppImage.")
+        reuse = False
     machine = APPIMAGE_ARCH[arch]
     out_dir = export_folder(out)
     target = os.path.join(out_dir, EXPORT_NAME + "_v" + (game_ver or "unknown") + "_NestPatched-" + machine + ".AppImage")
@@ -3399,7 +3420,8 @@ def main(argv=None):
     parser.add_argument("--export-mac", action="store_true", help="pack the patched game as a macOS TiTS.app (zip; on a Mac also unpacked and signed)")
     parser.add_argument("--export-appimage", action="store_true", help="pack the patched game as one Linux .AppImage file (uses mksquashfs if installed, else a built-in packer)")
     parser.add_argument("--out", metavar="FOLDER", help="with --export-*: where to save it (default: NestExports inside the mods folder)")
-    parser.add_argument("--arch", choices=["x64", "arm64"], help="with --export-*: x64 (Intel/AMD, the default off-Mac) or arm64 (Apple Silicon, ARM Linux)")
+    parser.add_argument("--arch", choices=["x64", "arm64", "both"],
+                        help="with --export-*: x64 (Intel/AMD, the default: runs on almost every PC), arm64 (Apple Silicon, ARM Linux) or both (one file each)")
     parser.add_argument("--electron", metavar="VERSION", help="with --export-*: use this Electron version instead of the game's own")
     parser.add_argument("--electron-zip", metavar="FILE", help="with --export-*: an Electron zip you downloaded yourself (no internet needed)")
     parser.add_argument("--appimage-runtime", metavar="FILE", help="with --export-appimage: an AppImage runtime file you downloaded yourself")
@@ -3459,13 +3481,13 @@ def main(argv=None):
     if args.unpack_asar:
         return unpack_asar()
     if args.export_mac or args.export_appimage:
-        options = dict(out=args.out, arch=args.arch, version=args.electron,
+        options = dict(out=args.out, version=args.electron,
                        electron_zip_path=args.electron_zip, icon=args.icon, simple_shell=args.simple_shell)
         result = 0
         if args.export_mac:
-            result = export_mac(**options)
+            result = export_each(export_mac, args.arch, **options)
         if args.export_appimage and result == 0:
-            result = export_appimage(runtime=args.appimage_runtime, **options)
+            result = export_each(export_appimage, args.arch, runtime=args.appimage_runtime, **options)
         return result
     if args.restore:
         return restore_originals()
