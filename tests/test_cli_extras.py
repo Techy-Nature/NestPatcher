@@ -1,6 +1,6 @@
 """Edge cases for a NestPatcher command-line script (fake game, no TiTS files).
 
-    python tests/test_cli_extras.py patchers/NestPatcher_TiTS_Linux_v1.12.py
+    python tests/test_cli_extras.py patchers/NestPatcher_TiTS_Linux_v1.13.py
 
 - enabled.txt saved with a BOM (Notepad) and with Windows line endings
 - enabled.txt names with different capital letters (written on Windows, used on Linux)

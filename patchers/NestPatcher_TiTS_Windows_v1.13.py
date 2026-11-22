@@ -1,25 +1,19 @@
-#!/usr/bin/env python3
-# NestPatcher for Trials in Tainted Space, Linux edition (Debian, Ubuntu, Mint,
-# Fedora, Nobara and friends).
+# NestPatcher for Trials in Tainted Space, Windows 10/11 edition.
 # Based on KittyPatcher by LibraKitty (the original Windows patcher).
 # Same .mod format, flags and safety rules as the Desktop, Android and Mac patchers:
 # Replace / With still swaps exact text. Hashed bundles such as
 # content_first14.<hash>.js are found from the plain name content_first14.js.
 # Add Javascript blocks load from mods/nest/nest-inline.js.
 #
-# Linux differences:
-#   * The game folder can live anywhere (~/Games/TiTS is a good spot). The patcher
-#     looks next to itself, in ~/Games, ~/Downloads, ~/Desktop and /opt, or you
-#     point at it once with --game and it is remembered.
-#   * A TiTS .AppImage is unpacked once with --extract-appimage into a normal
-#     folder; you then start the game from that folder's AppRun.
-#   * If the game ships packed as resources/app.asar, --unpack-asar extracts it
-#     (pure Python, no npm needed) and keeps the original as app.asar.nest-original.
-#   * Node.js install hints match your distro (apt on Debian/Ubuntu, dnf on
-#     Fedora/Nobara).
-#   * --export-appimage packs the patched game into one .AppImage file, and
-#     --export-mac makes a macOS TiTS.app (as a zip) from the same game.
-#   * Mods live in nestmods/ next to this script, outside the game, so a game
+# Windows differences:
+#   * The game folder (the one with TiTS.exe and resources\) can live anywhere.
+#     The patcher looks next to itself, on the Desktop, in Downloads, Documents,
+#     C:\Games and Program Files, or you point at it once with --game.
+#   * Program Files is write-protected, so the patcher explains how to move the
+#     game to C:\Games if Windows blocks it.
+#   * Double-click NestPatcher_Windows_v1.13.bat for a numbered menu.
+#   * --export-mac makes a macOS TiTS.app (as a zip) from the patched game.
+#   * Mods live in nestmods\ next to this script, outside the game, so a game
 #     update cannot wipe them.
 
 import os
@@ -36,13 +30,13 @@ import tempfile
 import subprocess
 
 
-TOOL_NAME = 'NestPatcher_TiTS_Linux_v1.12.py'
-TOOL_VERSION = '1.12'
-PLATFORM_DEFAULT = 'linux'
-PLATFORM_LABEL = 'Linux'
+TOOL_NAME = 'NestPatcher_TiTS_Windows_v1.13.py'
+TOOL_VERSION = '1.13'
+PLATFORM_DEFAULT = 'windows'
+PLATFORM_LABEL = 'Windows 10/11'
 CREDIT = 'Based on KittyPatcher by LibraKitty (the original Windows patcher).'
 # No version in the settings name, so a newer patcher keeps your saved folders.
-SETTINGS_NAME = 'NestPatcher_TiTS_Linux.settings.json'
+SETTINGS_NAME = 'NestPatcher_TiTS_Windows.settings.json'
 
 # --------------------------------------------------------------------------
 # Where things live

@@ -1,6 +1,6 @@
 """Checks the Linux "is TiTS running?" test with a fake /proc folder.
 
-    python tests/test_linux_running.py patchers/NestPatcher_TiTS_Linux_v1.12.py
+    python tests/test_linux_running.py patchers/NestPatcher_TiTS_Linux_v1.13.py
 """
 import os
 import sys
@@ -23,7 +23,7 @@ def check(label, ok):
 base = tempfile.mkdtemp(prefix="nest_linux_")
 game = os.path.join(base, "TiTS-backer-0.9.168-win")
 os.makedirs(os.path.join(game, "resources"))
-appimage = os.path.join(game, "NestPatcher_GUI_v0.14-x86_64.AppImage")
+appimage = os.path.join(game, "NestPatcher_GUI_v0.15-x86_64.AppImage")
 tits_exe = os.path.join(game, "TiTS.exe")
 tits_bin = os.path.join(game, "TiTS")
 for path in (appimage, tits_exe, tits_bin):
