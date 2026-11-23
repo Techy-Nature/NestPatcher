@@ -353,7 +353,7 @@ def load_game_files():
     return found
 
 
-VERSION_TAG = re.compile(r"_v\d+(?:\.\d+)*(?=\.[^.]+$)", re.IGNORECASE)
+VERSION_TAG = re.compile(r"_v\d+(?:[._]\d+)*(?=\.[^.]+$)", re.IGNORECASE)
 
 
 def same_mod_twice(names):
