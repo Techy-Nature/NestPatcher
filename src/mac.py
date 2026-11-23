@@ -273,7 +273,7 @@ def read_file(path, binary=False):
         return handle.read()
 
 
-VERSION_TAG = re.compile(r"_v\d+(?:\.\d+)*(?=\.[^.]+$)", re.IGNORECASE)
+VERSION_TAG = re.compile(r"_v\d+(?:[._]\d+)*(?=\.[^.]+$)", re.IGNORECASE)
 
 
 def same_mod_twice(names):
