@@ -13,7 +13,7 @@ Modv2.8, so you don't need to delete `backup`. All notes are in the in-game **Ch
 | `TN_FlashbackVisor_v2.9.mod` | VR visor (Zenn on Dhaal, Luca on Canadia) that replays sex scenes and fights. |
 | `TN_DaneDating_v2.9.js` | Be Dane's wingman when he asks Syri and Anno out. |
 | `TN_BiancaExtras_v2.9.mod` + `.js` | Bianca's love story (William's Part 2) and missing Part 1 scenes. |
-| `TN_BiancaClinic_v2.9.mod` + `.js` | Bianca's clinic on the Merchant Deck, with Nest and Dr. Rewell. |
+| `TN_BiancaClinic_v2.9.mod` + `.js` | Bianca's clinic on the Merchant Deck, with Arian and Dr. Rewell. |
 | `TN_SteelePronouns_v2.9.js` | Steele is he, they or she by femininity. |
 | `TN_ShekkaGeneTalk_v2.9.mod` + `.js` | Dr. Rewell makes Shekka fertile again. |
 | `TN_ShekkaEggs_v2.9.js` | Shekka carries and lays Steele's egg; it goes to the nursery. |

@@ -4,7 +4,7 @@ Author: Neston
 # Bianca opens a small shared practice on Tavros after your talk with her there.
 # Needs TN_BiancaClinic_v2.9.js, and Bianca Extras (TN_BiancaExtras_v3.0.mod + .js) loaded first.
 #   - Ketria Clinic: two new rooms on the Merchant Deck, west of the Merchant's Thoroughfare room
-#     between Anon's corner and the Treetop Tattoo street ("110"). Front desk (Nest) to the west,
+#     between Anon's corner and the Treetop Tattoo street ("110"). Front desk (Arian) to the west,
 #     exam hall (Dr. Ketria, Dr. Rewell) north of the front desk.
 #   - The west door is locked until the clinic opens, and outside 8 AM to 6 PM.
 #   - Bianca works 9 AM to 2 PM every third day; on those days she skips her rounds in the wilds.

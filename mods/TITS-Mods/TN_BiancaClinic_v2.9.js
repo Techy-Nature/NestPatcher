@@ -10,9 +10,9 @@
  *   - Three days after your Tavros talk she emails you that the clinic is open.
  *   - The clinic itself is open 8 AM to 6 PM every day. Two rooms: the front desk / waiting room
  *     (west of the thoroughfare) and the exam hall behind it (north).
- *   - Front desk: Nestan "Nest" Toftwyn (they/them), the receptionist. Book an appointment with
- *     Dr. Ketria or Dr. Rewell, ask where to find them, or look at Nest. (Draft scenes: Neston
- *     will write Nest's full scenes.)
+ *   - Front desk: Arian (they/them), the receptionist. Book an appointment with
+ *     Dr. Ketria or Dr. Rewell, ask where to find them, or look at Arian. (Draft scenes: Neston
+ *     will write Arian's full scenes.)
  *   - Dr. Bianca Ketria: 9 AM to 2 PM, every third day. On those days she skips her rounds in the
  *     wilds; her booth and the bars keep their usual hours. Checkup, Chat, Lunch, Help Out.
  *     No sex at the clinic (lovers get a kiss).
@@ -21,9 +21,15 @@
  *     Steele with their own children the way he once helped Victor: talks, a children's consult,
  *     and a free prenatal scan once a day while Steele is pregnant.
  * Flags (in your save): TN_BXC_TS, TN_BXC_VISITS, TN_BXC_CHECK_DAY, TN_BXC_LUNCH_DAY,
- *   TN_BXC_HELP_DAY, TN_BXC_CHAT, TN_BXC_NEST_MET, TN_BXC_APPT_K, TN_BXC_APPT_R, TN_BXC_RW_MET,
+ *   TN_BXC_HELP_DAY, TN_BXC_CHAT, PC_MET_ARIAN, TN_BXC_APPT_K, TN_BXC_APPT_R, TN_BXC_RW_MET,
  *   TN_BXC_RW_TALKS, TN_BXC_RW_SCAN_DAY, TN_BXC_RW_KIDS.
  * Toggle: Options -> Android Mods -> "Bianca's Clinic".
+ * Fixes (2026-11-22): Arian's directions no longer glue two quotes together; "already on her
+ *   list" only shows while she's in; Checkup is greyed out when you can't pay (like her booth);
+ *   the email uses curly apostrophes like the rest;
+ *   the receptionist is now named Arian. Meeting them sets PC_MET_ARIAN; saves from before the
+ *   rename (with the old TN_BXC_NEST_MET flag) are carried over to PC_MET_ARIAN the first time
+ *   you walk into the waiting room, so nobody has to meet Arian twice.
  */
 (function () {
     "use strict";
@@ -32,7 +38,7 @@
 
     var MOD_ID = "tn.bianca-clinic";
     var OPEN_AFTER = 4320; // 3 days after the Tavros talk
-    var CLINIC_OPEN = 8, CLINIC_CLOSE = 18; // the clinic's own hours (Nest and Dr. Rewell)
+    var CLINIC_OPEN = 8, CLINIC_CLOSE = 18; // the clinic's own hours (Arian and Dr. Rewell)
     var BIANCA_OPEN = 9, BIANCA_CLOSE = 14; // Bianca's hours, every third day
 
     /* ---------- Mod menu switch ---------- */
@@ -47,7 +53,7 @@
             id: MOD_ID,
             name: "Bianca's Clinic",
             author: "Neston",
-            description: "After your talk with Bianca on Tavros, she opens Ketria Clinic on the Merchant Deck (west of the thoroughfare by Anon's). Open 8 AM to 6 PM daily with Dr. Rewell, the geneticist who designed Steele, and Nest at the front desk; Bianca works 9 AM to 2 PM every third day. Needs Bianca Extras.",
+            description: "After your talk with Bianca on Tavros, she opens Ketria Clinic on the Merchant Deck (west of the thoroughfare by Anon's). Open 8 AM to 6 PM daily with Dr. Rewell, the geneticist who designed Steele, and Arian at the front desk; Bianca works 9 AM to 2 PM every third day. Needs Bianca Extras.",
             supportsToggle: true
         });
         return true;
@@ -84,7 +90,7 @@
         safe(function () { showBianca(bust || "CLOTHED"); });
         author("Neston");
     }
-    // Scenes with Nest or Dr. Rewell: no bust art for them yet, so just a name plate.
+    // Scenes with Arian or Dr. Rewell: no bust art for them yet, so just a name plate.
     function startNpc(name) {
         clearMenu(); clearOutput();
         safe(function () { clearBust(); });
@@ -124,7 +130,7 @@
     var MAIL_ID = "tn_bianca_clinic_open";
     var mailEntry = {
         content: function () {
-            var t = "Hello again, [pc.name]!\n\nI promised you I would go back to work without running myself into the ground, and I've found a way to do exactly that. As of today I have a clinic. A small one, on the Merchant Deck: from the lift, head up the thoroughfare past Anon's, and it's the door on the west side, the one with the sign I was far too nervous hanging up.\n\nI'm not running it alone, either. I'm sharing it with Dr. Charles Rewell, a geneticist who retired from your father's company. He says he's known you since before you were born, and he means that very literally. He'll explain. He's there every day, and so is our receptionist, Nest Toftwyn, who has already reorganized my entire schedule and is somehow always right about it.\n\nThe clinic is open from eight in the morning until six in the evening. I'm there from nine until two, every third day. Yes, only every third day. I've decided that a doctor who sleeps is a better doctor, and I'd like to test that theory for a while. On my clinic days I won't be out in the wilds, but my booth and my evenings are the same as always.\n\nCome by if you need anything. Come by if you don't, too. Nest can book you in with either of us.\n\n-Bianca";
+            var t = "Hello again, [pc.name]!\n\nI promised you I would go back to work without running myself into the ground, and I’ve found a way to do exactly that. As of today I have a clinic. A small one, on the Merchant Deck: from the lift, head up the thoroughfare past Anon’s, and it’s the door on the west side, the one with the sign I was far too nervous hanging up.\n\nI’m not running it alone, either. I’m sharing it with Dr. Charles Rewell, a geneticist who retired from your father’s company. He says he’s known you since before you were born, and he means that very literally. He’ll explain. He’s there every day, and so is our receptionist, Arian, who has already reorganized my entire schedule and is somehow always right about it.\n\nThe clinic is open from eight in the morning until six in the evening. I’m there from nine until two, every third day. Yes, only every third day. I’ve decided that a doctor who sleeps is a better doctor, and I’d like to test that theory for a while. On my clinic days I won’t be out in the wilds, but my booth and my evenings are the same as always.\n\nCome by if you need anything. Come by if you don’t, too. Arian can book you in with either of us.\n\n-Bianca";
             return typeof ParseText === "function" ? ParseText(t) : t;
         },
         subject: "My door is open",
@@ -167,78 +173,84 @@
         } catch (err) { if (window.console) console.error("[Bianca's Clinic] street", err); }
     };
 
-    /* ---------- Front desk: Nest ---------- */
+    /* ---------- Front desk: Arian ---------- */
+    function metArian() {
+        // PC_MET_ARIAN is the flag from now on. TN_BXC_NEST_MET is the old name, from saves made
+        // before the receptionist was renamed; copy it over once so those saves keep working.
+        if (!num("PC_MET_ARIAN") && num("TN_BXC_NEST_MET")) flags.PC_MET_ARIAN = 1;
+        return num("PC_MET_ARIAN") > 0;
+    }
     function nestEyes() { return "hazel"; } // the waiting room is brightly lit; their eyes go green in dim light
     window.tnKetriaFrontDesk = function () {
         if (!live()) { output("An empty, half-finished waiting room. Nobody is here."); return false; }
         try {
             output("Ketria Clinic’s waiting room is bright and a little cramped: a handful of mismatched chairs, a rack of pamphlets about everything from Sydian rust allergies to safe mod dosages, and a leafy potted vine in the corner that someone is clearly trying very hard to keep alive. A door at the back, to the north, leads to the exam rooms. The thoroughfare’s bustle is muffled to a murmur behind the glass door to the east.");
-            if (!num("TN_BXC_NEST_MET")) {
-                output("\n\nBehind the front desk sits someone you haven’t met: an androgynous half-ausar with four green-scaled, tan-webbed wings folded neatly against their back and brown hair cut at the ears. A nameplate on the desk reads <b>Nest Toftwyn</b>, and under it, in smaller letters, <i>they/them</i>.");
+            if (!metArian()) {
+                output("\n\nBehind the front desk sits someone you haven’t met: an androgynous half-ausar with four green-scaled, tan-webbed wings folded neatly against their back and brown hair cut at the ears. A nameplate on the desk reads <b>Arian</b>, and under it, in smaller letters, <i>they/them</i>.");
                 addButton(0, "Front Desk", nestFirst, "Front Desk", "Introduce yourself to the receptionist.");
             } else {
                 output("\n\n" + rnd([
-                    "Nest is behind the front desk, typing with quick, claw-tipped fingers. They glance up and give you a little wave without breaking their rhythm.",
-                    "Nest is on a call at the front desk, wings shifting as they juggle a datapad and a stylus. They hold up one furred finger at you: <i>one moment</i>.",
-                    "Nest is sorting the day’s files at the front desk. Under the bright waiting room lights, their eyes are a warm " + nestEyes() + "."
+                    "Arian is behind the front desk, typing with quick, claw-tipped fingers. They glance up and give you a little wave without breaking their rhythm.",
+                    "Arian is on a call at the front desk, wings shifting as they juggle a datapad and a stylus. They hold up one furred finger at you: <i>one moment</i>.",
+                    "Arian is sorting the day’s files at the front desk. Under the bright waiting room lights, their eyes are a warm " + nestEyes() + "."
                 ]));
-                addButton(0, "Nest", nestMenuIntro, "Nest", "Talk to Nest at the front desk.");
+                addButton(0, "Arian", nestMenuIntro, "Arian", "Talk to Arian at the front desk.");
             }
         } catch (err) { if (window.console) console.error("[Bianca's Clinic] front desk", err); }
         return false;
     };
     function nestFirst() {
-        startNpc("Nest");
+        startNpc("Arian");
         say([
             "You walk up to the front desk. The receptionist finishes a line of typing, then looks up at you with a polite, practiced smile. Under the bright waiting room lights, their eyes are hazel.",
-            q("Welcome to Ketria Clinic. I’m Nest. Do you have an appointment, or...") + " They pause, and their head tilts a little. " + q("Oh. You’re Steele, aren’t you? Dr. Ketria described you. In <i>detail.</i> And Dr. Rewell has a picture of you in his office, but you were about a day old in it, so that one was less helpful."),
+            q("Welcome to Ketria Clinic. I’m Arian. Do you have an appointment, or...") + " They pause, and their head tilts a little. " + q("Oh. You’re Steele, aren’t you? Dr. Ketria described you. In <i>detail.</i> And Dr. Rewell has a picture of you in his office, but you were about a day old in it, so that one was less helpful."),
             "They stand and offer you a hand across the desk. Their hand is furred in soft brown, the fingers tipped with neat little claws, and their grip is warm and firm. Standing, they’re about five foot eight, slim, with an easy, unhurried way of moving, their folded wings rustling as they settle back into their chair.",
-            q("I keep the schedules for both doctors, so if you want to see either of them, I’m who you talk to,") + " Nest says. " + q("Dr. Ketria is in every third day, nine to two. Dr. Rewell is here whenever the clinic is open, which is eight to six. Both of their rooms are through the door behind me.") + " They nod at the door to the north. " + q("Anything you need, just ask.")
+            q("I keep the schedules for both doctors, so if you want to see either of them, I’m who you talk to,") + " Arian says. " + q("Dr. Ketria is in every third day, nine to two. Dr. Rewell is here whenever the clinic is open, which is eight to six. Both of their rooms are through the door behind me.") + " They nod at the door to the north. " + q("Anything you need, just ask.")
         ]);
-        flags.TN_BXC_NEST_MET = 1;
+        flags.PC_MET_ARIAN = 1;
         safe(function () { processTime(3); });
         nestMenu();
     }
     function nestMenuIntro() {
-        startNpc("Nest");
+        startNpc("Arian");
         output(rnd([
-            "Nest looks up from their terminal. " + q("Hey, Steele. What can I do for you?"),
-            "Nest sets down their stylus and folds their furred hands on the desk. " + q("Back again? What do you need?"),
-            "Nest finishes their call, taps the earpiece off, and gives you their full attention. " + q("Sorry about that. How can I help?")
+            "Arian looks up from their terminal. " + q("Hey, Steele. What can I do for you?"),
+            "Arian sets down their stylus and folds their furred hands on the desk. " + q("Back again? What do you need?"),
+            "Arian finishes their call, taps the earpiece off, and gives you their full attention. " + q("Sorry about that. How can I help?")
         ]));
         nestMenu();
     }
     function nestMenu() {
         clearMenu();
-        addButton(0, "Appointment", appointment, "Appointment", "Ask Nest to book you in with one of the doctors.");
-        addButton(1, "Directions", directions, "Directions", "Ask Nest where to find Dr. Ketria and Dr. Rewell.");
-        addButton(2, "Appearance", nestAppearance, "Appearance", "Take a look at Nest.");
+        addButton(0, "Appointment", appointment, "Appointment", "Ask Arian to book you in with one of the doctors.");
+        addButton(1, "Directions", directions, "Directions", "Ask Arian where to find Dr. Ketria and Dr. Rewell.");
+        addButton(2, "Appearance", nestAppearance, "Appearance", "Take a look at Arian.");
         addButton(14, "Back", mainGameMenu);
     }
-    function nestBack() { addButton(0, "Next", function () { startNpc("Nest"); output("Nest straightens a stack of files. " + q("Anything else?")); nestMenu(); }); }
+    function nestBack() { addButton(0, "Next", function () { startNpc("Arian"); output("Arian straightens a stack of files. " + q("Anything else?")); nestMenu(); }); }
 
     function appointment() {
-        startNpc("Nest");
-        output("You ask Nest about an appointment. They pull up the schedule on their terminal, wings shifting as they lean in. " + q("Sure. Who would you like to see?"));
+        startNpc("Arian");
+        output("You ask Arian about an appointment. They pull up the schedule on their terminal, wings shifting as they lean in. " + q("Sure. Who would you like to see?"));
         clearMenu();
         addButton(0, "Dr. Ketria", bookKetria, "Dr. Ketria", "Book in with Bianca.");
         addButton(1, "Dr. Rewell", bookRewell, "Dr. Rewell", "Book in with the geneticist.");
         addButton(14, "Back", nestMenuIntro);
     }
     function bookKetria() {
-        startNpc("Nest");
+        startNpc("Arian");
         var d = today();
-        if (num("TN_BXC_APPT_K") === d + 1) {
-            say([q("You’re already on her list for today,") + " Nest says, tapping the screen. " + q("First door on the left, through the back. She knows you’re coming.")]);
+        if (num("TN_BXC_APPT_K") === d + 1 && isOpen()) {
+            say([q("You’re already on her list for today,") + " Arian says, tapping the screen. " + q("First door on the left, through the back. She knows you’re coming.")]);
         } else if (isOpen()) {
             say([
-                "Nest taps a few keys. " + q("You’re in luck. She’s in today, and she has a gap right now.") + " They type your name into the slot, then pause. " + q("She asked me to put you through whenever you show up, by the way. Even if she’s booked. Those were her exact words. I’m choosing to respect them."),
+                "Arian taps a few keys. " + q("You’re in luck. She’s in today, and she has a gap right now.") + " They type your name into the slot, then pause. " + q("She asked me to put you through whenever you show up, by the way. Even if she’s booked. Those were her exact words. I’m choosing to respect them."),
                 q("Through the door behind me, first door on the left. Her name’s on it, and there’s usually a smell of tea coming out from under it.")
             ]);
             flags.TN_BXC_APPT_K = d + 1;
         } else {
             say([
-                "Nest checks the schedule and shakes their head. " + q("Dr. Ketria isn’t in right now. She works nine to two, every third day. The rest of the time she’s out in the wilds or, if I have any say in it, resting.") + " They make a note. " + q("Her next shift starts " + nextOpenText() + ". I’ll pencil you in for then."),
+                "Arian checks the schedule and shakes their head. " + q("Dr. Ketria isn’t in right now. She works nine to two, every third day. The rest of the time she’s out in the wilds or, if I have any say in it, resting.") + " They make a note. " + q("Her next shift starts " + nextOpenText() + ". I’ll pencil you in for then."),
                 q("If it’s urgent, Dr. Rewell can see you, or you can catch her at her booth out on the frontier. And if you happen to see her before then...") + " They lower their voice. " + q("Remind her to eat something. She won’t listen to me.")
             ]);
         }
@@ -246,15 +258,15 @@
         nestBack();
     }
     function bookRewell() {
-        startNpc("Nest");
+        startNpc("Arian");
         var d = today();
         if (num("TN_BXC_APPT_R") === d + 1) {
-            say([q("He’s already expecting you,") + " Nest says. " + q("End of the hall, the door with the double helix on it.")]);
+            say([q("He’s already expecting you,") + " Arian says. " + q("End of the hall, the door with the double helix on it.")]);
         } else {
             say([
-                "Nest checks Dr. Rewell’s schedule. " + q("He’s free. He usually is, between his patients. He spends most of it reading and humming to himself.") + " They fill in the slot. " + q("All set."),
+                "Arian checks Dr. Rewell’s schedule. " + q("He’s free. He usually is, between his patients. He spends most of it reading and humming to himself.") + " They fill in the slot. " + q("All set."),
                 q("Through the door behind me and all the way down the hall. His door is the one at the end with the double helix painted on it. He painted it himself. Don’t tell him it’s a little crooked."),
-                !num("TN_BXC_RW_MET") ? q("And, um, fair warning.") + " Nest’s mouth twitches. " + q("He’s been waiting for you to come by since the day we opened. He might get a little emotional.") : ""
+                !num("TN_BXC_RW_MET") ? q("And, um, fair warning.") + " Arian’s mouth twitches. " + q("He’s been waiting for you to come by since the day we opened. He might get a little emotional.") : ""
             ]);
             flags.TN_BXC_APPT_R = d + 1;
         }
@@ -262,23 +274,23 @@
         nestBack();
     }
     function directions() {
-        startNpc("Nest");
+        startNpc("Arian");
         say([
-            "You ask Nest where the doctors are.",
+            "You ask Arian where the doctors are.",
             "They swivel their chair and point to the door behind the desk. As they lean back out of the glare of the desk lamp and into the shade of their wings, their eyes shift from hazel to a clear, bright green. It’s a little startling, the first time you notice it.",
-            q("Through there, to the north. It’s one hallway. Dr. Ketria’s exam room is the first door on the left, with her name on it.") + (isOpen() ? q(" She’s in today, until two.") : q(" She’s not in right now. Next shift is " + nextOpenText() + ".")) + " " + q("Dr. Rewell’s office is at the end, the door with the double helix. He’s in whenever we’re open."),
-            q("If Dr. Ketria isn’t here, she’s usually at her booth out on the frontier, or doing her rounds in the wilds, or at home on the Residential Deck,") + " Nest adds. " + q("Not that I keep track of my boss. I just keep track of everything."),
+            q("Through there, to the north. It’s one hallway. Dr. Ketria’s exam room is the first door on the left, with her name on it." + (isOpen() ? " She’s in today, until two." : " She’s not in right now. Next shift is " + nextOpenText() + ".")) + " " + q("Dr. Rewell’s office is at the end, the door with the double helix. He’s in whenever we’re open."),
+            q("If Dr. Ketria isn’t here, she’s usually at her booth out on the frontier, or doing her rounds in the wilds, or at home on the Residential Deck,") + " Arian adds. " + q("Not that I keep track of my boss. I just keep track of everything."),
             "They lean forward again, back into the light, and their eyes settle back to hazel."
         ]);
         safe(function () { processTime(2); });
         nestBack();
     }
     function nestAppearance() {
-        startNpc("Nest");
+        startNpc("Arian");
         say([
-            "<b>Nestan “Nest” Toftwyn</b> is the clinic’s receptionist, and uses <i>they/them</i>. They’re about five foot eight and androgynous, neither soft nor sharp, with a calm, easygoing face.",
+            "<b>Arian</b> is the clinic’s receptionist, and uses <i>they/them</i>. They’re about five foot eight and androgynous, neither soft nor sharp, with a calm, easygoing face.",
             "They’re half ausar and half gryvain, and the ausar side mostly wins: their skin is light, their brown hair is cut just at the ears, and their hands are furred in brown, the fingers tipped with short claws. Their feet are furred and clawed too, tapping idly under the desk. The gryvain side shows in four big wings folded against their back, covered in green scales with tan webbing between the struts, and in a patch of the same green scales on their back around where the wings meet it.",
-            "Their eyes are the strangest thing about them: they change with the light. Under the bright lamps of the waiting room they’re a warm hazel, but whenever Nest leans back into shadow, they turn a vivid green.",
+            "Their eyes are the strangest thing about them: they change with the light. Under the bright lamps of the waiting room they’re a warm hazel, but whenever Arian leans back into shadow, they turn a vivid green.",
             "They’re dressed for the front desk in a soft, oversized sweater with slits cut in the back for their wings, and their chest is small under it. A clinic badge is clipped to the collar."
         ]);
         nestBack();
@@ -312,12 +324,12 @@
                 "Bianca’s ears shoot straight up when she sees it’s you, and her tails start swishing so hard they knock a chart off the counter.",
                 q("[pc.name]! You came!") + " She hurries over, then catches herself and smooths down the front of her coat. It’s a fresh one, crisp and white, with <i>Dr. B. Ketria</i> stitched over the pocket. " + q("Welcome to my clinic. Well. Half of it. Would you like the tour? It will take about nine seconds."),
                 "It takes closer to fifteen, because she stops to show you everything. The exam room, with its single table and a cabinet she organized by color. The tiny desk with a terminal and a framed holo of the two of you from the park. The break room. The kettle. She is <i>very</i> proud of the kettle.",
-                q("You’ve met Nest, I hope. I don’t know what I did before Nest. Suffered, mostly.") + " She nods down the hall. " + q("And Charles has the office at the end. He’ll want to see you. He’s been unbearable about it."),
+                q("You’ve met Arian, I hope. I don’t know what I did before Arian. Suffered, mostly.") + " She nods down the hall. " + q("And Charles has the office at the end. He’ll want to see you. He’s been unbearable about it."),
                 q("It isn’t much,") + " she admits when you’re back in her exam room, " + q("but it’s mine. I see who comes in, I leave at two, and then I go home and eat a proper lunch. Every third day. That’s the rule.") + " She taps a card on the inside of the door, where the hours are written in her neat, slanted handwriting. " + q("If I start breaking it, you have my permission to drag me out by the tails."),
                 "You promise to hold her to that. She beams at you."
             ]);
         } else if (num("TN_BXC_APPT_K") === today() + 1 && rand(2) === 0) {
-            say([q("Nest said you were coming,") + " Bianca says before you’re even through the door, already reaching for her stethoscope. " + q("They put you down as <i>‘VIP, do not make wait, she means it.’</i> I did not say that.") + " A pause. " + q("I did say that.")]);
+            say([q("Arian said you were coming,") + " Bianca says before you’re even through the door, already reaching for her stethoscope. " + q("They put you down as <i>‘VIP, do not make wait, she means it.’</i> I did not say that.") + " A pause. " + q("I did say that.")]);
         } else if (isLover() && rand(2) === 0) {
             say([
                 rnd([
@@ -342,6 +354,7 @@
         var needs = safe(function () { return pc.HPQ() < 100 || pc.statusEffectv1("Sore Counter") > 0; }, false);
         if (num("TN_BXC_CHECK_DAY") === d + 1) addDisabledButton(0, "Checkup", "Checkup", "Bianca already looked you over today.");
         else if (!needs) addDisabledButton(0, "Checkup", "Checkup", "You’re in perfect health. Bianca would only tell you to drink more water.");
+        else if (!isLover() && safe(function () { return pc.credits < checkupCost(); }, false)) addDisabledButton(0, "Checkup", "Checkup", "You can’t afford this.");
         else addButton(0, "Checkup", checkup, "Checkup", "Have Bianca patch you up. " + (isLover() ? "She’d never charge you." : "She charges the same as at her booth."));
         addButton(1, "Chat", chat, "Chat", "Talk with Bianca about her practice.");
         if (num("TN_BXC_LUNCH_DAY") === d + 1) addDisabledButton(2, "Lunch", "Lunch", "You already had lunch together today.");
@@ -353,12 +366,16 @@
     }
     function back() { addButton(0, "Next", function () { start("CLOTHED"); output("Bianca smooths down her coat. " + q("Anything else?")); clinicMenu(); }); }
 
+    function checkupCost() {
+        var hurt = safe(function () { return pc.HPQ() < 100; }, false);
+        var sore = safe(function () { return pc.statusEffectv1("Sore Counter") > 0; }, false);
+        return isLover() ? 0 : (hurt ? 50 : 0) + (sore ? 50 : 0);
+    }
     function checkup() {
         start("CLOTHED");
         var hurt = safe(function () { return pc.HPQ() < 100; }, false);
         var sore = safe(function () { return pc.statusEffectv1("Sore Counter") > 0; }, false);
-        var cost = (hurt ? 50 : 0) + (sore ? 50 : 0);
-        if (isLover()) cost = 0;
+        var cost = checkupCost();
         say([
             "Bianca pats her exam table. " + body({
                 biped: "You hop up onto it, the paper crinkling under you.",
@@ -368,7 +385,7 @@
             hurt ? "She works quickly and carefully, cleaning your cuts and scrapes with something that stings for half a second and then goes cool, wrapping what needs wrapping, and checking each bruise with a light press of her fingers. " + q("You,") + " she says, " + q("are a menace to your own skin.") : "",
             sore ? "Next she works a warm, sharp-smelling gel into your aching muscles, kneading the knots out with her thumbs until you’re practically melting off the " + body({ biped: "table", taur: "floor", naga: "floor" }) + ". " + q("Stretch before you go running into fights. I know you won’t. But I said it.") : "",
             q("There,") + " she says at last, peeling off her gloves. " + q("Good as new. Or as close to new as you let yourself get."),
-            cost > 0 ? "Nest rings you up at the front desk on your way past, " + cost + " credits, the same as her booth. " + q("She wanted to give you a discount,") + " they say, " + q("but I’ve seen what the rent on this place is.") : (isLover() ? "When you reach for your credit chit, she gives you a look so withering you put it right back. " + q("Absolutely not. I am not billing my own partner. Nest already knows.") : ""),
+            cost > 0 ? "Arian rings you up at the front desk on your way past, " + cost + " credits, the same as her booth. " + q("She wanted to give you a discount,") + " they say, " + q("but I’ve seen what the rent on this place is.") : (isLover() ? "When you reach for your credit chit, she gives you a look so withering you put it right back. " + q("Absolutely not. I am not billing my own partner. Arian already knows.") : ""),
             safe(function () { return pc.hasSSTD(); }, false) ? q("One more thing.") + " Her ears dip. " + q("You’re carrying something I can’t treat here. I don’t have the equipment yet. Come see me at my booth and I’ll take care of it, alright?") : ""
         ]);
         safe(function () { if (cost > 0) pc.credits = Math.max(0, pc.credits - cost); });
@@ -399,7 +416,7 @@
                 "You ask about the plant in the waiting room.",
                 "Bianca’s ears go flat. " + q("Her name is Doctor Fern,") + " she says, very seriously, " + q("and she is a Mhen’gan creeping vine that the florist down the thoroughfare promised me was impossible to kill.") + " She glances toward the waiting room. " + q("One of her leaves is drooping. I think he lied."),
                 "You suggest maybe she’s overwatering it.",
-                q("I’m a doctor,") + " Bianca says, " + q("I know how to keep things alive.") + " There is a long pause. " + q("...Nest says I’m overwatering it. How much water is too much water?")
+                q("I’m a doctor,") + " Bianca says, " + q("I know how to keep things alive.") + " There is a long pause. " + q("...Arian says I’m overwatering it. How much water is too much water?")
             ]);
         },
         function () {
@@ -418,8 +435,8 @@
         },
         function () {
             say([
-                "You ask about Nest.",
-                q("Nest is a gift,") + " Bianca says immediately. " + q("They answered Charles’ ad for a receptionist and rebuilt my whole schedule on the first day. They remember every patient’s name, every allergy, every child’s birthday. They know when I’ve skipped lunch before I do.") + " She shakes her head. " + q("I keep trying to give them a raise and they keep telling me to fix my sleep first."),
+                "You ask about Arian.",
+                q("Arian is a gift,") + " Bianca says immediately. " + q("They answered Charles’ ad for a receptionist and rebuilt my whole schedule on the first day. They remember every patient’s name, every allergy, every child’s birthday. They know when I’ve skipped lunch before I do.") + " She shakes her head. " + q("I keep trying to give them a raise and they keep telling me to fix my sleep first."),
                 q("They’re very private,") + " she adds, more gently. " + q("I don’t pry. If they want to tell you about themselves, they will. But they’re good people. The best kind.")
             ]);
         },
@@ -437,7 +454,7 @@
         if (i < CHATS.length) { CHATS[i](); flags.TN_BXC_CHAT = i + 1; }
         else {
             say([rnd([
-                "You chat with Bianca about nothing in particular while she restocks the bandage drawer. She tells you about a laquine who came in with a carrot stuck somewhere she won’t specify, and you laugh until Nest knocks on the wall to shush you.",
+                "You chat with Bianca about nothing in particular while she restocks the bandage drawer. She tells you about a laquine who came in with a carrot stuck somewhere she won’t specify, and you laugh until Arian knocks on the wall to shush you.",
                 "Bianca makes you a cup of tea from her beloved kettle and the two of you talk about your travels. She listens to every word, asks a dozen questions, and makes you promise to wear a helmet more often.",
                 "You spend a while talking with Bianca in the little break room. At some point her head ends up on your shoulder, and neither of you mentions it.",
                 "Bianca catches you up on all her patients, careful never to use a single name. The gryvain with the blood pressure is doing better. The dockworker is wearing his harness now. Doctor Fern has a new leaf. She is very proud of all of them."
@@ -450,7 +467,7 @@
     function lunch() {
         start("CASUAL");
         say([
-            "You tell Bianca it’s lunchtime. She opens her mouth, probably to say she has charts to finish, then catches your look and closes it again. With a sigh she tells Nest she’ll be back in an hour and hangs up her coat. Nest gives you a silent thumbs-up behind her back.",
+            "You tell Bianca it’s lunchtime. She opens her mouth, probably to say she has charts to finish, then catches your look and closes it again. With a sigh she tells Arian she’ll be back in an hour and hangs up her coat. Arian gives you a silent thumbs-up behind her back.",
             rnd([
                 "You take her to a little noodle place a few doors down the thoroughfare. Bianca orders a bowl nearly as big as her head and then eats the whole thing with an intensity that would frighten a lesser companion. " + q("I forgot breakfast,") + " she admits between bites. You decide not to tell her you could tell.",
                 "The two of you sit on a bench along the Merchant Deck with sandwiches from a deli stall, watching the crowds of rushers go by. Bianca leans back and closes her eyes, her tails curled contentedly around her legs. For a little while, she doesn’t look like a doctor at all. Just a woman enjoying her lunch.",
@@ -472,7 +489,7 @@
             "You offer to lend a hand. Bianca hesitates, clearly torn between her pride and her paperwork, and then hands you a box of supplies with a grateful smile. " + q("Everything in here goes in the cabinet by color. The cabinet. By <i>color,</i> [pc.name]."),
             rnd([
                 "For the next hour you restock shelves, wipe down the exam table between patients and keep a pair of bored kaithrit twins entertained in the waiting room while their father gets his stitches. By the end, one of them is braiding your " + safe(function () { return pc.hasHair() ? "hair" : "sleeve"; }, "sleeve") + " and the other has fallen asleep against your " + body({ biped: "leg", taur: "foreleg", naga: "coils" }) + ".",
-                "You spend the hour helping Nest out front, finding chairs and fetching cups of water. A very old rodenian gentleman decides you are Bianca’s receptionist and tells you his entire medical history, twice. Nest doesn’t correct him. They just smile into their terminal.",
+                "You spend the hour helping Arian out front, finding chairs and fetching cups of water. A very old rodenian gentleman decides you are Bianca’s receptionist and tells you his entire medical history, twice. Arian doesn’t correct him. They just smile into their terminal.",
                 "The clinic gets a rush of three patients at once, which is apparently a crisis. You hold a squirming puppy-ausar boy still for his vaccine shot, fetch gauze for a sliced palm, and help a heavily pregnant woman down the hall to Dr. Rewell’s office. Bianca moves between all of them like a calm, golden whirlwind."
             ]),
             "When the hour is up, Bianca presses " + pay + " credits into your hand and refuses to take them back. " + q("You did real work, you get real pay,") + " she says firmly. " + q("Besides, if I don’t pay you, I’ll feel like I’m taking advantage. And I’m not doing that anymore. Not to anyone. Including me.")
@@ -505,12 +522,12 @@
                 "He looks up, and goes completely still.",
                 q("Well,") + " he says softly. " + q("Well, well. Look at you.") + " He takes off the glasses he isn’t wearing, realizes they’re still in his pocket, and laughs at himself. " + q("Forgive an old man. I’m Charles Rewell. Doctor, technically, though I’ve been retired for all of three months, so I’m still deciding what I want to be called.") + " He comes around the desk and takes your hand in both of his. " + q("You won’t remember me. The last time I saw you, you were about a day old, and you screamed the whole time."),
                 q("I was your father’s doctor, [pc.name]. For eighty years. When he decided he wanted an heir, he came to me, and he sat in a chair just like that one, grinning like an idiot, and we built you together.") + " His eyes are bright. " + q("Every choice. Your sex, your height, the color of your eyes. Victor fussed over every one of them. And now here you are, walking around the galaxy, chasing his probes.") + " He squeezes your hand. " + q("He’d be so proud. I’m sure of it."),
-                "He lets go at last and waves you into the chair across from his desk. " + q("Sit, sit. I’ve been waiting to meet you properly since the day Bianca put up her listing. Nest says I’ve been insufferable about it. They’re right, as usual.")
+                "He lets go at last and waves you into the chair across from his desk. " + q("Sit, sit. I’ve been waiting to meet you properly since the day Bianca put up her listing. Arian says I’ve been insufferable about it. They’re right, as usual.")
             ]);
             flags.TN_BXC_RW_MET = 1;
             safe(function () { processTime(10); });
         } else if (num("TN_BXC_APPT_R") === today() + 1 && rand(2) === 0) {
-            output(q("Nest told me you were on your way.") + " Dr. Rewell is already pouring a second cup of tea when you come in. " + q("Sit down, [pc.name]. What can an old man do for you?"));
+            output(q("Arian told me you were on your way.") + " Dr. Rewell is already pouring a second cup of tea when you come in. " + q("Sit down, [pc.name]. What can an old man do for you?"));
         } else {
             output(rnd([
                 "Dr. Rewell is hunched over his gene sequencer, humming. He brightens when he sees you. " + q("[pc.name]! Come in, come in. What can I do for you?"),
@@ -564,14 +581,14 @@
             say([
                 "You ask what he thinks of Bianca.",
                 q("She’s a better doctor than I ever was,") + " he says without hesitation. " + q("I know the code of life down to the base pair. She knows <i>people.</i> She can tell what’s wrong with someone before they’ve finished sitting down.") + " He taps the desk. " + q("And she would work herself into the grave if nobody stopped her."),
-                q("So I stop her. Nest and I both do. If she tries to stay past two, Nest locks her terminal, and I come down the hall and tell her my back hurts and I need her to walk me to the lift.") + " He grins. " + q("My back is fine. She knows it’s fine. She walks me to the lift anyway."),
+                q("So I stop her. Arian and I both do. If she tries to stay past two, Arian locks her terminal, and I come down the hall and tell her my back hurts and I need her to walk me to the lift.") + " He grins. " + q("My back is fine. She knows it’s fine. She walks me to the lift anyway."),
                 isLover() ? q("She talks about you constantly, you know. Constantly. It’s very sweet. Please don’t break her heart, I’m too old to fight you.") : q("She talks about you a great deal, you know. Whatever you said to her, out there, it mattered.")
             ]);
         } },
-        { l: "Nest", tip: "Ask about the receptionist.", f: function () {
+        { l: "Arian", tip: "Ask about the receptionist.", f: function () {
             say([
-                "You ask him about Nest.",
-                q("Best hire I ever made, and I hired half of Steele Tech’s medical division at one time or another.") + " Dr. Rewell smiles. " + q("Nest answered my ad on the first day. They walked in, looked at my filing system, and very politely asked if anyone had died because of it yet."),
+                "You ask him about Arian.",
+                q("Best hire I ever made, and I hired half of Steele Tech’s medical division at one time or another.") + " Dr. Rewell smiles. " + q("Arian answered my ad on the first day. They walked in, looked at my filing system, and very politely asked if anyone had died because of it yet."),
                 q("They keep the whole place running. Both our schedules, the supply orders, the patients who are scared or angry or lonely and need someone to sit with them for a minute. They’re kind in a way that doesn’t make a fuss about itself."),
                 q("I won’t tell you their business,") + " he adds. " + q("That’s theirs to share. But if you want to get to know them, try asking. They’re easier to talk to than they think they are.")
             ]);
