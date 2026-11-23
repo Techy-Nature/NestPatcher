@@ -18,6 +18,18 @@ Author: Neston
 #     aboard toward Confess, under the game's Affection line.
 # Needles use @@name@@ wildcards for minified names so they match PC and Android builds.
 
+# Familiarity lives in TN_BIANCA_FAMILIARITY: every bianca.familiarity() call in the game goes to the mod
+Replace [main.js]:
+{key:"familiarity",value:function(){var @@e@@=arguments.length>0&&void 0!==arguments[0]?arguments[0]:0,@@t@@=arguments.length>1&&void 0!==arguments[1]&&arguments[1];return void 0===flags.BIANCA_FAMILIARITY
+With:
+{key:"familiarity",value:function(){var @@e@@=arguments.length>0&&void 0!==arguments[0]?arguments[0]:0,@@t@@=arguments.length>1&&void 0!==arguments[1]&&arguments[1];if(window.tnBiancaFam)return window.tnBiancaFam(@@e@@,@@t@@,this.familiarityMax());return void 0===flags.BIANCA_FAMILIARITY
+
+# Taurs (with the taur/naga bypass on) are no longer turned down inside her Sex scene
+Replace [main.js]:
+else pc.isTaur()||pc.isGoo()?(void 0===flags.BIANCA_SEXED
+With:
+else(window.tnBiancaBodyBlocked?window.tnBiancaBodyBlocked():pc.isTaur()||pc.isGoo())?(void 0===flags.BIANCA_SEXED
+
 # Familiarity cap (49 when the mod is off, 50 before Confront, 100 after)
 Replace [main.js]:
 {key:"familiarityMax",value:function(){return 49}}

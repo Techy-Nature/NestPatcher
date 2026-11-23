@@ -24,8 +24,18 @@
  *   turned down.
  * Flags (in your save): TN_BX_STATE (1 cold, 2 confronted/away, 4 love track), TN_BX_CUDDLES,
  *   TN_BX_CONFRONT_TS, TN_BX_SHIP (nights aboard), TN_BX_MISSIONARY, TN_BX_ANAL, TN_BX_DITZY,
- *   TN_BX_TREATED, TN_BX_BOOTHCOLD, TN_BX_MET_KASE. Sets the game's own
+ *   TN_BX_TREATED, TN_BX_BOOTHCOLD, TN_BX_MET_KASE, TN_BIANCA_FAMILIARITY. Sets the game's own
  *   BIANCA_CONFRONTED and BIANCA_MET_ANNO flags.
+ * Changes (2026-11-23):
+ *   - Her familiarity now lives in its own save flag, TN_BIANCA_FAMILIARITY. The .mod sends the
+ *     game's bianca.familiarity() here, so every scene, the codex and both Bianca mods read
+ *     and raise this one value. Saves carry over: the first time it's read, it starts from the
+ *     game's BIANCA_FAMILIARITY. The game's flag is kept in step (up to 49) so the save still
+ *     works without the mod. A save edit above the cap is kept, not cut back, and counts as
+ *     soon as the cap rises (50 before Confront, 100 after).
+ *   - Taurs can have sex with Bianca when the taur/naga bypass switch is on. The game let the
+ *     Sex button through but Bianca still turned taurs down inside the scene. Nagas were never
+ *     turned down. Goo bodies still are.
  * Fixes (2026-11-22): typo and grammar pass over every scene; knot, taur/naga and two-cock
  *   variants that printed broken sentences; flavor tags that printed an adjective with no
  *   noun ("with salty."); codex log now shows a relationship meter, the stage and nights aboard.
@@ -308,14 +318,51 @@
     }
     setInterval(ensureAway, 3000);
 
-    /* ---------- Familiarity cap ---------- */
-    // On: 50 until you confront her, 100 after. Off: the game's 49, but anything already
+    /* ---------- Familiarity (TN_BIANCA_FAMILIARITY) ---------- */
+    // The .mod points the game's bianca.familiarity(add, set) here, so every scene uses this.
+    function famStore() {
+        if (flags.TN_BIANCA_FAMILIARITY === undefined) {
+            // First read on this save: start from the game's own value.
+            flags.TN_BIANCA_FAMILIARITY = Math.max(0, Math.min(100, Number(flags.BIANCA_FAMILIARITY) || 0));
+        }
+        var v = Number(flags.TN_BIANCA_FAMILIARITY);
+        if (isNaN(v)) v = 0;
+        return Math.max(0, Math.min(100, v));
+    }
+    window.tnBiancaFam = function (add, set, max) {
+        try {
+            var v = famStore();
+            add = Number(add) || 0;
+            max = Math.max(0, Math.min(100, Number(max) || 0));
+            if (set) v = Math.max(0, Math.min(max, add));
+            else if (add > 0) { if (v < max) v = Math.min(max, v + add); } // a value above the cap waits for the cap to rise
+            else if (add < 0) v = Math.max(0, v + add);
+            flags.TN_BIANCA_FAMILIARITY = v;
+            flags.BIANCA_FAMILIARITY = Math.min(v, 49); // keeps the save sane without the mod
+            return Math.min(v, max);
+        } catch (err) { return 0; }
+    };
+    // Cap. On: 50 until you confront her, 100 after. Off: the game's 49, but anything already
     // earned stays (the cap never pulls her familiarity back down).
     window.tnBiancaFamMax = function () {
         try {
-            if (!on()) return Math.max(49, Math.min(100, Number(flags.BIANCA_FAMILIARITY) || 0));
+            if (!on()) return Math.max(49, famStore());
             return st() >= 2 ? 100 : 50;
         } catch (err) { return 49; }
+    };
+
+    /* ---------- Taur bodies at her Sex button ---------- */
+    // The game turns taurs and goos down inside biancaSexings even when the taur/naga gate
+    // let the button through. With the bypass on, taurs get in; goos are still turned down.
+    window.tnBiancaBodyBlocked = function () {
+        try {
+            if (pc.isGoo()) return true;
+            if (!pc.isTaur()) return false;
+            if (!bypass()) return true;
+            // An old "your shape is incompatible" refusal would make her say you changed shape.
+            if (flags.BIANCA_REASON_REJECTED === GLOBAL.BIANCA_REJECTION_TAUR) delete flags.BIANCA_REASON_REJECTED;
+            return false;
+        } catch (err) { return true; }
     };
 
     /* ---------- Hidden while cold / away ---------- */
