@@ -21,13 +21,15 @@
  *     Steele with their own children the way he once helped Victor: talks, a children's consult,
  *     and a free prenatal scan once a day while Steele is pregnant.
  * Flags (in your save): TN_BXC_TS, TN_BXC_VISITS, TN_BXC_CHECK_DAY, TN_BXC_LUNCH_DAY,
- *   TN_BXC_HELP_DAY, TN_BXC_CHAT, TN_BXC_NEST_MET, TN_BXC_APPT_K, TN_BXC_APPT_R, TN_BXC_RW_MET,
+ *   TN_BXC_HELP_DAY, TN_BXC_CHAT, PC_MET_ARIAN, TN_BXC_APPT_K, TN_BXC_APPT_R, TN_BXC_RW_MET,
  *   TN_BXC_RW_TALKS, TN_BXC_RW_SCAN_DAY, TN_BXC_RW_KIDS.
  * Toggle: Options -> Android Mods -> "Bianca's Clinic".
  * Fixes (2026-11-22): Arian's directions no longer glue two quotes together; "already on her
  *   list" only shows while she's in; Checkup is greyed out when you can't pay (like her booth);
  *   the email uses curly apostrophes like the rest;
- *   the receptionist is now named Arian (the save flag TN_BXC_NEST_MET keeps its old name).
+ *   the receptionist is now named Arian. Meeting them sets PC_MET_ARIAN; saves from before the
+ *   rename (with the old TN_BXC_NEST_MET flag) are carried over to PC_MET_ARIAN the first time
+ *   you walk into the waiting room, so nobody has to meet Arian twice.
  */
 (function () {
     "use strict";
@@ -172,12 +174,18 @@
     };
 
     /* ---------- Front desk: Arian ---------- */
+    function metArian() {
+        // PC_MET_ARIAN is the flag from now on. TN_BXC_NEST_MET is the old name, from saves made
+        // before the receptionist was renamed; copy it over once so those saves keep working.
+        if (!num("PC_MET_ARIAN") && num("TN_BXC_NEST_MET")) flags.PC_MET_ARIAN = 1;
+        return num("PC_MET_ARIAN") > 0;
+    }
     function nestEyes() { return "hazel"; } // the waiting room is brightly lit; their eyes go green in dim light
     window.tnKetriaFrontDesk = function () {
         if (!live()) { output("An empty, half-finished waiting room. Nobody is here."); return false; }
         try {
             output("Ketria Clinic’s waiting room is bright and a little cramped: a handful of mismatched chairs, a rack of pamphlets about everything from Sydian rust allergies to safe mod dosages, and a leafy potted vine in the corner that someone is clearly trying very hard to keep alive. A door at the back, to the north, leads to the exam rooms. The thoroughfare’s bustle is muffled to a murmur behind the glass door to the east.");
-            if (!num("TN_BXC_NEST_MET")) {
+            if (!metArian()) {
                 output("\n\nBehind the front desk sits someone you haven’t met: an androgynous half-ausar with four green-scaled, tan-webbed wings folded neatly against their back and brown hair cut at the ears. A nameplate on the desk reads <b>Arian</b>, and under it, in smaller letters, <i>they/them</i>.");
                 addButton(0, "Front Desk", nestFirst, "Front Desk", "Introduce yourself to the receptionist.");
             } else {
@@ -199,7 +207,7 @@
             "They stand and offer you a hand across the desk. Their hand is furred in soft brown, the fingers tipped with neat little claws, and their grip is warm and firm. Standing, they’re about five foot eight, slim, with an easy, unhurried way of moving, their folded wings rustling as they settle back into their chair.",
             q("I keep the schedules for both doctors, so if you want to see either of them, I’m who you talk to,") + " Arian says. " + q("Dr. Ketria is in every third day, nine to two. Dr. Rewell is here whenever the clinic is open, which is eight to six. Both of their rooms are through the door behind me.") + " They nod at the door to the north. " + q("Anything you need, just ask.")
         ]);
-        flags.TN_BXC_NEST_MET = 1;
+        flags.PC_MET_ARIAN = 1;
         safe(function () { processTime(3); });
         nestMenu();
     }
