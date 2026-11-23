@@ -1,8 +1,10 @@
 # TN_GameFixes v1.0 - NestPatcher mod
 # Fixes bugs in the base game (TiTS 0.9.168) itself, not in any mod.
-# Each block below fixes one bug. @@x@@ is a NestPatcher wildcard, so the same
-# block matches the PC and Android builds even where their short names differ.
-# Needs NestPatcher 1.4+, Android patcher 1.3+, GUI 0.5+ or Android app 0.3+.
+# Each block below fixes one bug. @@x@@ is a NestPatcher wildcard for short names.
+# DESKTOP ONLY FOR NOW (Windows, Linux, Mac). The Android build's code is written
+# differently at all nine spots, so every block misses there and the Android patcher
+# stops the whole run. Leave this mod off on Android (keep the # in enabled.txt).
+# Needs NestPatcher 1.4+ or GUI 0.5+.
 
 # ---------------------------------------------------------------------------
 # 1. Shop hotkeys crash.
