@@ -30,7 +30,8 @@
  *   - Her familiarity now lives in its own save flag, TN_BIANCA_FAMILIARITY. The .mod sends the
  *     game's bianca.familiarity() here, so every scene, the codex and both Bianca mods read
  *     and raise this one value. Saves carry over: the first time it's read, it starts from the
- *     game's BIANCA_FAMILIARITY. The game's flag is kept in step (up to 49) so the save still
+ *     game's BIANCA_FAMILIARITY, copied within a second of loading a save that has met her,
+ *     so the next save holds it even before you see her. The game's flag is kept in step (up to 49) so the save still
  *     works without the mod. A save edit above the cap is kept, not cut back, and counts as
  *     soon as the cap rises (50 before Confront, 100 after).
  *   - Taurs can have sex with Bianca when the taur/naga bypass switch is on. The game let the
@@ -350,6 +351,16 @@
             return st() >= 2 ? 100 : 50;
         } catch (err) { return 49; }
     };
+
+    // Copy the game's value over as soon as a save is loaded, so TN_BIANCA_FAMILIARITY is in
+    // the next save even before you see Bianca. Saves that never met her have nothing to copy.
+    function famCopyOnLoad() {
+        try {
+            if (typeof flags !== "object" || !flags) return;
+            if (flags.TN_BIANCA_FAMILIARITY === undefined && flags.BIANCA_FAMILIARITY !== undefined) famStore();
+        } catch (err) { /* game not ready yet */ }
+    }
+    setInterval(famCopyOnLoad, 1000);
 
     /* ---------- Taur bodies at her Sex button ---------- */
     // The game turns taurs and goos down inside biancaSexings even when the taur/naga gate
