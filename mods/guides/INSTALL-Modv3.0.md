@@ -1,6 +1,6 @@
-# Modv3.0: Bianca's lover, flying, haptics and full scene text
+# Modv3.0: Bianca's lover, flying, the Femme Former, haptics and full scene text
 
-Modv3.0 adds five new mods and updates six. It's for **TiTS 0.9.168**, the same game version as
+Modv3.0 adds six new mods and updates six. It's for **TiTS 0.9.168**, the same game version as
 Modv2.9, so you don't need to delete `backup`. All notes are in the in-game **Changelog**.
 
 ## New mods
@@ -9,6 +9,7 @@ Modv2.9, so you don't need to delete `backup`. All notes are in the in-game **Ch
 |---|---|
 | `TN_HapticsPlus_v3.0.js` | More control over the game's buttplug.io haptics. See `HAPTICS-PLUS.md`. |
 | `TN_Fly_v3.0.mod` + `.js` | A Fly button above Steele's picture: fly to outdoor spots with wings or a hoverboard. See `FLY.md`. |
+| `TN_FemmeFormer_v3.0.mod` + `.js` | The Femme Former: a TamaniCorp machine that reshapes breasts and pussies in one session. See `FEMME-FORMER.md`. |
 | `TN_SexGalleryText_v3.0.js` | Optional: a **Read scene** button with the whole scene in the Sex Gallery. Leave it out for a lite pack. See `SEX-GALLERY-FULL-TEXT.md`. |
 | `TN_GameFixes_v1.0.mod` | Fixes six bugs in the game itself. |
 | `TN_LauncherFixes_v1.0.mod` | Desktop only, off by default. Fixes the desktop launcher's Reset game data and image pack downloads. |
