@@ -140,7 +140,7 @@ From `TITS-Modding`:
 
    ```text
    VALID content_tavros.<hash>.js
-   VALID runtime/TN_Changelog_v2.9.js
+   VALID runtime/TN_Changelog_v3.0.js
    ...
    DRY RUN: <number> replacements, <number> runtime files; no changes made.
    ```
