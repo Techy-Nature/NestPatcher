@@ -48,7 +48,7 @@ machine off (the plan is forgotten too).
 |---|---|
 | **Chest** | For each breast row: **Cup Size** (from flat up to the game's biggest cup, in steps of 1, 5 or 10) and **Nipple Type** (Normal, Flat, Inverted, Lipples, Fuckable, Dick, Tentacled). **Add Row** grows one more row (up to three rows), starting like your bottom row. |
 | **Nipples** | For all rows: **Shorter** / **Longer** (0.5× to 10×), **Fewer** / **More** nipples per breast (1 to 4), and **Color**. |
-| **Pussy** | For each pussy: **Type** (25 kinds over three pages, from Human to Nyrea), **Wetness** (Dry to Drooling), **Tightness** (Virgin-Tight to Gaping-Wide), **Clits** (1 to 4) and **Color**. **Add Pussy** grows a new one (up to three); you pick its type and the rest right away. **Clit Size** sets the size of all your clits (¼ in to 12 in). |
+| **Pussy** | For each pussy: **Type** (25 kinds over three pages, from Human to Nyrea), **Wetness** (Dry to Drooling), **Tightness** (Virgin-Tight to Gaping-Wide), **Clits** (1 to 4) and **Color**. **Add Pussy** grows a new one (up to three); you pick its type and the rest right away. **Remove** (inside a pussy's menu) smooths away an extra pussy; you always keep at least one. **Keep It** changes your mind. **Clit Size** sets the size of all your clits (¼ in to 12 in). |
 
 Changing a pussy's type gives it that type's own color and extras (like the game's own
 transformations do), unless you also picked a color.
@@ -61,6 +61,7 @@ The game's own locks still apply, and their buttons are greyed out with the reas
 - **Gel Body:** breast sizes, nipple types and nipple counts can't change.
 - **The Treatment** (some kinds): breasts can't shrink.
 - A synthetic pussy can't change type.
+- A pussy the game won't let go of (for example while you're pregnant in it) can't be removed.
 
 ## Flags (for the save editor)
 

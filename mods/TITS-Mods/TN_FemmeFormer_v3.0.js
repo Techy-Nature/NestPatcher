@@ -14,7 +14,7 @@
      You can also add one breast row (up to three rows).
    - Nipples (all rows): length, nipples per breast and color.
    - Pussy, for each vagina: type (25 kinds), wetness, minimum looseness, clits and color,
-     plus clit size. You can also grow a new pussy (up to three).
+     plus clit size. You can also grow a new pussy (up to three) or remove extra ones, down to one.
    - Plan any mix of changes, then press Start: one session does them all.
    - The game's own locks still apply (Goo Crotch, Gel Body, The Treatment and so on).
    - Item: TnFemmeFormer ("FemmeF."), a gadget you carry and install.
@@ -115,12 +115,14 @@
     // The plan: what the next session will change. Nothing is applied until Start.
     // ---------------------------------------------------------------------------
     var plan = null;
-    function freshPlan() { return { rows: {}, vags: {}, addRow: false, addPussy: false, nipLen: null, nipPer: null, nipColor: null, clitLen: null }; }
+    function freshPlan() { return { rows: {}, vags: {}, addRow: false, addPussy: false, remove: {}, nipLen: null, nipPer: null, nipColor: null, clitLen: null }; }
     function getPlan() { if (!plan) plan = freshPlan(); return plan; }
     function rowCount() { return P(function () { return pcx().breastRows.length; }, 0); }
     function vagCount() { return P(function () { return pcx().vaginas.length; }, 0); }
     function plannedRows() { return rowCount() + (getPlan().addRow ? 1 : 0); }
     function plannedVags() { return vagCount() + (getPlan().addPussy ? 1 : 0); }
+    function removing(i) { var r = getPlan().remove; return !!(r && r[i]); }
+    function keptVags() { var n = vagCount(), k = 0; for (var i = 0; i < n; i++) if (!removing(i)) k++; return k; }
 
     // What a row or pussy is now (a planned new one copies the last row / starts as a plain human pussy).
     function baseRow(i) {
@@ -187,6 +189,7 @@
         }
         for (var i = 0; i < n; i++) {
             var b = baseVag(i), c = vag(i), lbl = "Pussy " + (i + 1);
+            if (removing(i)) { list.push("<b>Remove</b> pussy " + (i + 1) + " (" + b.color + " " + typeName(b.type).toLowerCase() + ")"); continue; }
             if (c.type !== b.type) list.push(lbl + ": " + typeName(b.type) + " → <b>" + typeName(c.type) + "</b>");
             if (c.wet !== b.wet) list.push(lbl + " wetness: " + WETNESS[Math.min(b.wet, 5)] + " → <b>" + WETNESS[c.wet] + "</b>");
             if (c.loose !== b.loose) list.push(lbl + " tightness: " + (LOOSENESS[b.loose] || b.loose) + " → <b>" + LOOSENESS[c.loose] + "</b>");
@@ -474,7 +477,7 @@
         if (rowCount() > 0) window.addButton(1, "Nipples", nippleMenu, "Nipples", "Plan nipple length, nipples per breast and nipple color.");
         else window.addDisabledButton(1, "Nipples", "Nipples", "You don’t have any breast rows.");
         if (goo()) window.addDisabledButton(2, "Pussy", "Pussy", "The Femme Former can’t get a grip on a gooey crotch.");
-        else window.addButton(2, "Pussy", pussyMenu, "Pussy", vagCount() ? "Plan your pussy’s type, wetness, tightness, clits and color, or grow another one." : "Grow a brand new pussy.");
+        else window.addButton(2, "Pussy", pussyMenu, "Pussy", vagCount() ? "Plan your pussy’s type, wetness, tightness, clits and color, grow another one, or remove extras." : "Grow a brand new pussy.");
         if (c.length || v.length) window.addButton(5, "Start", start, "Start", "Lie down and let the Femme Former do everything you planned.");
         else window.addDisabledButton(5, "Start", "Start", "Plan at least one change first.");
         if (c.length || v.length) window.addButton(6, "Clear Plan", function () { plan = freshPlan(); mainScreen(); }, "Clear Plan", "Forget everything you’ve planned.");
@@ -610,8 +613,8 @@
         for (var i = 0; i < total; i++) {
             (function (i) {
                 var v = vag(i);
-                window.output("\n<b>#" + (i + 1) + (i >= n ? " (new)" : "") + ":</b> " + cap(v.color) + " " + typeName(v.type).toLowerCase() + " pussy, " + WETNESS[Math.min(v.wet, 5)].toLowerCase() + ", " + v.clits + " " + plural(v.clits, "clit", "clits"));
-                window.addButton(i, "#" + (i + 1), function () { vagMenu(i); }, "Pussy #" + (i + 1), "Shape your " + nth(i) + " pussy.");
+                window.output("\n<b>#" + (i + 1) + (i >= n ? " (new)" : "") + (removing(i) ? " (removing)" : "") + ":</b> " + cap(v.color) + " " + typeName(v.type).toLowerCase() + " pussy, " + WETNESS[Math.min(v.wet, 5)].toLowerCase() + ", " + v.clits + " " + plural(v.clits, "clit", "clits"));
+                window.addButton(i, "#" + (i + 1), function () { vagMenu(i); }, "Pussy #" + (i + 1), removing(i) ? "Your " + nth(i) + " pussy is marked for removal." : "Shape or remove your " + nth(i) + " pussy.");
             })(i);
         }
         if (total > 0) {
@@ -638,6 +641,18 @@
         line("Clits", String(b.clits), String(v.clits));
         line("Color", cap(b.color), cap(v.color));
         window.clearMenu();
+        if (removing(i)) {
+            window.output("\n\n<b>This pussy is marked for removal.</b> The session will smooth it away.");
+            window.addButton(5, "Keep It", function () { delete getPlan().remove[i]; vagMenu(i); }, "Keep It", "Don’t remove this pussy after all.");
+            window.addButton(14, "Back", pussyMenu);
+            return;
+        }
+        var pcR = pcx();
+        if (!b.isNew && vagCount() > 1) {
+            if (keptVags() <= 1) window.addDisabledButton(5, "Remove", "Remove", "The Femme Former always leaves you at least one pussy.");
+            else if (!P(function () { return pcR.removeVaginaUnlocked(i, 1); }, true)) window.addDisabledButton(5, "Remove", "Remove", P(function () { return pcR.removeVaginaLockedMessage(i, 1); }, "Something is keeping this pussy in place."));
+            else window.addButton(5, "Remove", function () { var pl = getPlan(); pl.remove[i] = true; delete pl.vags[i]; vagMenu(i); }, "Remove", "Smooth this pussy away. You’ll keep at least one.");
+        }
         window.addButton(0, "Type", function () { typeMenu(i, 0); }, "Type", "Pick a new kind of pussy.");
         window.addButton(1, "Wetness", function () { pickMenu(i, "wet"); }, "Wetness", "How wet this pussy gets.");
         window.addButton(2, "Tightness", function () { pickMenu(i, "loose"); }, "Tightness", "How tight this pussy stays, at its tightest.");
@@ -799,6 +814,7 @@
         var vn = vagCount(), lockedLine = false;
         function locked() { if (!lockedLine) { out.push(pc.vaginaTypeLockedMessage()); lockedLine = true; } }
         for (var j = 0; j < vn; j++) {
+            if (removing(j)) continue;
             var vb = baseVag(j), vc = vag(j), V = pc.vaginas[j];
             var changed = false;
             if (vc.type !== vb.type) {
@@ -836,6 +852,17 @@
                 out.push("<b>You have a brand new " + typeName(nv.type).toLowerCase() + " pussy" + (vn ? "" : " between your [pc.thighs]") + ": " + vagSummary(vn) + "!</b>");
             }
         }
+        // Removals last, highest first, so the other pussies keep their places. Always leaves one.
+        var gone = 0;
+        for (var k = vn - 1; k >= 0; k--) {
+            if (!removing(k) || pc.vaginas.length <= 1) continue;
+            if (!P(function () { return pc.removeVaginaUnlocked(k, 1); }, true)) { out.push(P(function () { return pc.removeVaginaLockedMessage(k, 1); }, "Your " + nth(k) + " pussy won’t go away.")); continue; }
+            var what = P(function () { return typeName(pc.vaginas[k].type).toLowerCase(); }, "");
+            pc.removeVagina(k, 1);
+            gone++;
+            out.push("<b>Your " + nth(k) + " pussy" + (what ? ", the " + what + " one," : "") + " has smoothed away.</b>");
+        }
+        if (gone) out.push("<b>You have " + (pc.vaginas.length === 1 ? "one pussy" : pc.vaginas.length + " pussies") + " now.</b>");
         if (p.clitLen !== null && p.clitLen !== pc.clitLength) {
             if (pc.clitLengthUnlocked(p.clitLen)) {
                 var bigger = p.clitLen > pc.clitLength;
