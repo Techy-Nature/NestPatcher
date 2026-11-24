@@ -76,4 +76,6 @@ TN_HapticsPlus_v3.0.js
 TN_GameFixes_v1.0.mod
 TN_Fly_v3.0.mod
 TN_Fly_v3.0.js
+TN_FemmeFormer_v3.0.mod
+TN_FemmeFormer_v3.0.js
 # TN_LauncherFixes_v1.0.mod   (desktop only: remove the # at the start on Windows, Linux and Mac; leave it off on Android)
