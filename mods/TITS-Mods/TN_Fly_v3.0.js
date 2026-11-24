@@ -1,8 +1,8 @@
 /* TN Fly for Trials in Tainted Space (Modv3.0, checked against 0.9.168).
-   Fast travel by air for a Steele with wings and/or the pink hoverboard.
+   Fast travel by air for a Steele with wings and/or any hoverboard (the pink one, Anno's Holoboard or a modded board).
 
    - A Fly button sits in the left sidebar, above Steele's picture. It only shows when
-     Steele has wings (any kind) or carries the pink hoverboard.
+     Steele has wings (any kind) or carries any hoverboard.
    - It opens the game's own map in Fly mode. Pick an outdoor spot you've already found
      on this planet and press Fly (where the cheat Teleport button normally is).
    - Steele takes off with a short scene, then lands there (the move itself works like
@@ -44,13 +44,34 @@
     function P(fn, dflt) { try { var v = fn(); return v === undefined ? dflt : v; } catch (err) { return dflt; } }
     function player() { return P(function () { return window.pc; }, null); }
     function hasWings() { var pc = player(); return !!(pc && P(function () { return pc.hasWings(); }, false)); }
-    function hasHoverboard() {
+    // Any hoverboard counts: the game's pink one, Anno's Holoboard, or any modded board that
+    // says it is a hoverboard (is("Hoverboard")) or has "hoverboard"/"holoboard" in its class name.
+    function isBoard(it) {
+        if (!it || typeof it.getClassName !== "function") return false;
+        if (P(function () { return typeof it.is === "function" && it.is("Hoverboard"); }, false)) return true;
+        return /hover ?board|holo ?board/i.test(P(function () { return it.getClassName(); }, ""));
+    }
+    function board() {
         var pc = player();
-        return !!(pc && P(function () {
-            return pc.inventory.storage.some(function (it) {
-                return it && typeof it.getClassName === "function" && it.getClassName() === "Hoverboard";
-            });
-        }, false));
+        return pc ? P(function () {
+            var found = null;
+            pc.inventory.storage.some(function (it) { if (isBoard(it)) { found = it; return true; } return false; });
+            return found;
+        }, null) : null;
+    }
+    function hasHoverboard() { return !!board(); }
+    // What the scenes call it: "pink hoverboard", "teal holoboard", "bare steel holoboard"...
+    function boardName() {
+        var it = board();
+        if (!it) return "hoverboard";
+        if (P(function () { return it.getClassName() === "TnHoloboard"; }, false)) {
+            if (it.tnBare) return "bare steel holoboard";
+            var c = P(function () { return it.coloration(); }, "");
+            return (c && c !== "factory pink" ? c + " " : "") + "holoboard";
+        }
+        var n = String(P(function () { return it.longName; }, "") || "").replace(/^(an?|the)\s+/i, "");
+        n = n.replace(/^[^ ]+[’']s\s+/, "");   // drop an owner's name ("Anno's ...")
+        return /board/i.test(n) ? n.toLowerCase() : "hoverboard";
     }
     function canUse() { return hasWings() || hasHoverboard(); }
 
@@ -251,7 +272,7 @@
         var where = "<b>" + esc(titleCase(dest.name)) + "</b>";
         var t;
         if (m === "hoverboard") {
-            t = "You pull your pink hoverboard out of your pack and drop it on the ground. It hums to life and bobs a hand’s width up, waiting for you. ";
+            t = "You pull your " + boardName() + " out of your pack and drop it on the ground. It hums to life and bobs a hand’s width up, waiting for you. ";
             if (taur) t += "Getting all of your [pc.legsNoun] on it takes some careful shuffling, but once you’re balanced, you lean forward";
             else if (naga) t += "You coil your [pc.tail] onto the deck, settle your weight and lean forward";
             else t += "You hop on, plant your [pc.feet] and lean forward";
@@ -261,7 +282,7 @@
             return t;
         }
         if (hasHoverboard()) {
-            t = "You drop your pink hoverboard and hop on, letting it carry you into a running start. As it picks up speed, you ";
+            t = "You drop your " + boardName() + " and hop on, letting it carry you into a running start. As it picks up speed, you ";
             t += taur ? "gather your [pc.legsNoun] under you" : naga ? "wind your [pc.tail] tight" : "crouch low";
             t += " and kick off its deck, springing high into the air. The board bobs up after you, and you snag it and stow it in your pack as your [pc.wings] snap open.";
             t += " A few hard flaps and you’re climbing, the ground falling away below you.";
@@ -340,6 +361,7 @@
         landWhy: canLandReason,
         mode: mode,
         setMode: setMode,
-        _text: takeOffText
+        _text: takeOffText,
+        _boardName: boardName
     };
 })();

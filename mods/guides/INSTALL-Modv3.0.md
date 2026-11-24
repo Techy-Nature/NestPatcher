@@ -1,4 +1,4 @@
-# Modv3.0: Bianca's lover, haptics and full scene text
+# Modv3.0: Bianca's lover, flying, haptics and full scene text
 
 Modv3.0 adds five new mods and updates six. It's for **TiTS 0.9.168**, the same game version as
 Modv2.9, so you don't need to delete `backup`. All notes are in the in-game **Changelog**.
