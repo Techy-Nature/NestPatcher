@@ -1,5 +1,5 @@
 /*
- * TN_Changelog_v2.8.js — in-game changelog for the TN mod pack (TiTS Android build)
+ * TN_Changelog_v3.0.js — in-game changelog for the TN mod pack (TiTS Android build)
  * ---------------------------------------------------------------------------
  * Adds a "Changelog" button to the Info section of the main menu sidebar (the same
  * section as Wiki), showing the installed mod version as Modv#.# and what changed.
@@ -40,7 +40,7 @@
   // ===========================================================================
   //  EDIT HERE
   // ===========================================================================
-  var MOD_VERSION = "2.9";   // the version of THIS build (shown as Modv2.9)
+  var MOD_VERSION = "3.0";   // the version of THIS build (shown as Modv3.0)
 
   // Optional: a hosted Markdown (or JSON) changelog, e.g.
   //   "https://raw.githubusercontent.com/<you>/<repo>/main/changelog.md"
@@ -49,6 +49,23 @@
   var REMOTE_URL = "https://raw.githubusercontent.com/Techy-Nature/NestPatcher/main/changelog.md";
 
   var CHANGELOG = [
+    {
+      version: "3.0",
+      date: "2026-11-24",
+      title: "Bianca's lover, haptics and full scene text",
+      changes: [
+        { mod: "Bianca Extras", text: "Confess now really makes her your lover, unlocking **Intimate**, **Int. Doggy** and the bar **Cuddle** (saves that already confessed unlock right away). Her bar Stealth Sex scene no longer loops: answer **Yes** or **Not Tonight**. Scene variants for knots, two cocks, taurs, nagas, no balls and herms are fixed, along with about 130 typos. Her codex entry shows a relationship meter, her stage and your nights aboard toward Confess. Her familiarity now has its own flag, `TN_BIANCA_FAMILIARITY` (up to 50 before the Confront scene, 100 after), copied once from the game's value, so save edits stick. With the taur/naga bypass on, taurs can have sex with her; goos are still refused. Files: `TN_BiancaExtras_v3.0.mod` + `TN_BiancaExtras_v3.0.js`; delete the v2.9 copies." },
+        { mod: "Bianca's Clinic", text: "Fix: quotes in her directions, the \"already on her list\" line shows only while she's in, **Checkup** is greyed out when you can't pay, and the email's apostrophes are fixed. The receptionist is now Arian, and old saves remember meeting her. Same file names." },
+        { mod: "Haptics Plus", text: "New. More control over the game's buttplug.io haptics (Options > **Haptics**): separate max intensity for Manual and Auto, a 0 to 10 second ramp-up, how long an orgasm buzzes, which events start Auto (nude busts, orgasms in sex scenes, outside scenes, fights), and **Test** and **Stop** buttons. Guide: `HAPTICS-PLUS.md`. File: `TN_HapticsPlus_v3.0.js`." },
+        { mod: "Sex Gallery Full Text", text: "New and optional. Every unlocked scene in the Sex Gallery gets a **Read scene** button with the whole scene, written out for your current Steele. Flashback Visor **Older** memories show the full text too. For a lite pack, leave it out of `enabled.txt`. Guide: `SEX-GALLERY-FULL-TEXT.md`. File: `TN_SexGalleryText_v3.0.js`." },
+        { mod: "Siegwulfe Sub", text: "A sub Siegwulfe no longer gets the game's scene where she collars Steele. Instead, Steele has a custom collar made for her, picking the material and the tag engraving (biped, taur and naga text). Now `TN_SiegwulfeSub_v3.0.mod`; delete `TN_SiegwulfeSub_v2.9.mod`." },
+        { mod: "Shekka's Gene Talk", text: "Dr. McAllister in the Xenogen lab on Myrellion can now do Shekka's treatment too. If you know both doctors, you choose. Now `TN_ShekkaGeneTalk_v3.0.mod` + `.js` and `TN_ShekkaEggs_v3.0.js`; delete the v2.9 copies." },
+        { mod: "Bust Gender Filter", text: "Battle busts now reliably hide. The **Battle busts** setting is now **Filtered**, **Hide all** or **Always show**, and the settings page shows whether the battle hook is on. Now `TN_BustGenderFilter_v3.0.js`; delete `TN_BustGenderFilter_v2.9.js`." },
+        { mod: "Game Fixes", text: "New. Fixes six bugs in the game itself: the shop's buy and sell hotkeys, Crackle Jelly ignoring locked skin colour, a pregnancy warning that never fired, \"You already have undefined\" at Ceria's salon, Lund draining lust twice as fast as meant, and a leftover from Phaedra's behemoth fight. File: `TN_GameFixes_v1.0.mod`." },
+        { mod: "Launcher Fixes", text: "New, desktop only and off by default. Fixes the desktop launcher: **Reset game data** failing once you had saves, and image pack downloads that saved error pages, left broken files or kept failing after a dropped connection. On Windows, Linux and Mac, remove the `#` before its line in `enabled.txt`; leave it off on Android. File: `TN_LauncherFixes_v1.0.mod`." },
+        { mod: "Changelog", text: "Shows Modv3.0 as installed. Now `TN_Changelog_v3.0.js`; delete `TN_Changelog_v2.9.js`." }
+      ]
+    },
     {
       version: "2.9",
       date: "2026-11-11",
@@ -60,7 +77,7 @@
         { mod: "Flashback Visor", text: "New. A VR visor sold by Zenn on Dhaal and Luca on Canadia Station (5,000 credits). From **Codex > Extra**, relive sex scenes and fights recorded since you installed it; each memory takes an hour. Battle flashbacks put you back at the level, weapons and specials you had in that fight. **Older** brings back sex scenes your save went through before the visor was installed (title, summary and how it began; needs the Sex Gallery). Crew members check in about it after 48 hours aboard. File: `TN_FlashbackVisor_v2.9.mod`." },
         { mod: "Dane's Wingman", text: "New. Dane's **Asking Out** talk: find out what holds him back from asking Syri and Anno out, then be his wingman. The longer you've been out in the galaxy, the better his odds. File: `TN_DaneDating_v2.9.js`." },
         { mod: "Bianca Extras", text: "New. Bianca's love story from William's Part 2 docs, plus missing Part 1 scenes: cuddles, a confrontation, a meeting under the trees on the Residential Deck, then hugs, kisses, bar dates, nights on your ship and a confession. Taur and naga versions throughout. Files: `TN_BiancaExtras_v2.9.mod` + `TN_BiancaExtras_v2.9.js`." },
-        { mod: "Bianca's Clinic", text: "New. Bianca's clinic opens on the Tavros Merchant Deck, west of the Thoroughfare (8 AM to 6 PM). Nest runs the front desk, and Dr. Charles Rewell, the geneticist who helped design you, shares the office with talks, a kids consult and free prenatal scans. Files: `TN_BiancaClinic_v2.9.mod` + `TN_BiancaClinic_v2.9.js`." },
+        { mod: "Bianca's Clinic", text: "New. Bianca's clinic opens on the Tavros Merchant Deck, west of the Thoroughfare (8 AM to 6 PM). Arian runs the front desk, and Dr. Charles Rewell, the geneticist who helped design you, shares the office with talks, a kids consult and free prenatal scans. Files: `TN_BiancaClinic_v2.9.mod` + `TN_BiancaClinic_v2.9.js`." },
         { mod: "Steele Pronouns", text: "New. Steele is he, they or she by femininity (1-30, 31-60, 61+), with verbs fixed for they. Neutral titles (mir, Mx., enby and more) are editable in the mod menu, along with the ranges. File: `TN_SteelePronouns_v2.9.js`." },
         { mod: "Shekka's Gene Talk", text: "New. Crew Shekka's **Gene Plans** talk: she asks if Dr. Rewell could change her like the Cure changed the kids. After a consult and three treatments she's fertile again. He fixes her body, not her mind. Files: `TN_ShekkaGeneTalk_v2.9.mod` + `TN_ShekkaGeneTalk_v2.9.js`." },
         { mod: "Shekka's Eggs", text: "New. Once Shekka is fertile, try for eggs with her (taur and naga versions). She carries for 14 days aboard, lays the egg, and it goes to Briget's nursery on Tavros, with emails when it arrives and hatches. File: `TN_ShekkaEggs_v2.9.js`." },

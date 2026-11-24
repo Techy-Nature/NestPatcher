@@ -1,4 +1,4 @@
-# TN mod pack load list (Modv2.9). One file per line; # turns a line off.
+# TN mod pack load list (Modv3.0). One file per line; # turns a line off.
 AndroidModMenu_v2.9.js
 TN_Desktop_Menu_v2.9.js
 ShellyRecruit.mod
@@ -9,7 +9,7 @@ Drakongarune_Lessau_v2.4.mod
 ShellyShop.mod
 ShellyCabinReturns_v2.9.mod
 WikiBrowser_v2.8.js
-TN_Changelog_v2.9.js
+TN_Changelog_v3.0.js
 NoDickLimits_v2.4.js
 DrakoHornitol_v2.4.mod
 DragoHornitol_v2.5.mod
