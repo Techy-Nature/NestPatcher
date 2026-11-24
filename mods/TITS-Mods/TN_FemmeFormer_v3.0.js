@@ -4,8 +4,11 @@
    Steele lies on it stomach-first, two cups seal around the breasts, and a padded saddle with
    a probe works below.
 
-   - Where: a booth in the TamaniCorp shop on Tavros, where Lerris works (next to the Muff Modeler stand).
-   - Price: 125,000 credits, paid once. Using it is free.
+   - Found: on Tarkus, on the Oil Sea Beach three rooms south of the Polluted Beach (room 230),
+     like the Dong Designer. Take it, then install it on your ship.
+   - Bought: a booth in the TamaniCorp shop on Tavros, where Lerris works (next to the Muff
+     Modeler stand), for 50,500 credits. It's the only TamaniCorp shop in the game.
+   - Install it: use it from your inventory while aboard your ship. Uninstall it from its own menu.
    - Use it: Masturbate > Installed on your ship, like the Muff Modeler.
    - Chest, for each breast row: cup size (flat up to the game's biggest cup) and nipple type.
      You can also add one breast row (up to three rows).
@@ -14,10 +17,12 @@
      plus clit size. You can also grow a new pussy (up to three).
    - Plan any mix of changes, then press Start: one session does them all.
    - The game's own locks still apply (Goo Crotch, Gel Body, The Treatment and so on).
-   - Flags: TN_FEMME_FORMER (2 = installed), TN_FEMME_FORMER_USES (times used),
+   - Item: TnFemmeFormer ("FemmeF."), a gadget you carry and install.
+   - Flags: TN_FEMME_FORMER (2 = installed), TN_FEMME_FORMER_FOUND (0 = found on Tarkus and left,
+     1 = taken), TN_FEMME_FORMER_BOUGHT (how many bought), TN_FEMME_FORMER_USES (times used),
      TN_FEMME_FORMER_BOOTH (seen the booth), TN_FEMME_FORMER_TUTORIAL (heard the tutorial).
 
-   Needs TN_FemmeFormer_v3.0.mod (the booth button, the Installed menu and the Stats line).
+   Needs TN_FemmeFormer_v3.0.mod (the Tarkus find, the booth button, the Installed menu and the Stats line).
    Toggle: Android Mods / TN Mod Settings > "Femme Former". */
 (function () {
     "use strict";
@@ -25,7 +30,7 @@
 
     var MOD_ID = "TN_FemmeFormer";
     var NAME = "Femme Former";
-    var PRICE = 125000;
+    var PRICE = 50500;
     var MAX_ROWS = 3;          // breast rows the machine will grow up to
     var MAX_CUP = 198;         // the game's biggest named cup
     var MAX_PUSSIES = 3;       // the game's own limit
@@ -193,10 +198,165 @@
     }
 
     // ---------------------------------------------------------------------------
-    // Booth in Lerris's shop
+    // The item: a boxed Femme Former you carry back to your ship and install,
+    // like the Dong Designer. Registered with the game at start-up.
+    // ---------------------------------------------------------------------------
+    var ITEM_CLASS = "TnFemmeFormer";
+    function itemClass() { return window.TnFemmeFormerItem || null; }
+    function newItem() { var C = itemClass(); return C ? new C() : null; }
+    function carried() {
+        var C = itemClass();
+        return C ? P(function () { return pcx().inventory.itemQuantity(C); }, 0) : 0;
+    }
+    function onShip() { return P(function () { return window.InShipInterior(); }, false); }
+
+    function defineItem(req) {
+        var Base = req(95164).Jo, registry = req(54014).yq, names = req(18366).g, text = req(69289).m;
+        var g = window.GLOBAL;
+        class TnFemmeFormer extends Base {
+            constructor() {
+                super();
+                this.stackSize = 1;
+                this.type = g.GADGET;
+                this.shortName = "FemmeF.";
+                this.longName = "TamaniCorp Femme Former";
+                names.addFullName(this.shortName, text.toTitleCase(this.longName));
+                this.description = "a boxed TamaniCorp Femme Former";
+                this.tooltip = "A long, padded TamaniCorp bench in glossy pink vinyl, folded up for carrying. Lie on it stomach-first, let its two cups seal around your breasts, and it can reshape your chest and your pussy in a single session.\n\nIt needs real power, so it only works once it’s installed on your ship. Use it from your inventory while you’re aboard to install it.";
+                names.addTooltip(this.shortName, this.tooltip);
+                this.basePrice = PRICE;
+                this.addFlag(g.NOT_CONSUMED_BY_DEFAULT);
+                this.customIcon = "misc_toy";
+            }
+            getClassName() { return ITEM_CLASS; }
+            static getClassName() { return ITEM_CLASS; }
+            static show() { head(); }
+            useFunction(target) {
+                if (!target || P(function () { return target.getClassName(); }, "") !== "PlayerCharacter") {
+                    window.clearOutput();
+                    window.output((target && target.capitalA ? target.capitalA + target.short : "They") + " looks at the box and shakes " + P(function () { return target.mfn("his", "her", "its"); }, "their") + " head.");
+                    return false;
+                }
+                install(this);
+                return false;
+            }
+        }
+        registry.registerClass(ITEM_CLASS, TnFemmeFormer);
+        window.TnFemmeFormerItem = TnFemmeFormer;
+    }
+    (function registerItem(tries) {
+        var chunks = window.webpackChunktits_html || (typeof self !== "undefined" ? self.webpackChunktits_html : null);
+        if (!chunks || typeof chunks.push !== "function" || !window.GLOBAL) {
+            if (tries < 120) setTimeout(function () { registerItem(tries + 1); }, 500);
+            return;
+        }
+        chunks.push([["tn-femme-former-" + tries], {}, function (req) {
+            try { defineItem(req); }
+            catch (err) {
+                try { console.warn("[TN] Femme Former item couldn't register", err); } catch (e) {}
+                if (tries < 20) setTimeout(function () { registerItem(tries + 1); }, 1000);
+            }
+        }]);
+    })(0);
+
+    function install(item) {
+        window.clearOutput();
+        head();
+        var pc = pcx(), f = flags();
+        if (installed()) {
+            window.output("You already have a Femme Former plugged in on your ship. One is plenty. Maybe sell this one instead?");
+            window.clearMenu();
+            window.addButton(0, "Next", window.mainGameMenu);
+            return;
+        }
+        if (!onShip()) {
+            window.output("The Femme Former needs a proper power port, and there isn’t one around here. You’ll have to take it back to your ship and install it there.");
+            window.clearMenu();
+            window.addButton(0, "Next", window.mainGameMenu);
+            return;
+        }
+        window.output(window.blockHeader("Installing..."));
+        window.output("You drag the folded-up Femme Former into a quiet corner of your ship with a good power port and plenty of room around it. You’re going to be lying face-down on this thing, after all, so it had better not be wedged anywhere awkward.");
+        window.output("\n\nIt unfolds with a series of satisfying clicks: first the long, padded bench, then the headrest, then the hip saddle with its little hatch. The two clear cups swing out on their arms last and hover over their padded cut-outs. You plug it in and press the power stud.");
+        window.output("\n\nThe pink vinyl warms under your hand, and a holoscreen flickers to life above the headrest, running a self-check. The cups flex, the saddle rises and sinks, and a cheerful chime announces that everything is in working order.");
+        window.output("\n\n(<i>The TamaniCorp Femme Former has been removed from your inventory and <b>installed</b>.</i>)");
+        window.output("\n(<i>You can use it from <b>Masturbate > Installed</b> anywhere on your ship.</i>)");
+        window.processTime(8);
+        f.TN_FEMME_FORMER = 2;
+        try { pc.inventory.removeItemByClass(itemClass()); } catch (err) { try { pc.inventory.removeItem(item); } catch (e) {} }
+        window.clearMenu();
+        window.addButton(0, "Next", window.mainGameMenu);
+    }
+
+    function uninstall() {
+        window.clearOutput();
+        head();
+        window.output(window.blockHeader("Uninstalling..."));
+        window.output("You unplug the Femme Former and fold it back up, cups and all, until it’s a long, padded pink box you can carry.");
+        window.output("\n\n<b>You no longer have the Femme Former installed!</b>");
+        window.processTime(12);
+        plan = null;
+        delete flags().TN_FEMME_FORMER;
+        window.output("\n\n");
+        var it = newItem();
+        if (it) window.quickLoot(it);
+        else { window.clearMenu(); window.addButton(0, "Next", window.mainGameMenu); }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Found on Tarkus: Oil Sea Beach, three rooms south of the Polluted Beach (room 230)
+    // ---------------------------------------------------------------------------
+    function tarkusBox(slot) {
+        if (!active() || !itemClass()) return false;
+        var f = flags();
+        if (f.TN_FEMME_FORMER_FOUND === undefined) {
+            window.output("\n\nHalf-buried in the oily sand, something long and pink catches your eye: a padded box about the size of a massage table, its glossy vinyl streaked with grime but otherwise intact. Do you take a closer look?");
+            window.addButton(slot || 0, "Pink Box", investigate, "Pink Box", "Take a closer look at the long, pink box in the sand.");
+            return true;
+        }
+        if (f.TN_FEMME_FORMER_FOUND === 0) {
+            window.output("\n\nThe TamaniCorp Femme Former is still lying in the sand where you left it. You could take it if you have room for it.");
+            window.addButton(slot || 0, "Take It", take, "Take the Femme Former", "Haul the Femme Former back with you.");
+            return true;
+        }
+        return false;
+    }
+
+    function investigate() {
+        window.clearOutput();
+        head();
+        window.output("You pick your way over to it and brush the worst of the oily grit away. Glowing letters along the side spell out <b>TamaniCorp Femme Former</b>, with a little logo of a curvy silhouette. You know the name from TamaniCorp’s ads: the fancy machine that sculpts your chest and your pussy in one session. They cost a fortune, even in the core.");
+        window.output("\n\nUp close, it looks like a fancier cousin of TamaniCorp’s Egg Trainer: a long, padded bench you’d lie on stomach-first, with two clear, bell-shaped cups folded under the chest and a contoured hip saddle further down, its probe tucked away behind a sealed hatch. The seals have kept the Oil Sea’s muck out, and the gauges all read fine, apart from the power.");
+        window.output("\n\nHow something this expensive ended up washed up on Tarkus is anyone’s guess. All you’d have to do is drag it back to your ship and plug it in.");
+        window.output("\n\nDo you take it?");
+        window.processTime(2);
+        flags().TN_FEMME_FORMER_FOUND = 0;
+        window.clearMenu();
+        window.addButton(0, "Take It", take, "Take It", "Haul the Femme Former back with you.");
+        window.addButton(1, "Leave It", window.mainGameMenu, "Leave It", "Leave it here for now. You can come back for it.");
+    }
+
+    function take() {
+        var before = carried();
+        flags().TN_FEMME_FORMER_FOUND = 1;
+        var it = newItem();
+        if (!it) { flags().TN_FEMME_FORMER_FOUND = 0; window.mainGameMenu(); return; }
+        window.itemCollect(function () {
+            if (carried() > before) { window.mainGameMenu(); return; }
+            window.clearOutput();
+            head();
+            window.output("You don’t have room for it, so you leave the Femme Former where it is for now.");
+            flags().TN_FEMME_FORMER_FOUND = 0;
+            window.clearMenu();
+            window.addButton(0, "Next", window.mainGameMenu);
+        }, [it], true);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Booth in Lerris's shop (the TamaniCorp shop on Tavros)
     // ---------------------------------------------------------------------------
     function boothButton(slot) {
-        if (!active() || P(function () { return flags().TN_FEMME_FORMER !== undefined; }, true)) return false;
+        if (!active() || !itemClass()) return false;
         window.output("\n\nNear the back of the shop, a TamaniCorp booth glows pink under a sign reading <b>Femme Former</b>.");
         window.addButton(slot, "Femme Former", booth, NAME, "A TamaniCorp booth advertising a machine that reshapes breasts and pussies in one go.");
         return true;
@@ -218,11 +378,13 @@
             window.output("You wander back to the Femme Former booth. The hardlight saleswoman pops up on cue, lounging across the pink bench with her chin propped in her hands.");
             window.output("\n\n<i>“Welcome back! Ready to treat your body to the TamaniCorp Femme Former?”</i>");
         }
-        window.output("\n\nA little price tag floats beside her: <b>" + PRICE.toLocaleString() + " credits</b>, delivered and installed on your ship.");
+        window.output("\n\nA little price tag floats beside her: <b>" + PRICE.toLocaleString() + " credits</b>, boxed and ready to install on your ship.");
         if (!pc.hasVagina() && !pc.hasBreasts()) window.output(" It would be a big change for you, but it can grow both breasts and a pussy if you want them.");
         window.processTime(2);
         window.clearMenu();
-        if (pc.credits >= PRICE) window.addButton(0, "Buy", buy, "Buy the Femme Former", "Have a Femme Former delivered and installed on your ship.\n\nPrice: " + PRICE.toLocaleString() + " credits.");
+        if (installed()) window.addDisabledButton(0, "Buy", "Buy the Femme Former", "You already have one installed on your ship.");
+        else if (carried() > 0) window.addDisabledButton(0, "Buy", "Buy the Femme Former", "You’re already carrying one. Install it on your ship.");
+        else if (pc.credits >= PRICE) window.addButton(0, "Buy", buy, "Buy the Femme Former", "Buy a boxed Femme Former to install on your ship.\n\nPrice: " + PRICE.toLocaleString() + " credits.");
         else window.addDisabledButton(0, "Buy", "Buy the Femme Former", "You don’t have " + PRICE.toLocaleString() + " credits.");
         window.addButton(14, "Back", window.mainGameMenu, "Back", "Leave the booth.");
     }
@@ -231,15 +393,28 @@
         window.clearOutput();
         head();
         var pc = pcx(), f = flags();
+        var it = newItem();
+        if (!it) { window.mainGameMenu(); return; }
+        var before = carried();
         pc.credits -= PRICE;
-        f.TN_FEMME_FORMER = 2;
         window.output("You tap the holographic Buy button. Confetti made of light rains over the bench, and a jingle plays far too loudly for a shop this size.");
-        window.output("\n\n<i>“Congratulations, [pc.name] Steele! Your new TamaniCorp Femme Former is on its way to <i>[pc_ship.theName]</i>. Our installation drones will have it set up in your hold before you’re back aboard. Thank you for choosing TamaniCorp!”</i>");
-        window.output("\n\nYour codex pings with the receipt a second later. <b>" + PRICE.toLocaleString() + " credits</b> lighter, you leave the hologram blowing kisses at the next customer.");
-        window.output("\n\n(<b>The Femme Former is now installed on your ship.</b> <i>You can use it from <b>Masturbate > Installed</b> anywhere on your ship.</i>)");
+        window.output("\n\n<i>“Congratulations, [pc.name] Steele! Here’s your brand new TamaniCorp Femme Former!”</i> A hatch in the platform slides open and a long, pink box folds itself up out of it, cups tucked away and a carrying handle popping out of one end. <i>“Just plug it in somewhere on your ship and enjoy. Thank you for choosing TamaniCorp!”</i>");
+        window.output("\n\nYour codex pings with the receipt a second later: <b>" + PRICE.toLocaleString() + " credits</b>.");
+        window.output("\n\n(<i>To install it, use it from your inventory while you’re aboard your ship.</i>)\n\n");
         window.processTime(5);
-        window.clearMenu();
-        window.addButton(0, "Next", window.mainGameMenu);
+        window.itemCollect(function () {
+            if (carried() > before) {
+                f.TN_FEMME_FORMER_BOUGHT = (f.TN_FEMME_FORMER_BOUGHT || 0) + 1;
+                window.mainGameMenu();
+                return;
+            }
+            pc.credits += PRICE;
+            window.clearOutput();
+            head();
+            window.output("You don’t have room to carry it. The hologram pouts, refunds your <b>" + PRICE.toLocaleString() + " credits</b> and folds the Femme Former back into the platform.");
+            window.clearMenu();
+            window.addButton(0, "Next", window.mainGameMenu);
+        }, [it], true);
     }
 
     function installedBlurb() {
@@ -249,10 +424,14 @@
 
     function statsLine() {
         var f = P(function () { return flags(); }, null);
-        if (!f || f.TN_FEMME_FORMER === undefined) return "";
-        var s = f.TN_FEMME_FORMER === 2 ? "Installed" : "Purchased";
-        if (f.TN_FEMME_FORMER_USES) s += ", Times Used: " + f.TN_FEMME_FORMER_USES;
-        return s;
+        if (!f) return "";
+        var parts = [];
+        if (f.TN_FEMME_FORMER_FOUND === 0) parts.push("Found");
+        else if (f.TN_FEMME_FORMER_FOUND === 1) parts.push("Found and Taken");
+        if (f.TN_FEMME_FORMER_BOUGHT) parts.push("Bought: " + f.TN_FEMME_FORMER_BOUGHT);
+        if (f.TN_FEMME_FORMER === 2) parts.push("Installed");
+        if (f.TN_FEMME_FORMER_USES) parts.push("Times Used: " + f.TN_FEMME_FORMER_USES);
+        return parts.join(", ");
     }
 
     // ---------------------------------------------------------------------------
@@ -299,6 +478,7 @@
         if (c.length || v.length) window.addButton(5, "Start", start, "Start", "Lie down and let the Femme Former do everything you planned.");
         else window.addDisabledButton(5, "Start", "Start", "Plan at least one change first.");
         if (c.length || v.length) window.addButton(6, "Clear Plan", function () { plan = freshPlan(); mainScreen(); }, "Clear Plan", "Forget everything you’ve planned.");
+        if (onShip()) window.addButton(13, "Uninstall", uninstall, "Uninstall", "Unplug the Femme Former and put it in your inventory.");
         window.addButton(14, "Leave", function () { plan = null; window.mainGameMenu(); }, "Leave", "Turn the machine off. Your plan is forgotten.");
     }
 
@@ -680,7 +860,7 @@
             id: MOD_ID,
             name: NAME,
             author: "TN",
-            description: "A TamaniCorp machine that reshapes breasts and pussies in one session. Buy it at a booth in the TamaniCorp shop on Tavros (125,000 credits), then use it from Masturbate > Installed on your ship.",
+            description: "A TamaniCorp machine that reshapes breasts and pussies in one session. Find one on Tarkus (Oil Sea Beach, south of the Polluted Beach) or buy one in the TamaniCorp shop on Tavros (50,500 credits), install it from your inventory on your ship, then use it from Masturbate > Installed.",
             supportsToggle: true,
             onEnabledChange: function () { return true; }
         });
@@ -694,12 +874,17 @@
 
     window.tnFemmeFormer = {
         boothButton: boothButton,
+        tarkusBox: tarkusBox,
         installed: installed,
         installedBlurb: installedBlurb,
         statsLine: statsLine,
         menu: menu,
         // for testing from the console
         _plan: function () { return getPlan(); },
+        _install: install,
+        _uninstall: uninstall,
+        _buy: buy,
+        _take: take,
         _apply: apply,
         _start: start,
         _chest: chestChanges,

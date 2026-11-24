@@ -8,12 +8,28 @@ The machine looks like a fancier TamaniCorp Egg Trainer: a long, padded pink ben
 on it stomach-first, two clear cups seal around their breasts, and a padded saddle with a probe
 works below. Taurs get a padded cradle for their lower body, and nagas a tray for their tail.
 
-## Buying it
+## Getting one
+
+There are two ways, and either one gives you a boxed Femme Former to carry back to your ship.
+
+**Find it on Tarkus (free)**
+
+1. On Tarkus, go to the **Polluted Beach** (west of where your ship lands).
+2. Walk **south three times**, along the Oil Sea Beach.
+3. Press **Pink Box**, then **Take It**. If you press **Leave It**, it stays there for later.
+
+**Buy it on Tavros**
 
 1. Go to the **TamaniCorp shop** on Tavros, where Lerris works (off the Merchant's Thoroughfare).
+   It's the only TamaniCorp shop in the game.
 2. Press **Femme Former** (the booth near the back of the shop).
-3. Press **Buy**. It costs **125,000 credits**, once. Using it is free.
-4. It's installed on your ship right away.
+3. Press **Buy**. It costs **50,500 credits**. If your inventory is full, you get your credits back.
+
+**Install it**
+
+1. Go back aboard your ship.
+2. Open your **Inventory**, pick the **Femme Former** (FemmeF.) and **Use** it.
+3. It's now installed. To move it, press **Uninstall** in its menu and it goes back in your inventory.
 
 ## Using it
 
@@ -50,13 +66,15 @@ The game's own locks still apply, and their buttons are greyed out with the reas
 
 | Flag | Meaning |
 |---|---|
-| `TN_FEMME_FORMER` | `2` once it's bought and installed. |
+| `TN_FEMME_FORMER` | `2` while it's installed on your ship. |
+| `TN_FEMME_FORMER_FOUND` | `0` once you've found the one on Tarkus, `1` once you've taken it. |
+| `TN_FEMME_FORMER_BOUGHT` | How many you've bought on Tavros. |
 | `TN_FEMME_FORMER_USES` | How many sessions you've had. Also shown in **Stats > Miscellaneous**. |
 | `TN_FEMME_FORMER_BOOTH` | You've seen the booth's sales pitch. |
 | `TN_FEMME_FORMER_TUTORIAL` | You've heard the tutorial. |
 
 ## Turning it off
 
-Android Mods (Android) or TN Mod Settings (desktop) > **Femme Former**. The booth and the
-Installed button go away until you turn it back on. To remove it completely, put `#` in front
+Android Mods (Android) or TN Mod Settings (desktop) > **Femme Former**. The Tarkus box, the booth
+and the Installed button go away until you turn it back on. To remove it completely, put `#` in front
 of both lines in `enabled.txt` and patch again.
