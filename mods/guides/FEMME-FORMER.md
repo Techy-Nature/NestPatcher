@@ -63,6 +63,19 @@ The game's own locks still apply, and their buttons are greyed out with the reas
 - A synthetic pussy can't change type.
 - A pussy the game won't let go of (for example while you're pregnant in it) can't be removed.
 
+## If the box or the booth doesn't show up
+
+1. Make sure both `TN_FemmeFormer_v3.0.mod` and `TN_FemmeFormer_v3.0.js` are in your mods folder
+   and in `enabled.txt`, then patch again. The box needs the `.mod` (it adds the box to the beach)
+   and the `.js` (the box itself).
+2. Check that **Femme Former** is on in Android Mods (Android) or TN Mod Settings (desktop).
+3. Walk onto the right square: from the **Polluted Beach**, go **south three times**. The beach's
+   text mentions a pile of wrecked ships you have to squeeze past. If a fight starts there, win or
+   lose, then step off the square and back on.
+4. If the box shows up but **Take It** says the Femme Former "won't budge", the mod couldn't add its
+   item to the game. Nothing is taken or spent. Open the browser console (desktop: Ctrl+Shift+I) and
+   look for the line that starts with `[TN] Femme Former`, and pass it on.
+
 ## Flags (for the save editor)
 
 | Flag | Meaning |
