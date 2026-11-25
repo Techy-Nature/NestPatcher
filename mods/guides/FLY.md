@@ -18,8 +18,7 @@ Without wings or a hoverboard, the Fly button doesn't show.
 2. Press **Fly** in the left sidebar, above Steele's picture. The map opens, titled **Fly**.
 3. Tap an outdoor spot you've found. Indoor rooms, caves and places you haven't found yet
    can't be picked.
-4. The **Fly** button in the left sidebar has turned into a bigger **Take Flight!** button. Press it.
-   (The small **Fly** button at the bottom right of the map does the same thing.)
+4. Press **Fly** at the bottom of the map (where the cheat Teleport button is).
 5. Read the take-off scene and press **Next** to land there.
 
 ## Wings or hoverboard

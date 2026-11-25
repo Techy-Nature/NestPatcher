@@ -170,16 +170,9 @@
             "padding:.7em 1em;border-radius:.4em;background:var(--foregroundColorB,#2C3649);color:var(--textColor,#fff);" +
             "border-left:.3em solid var(--highlightColor,#8D31B0);box-shadow:0 .3em 1em rgba(0,0,0,.5);font:1em Lato,sans-serif;}" +
             ".tnFlyChoice{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.5em;margin:.4em 0;font:1em Lato,sans-serif;}" +
-            ".tnFlyChoice .tnFlyHint{flex-basis:100%;text-align:center;opacity:.85;}" +
             ".tnFlyChoice .tnFlyOpt{padding:.35em .9em;border-radius:.3125em;border:.1em solid var(--paleColor,#53677B);" +
             "background:var(--foregroundColorA,#333E52);color:var(--textColor,#fff);cursor:pointer;}" +
-            ".tnFlyChoice .tnFlyOpt.on{background:var(--highlightColor,#8D31B0);color:#fff;font-weight:bold;}" +
-            ".tnFlyGo{display:flex;align-items:center;justify-content:center;gap:.5em;margin:.3em 0 .4em;padding:.6em 1em;" +
-            "border-radius:.4em;border:.15em solid var(--highlightColor,#8D31B0);background:var(--highlightColor,#8D31B0);color:#fff;" +
-            "font:bold 1.25em Lato,sans-serif;cursor:pointer;user-select:none;box-shadow:0 .15em .5em rgba(0,0,0,.4);}" +
-            ".tnFlyGo:hover{filter:brightness(1.15);}" +
-            ".tnFlyGo.disabled{opacity:.45;cursor:not-allowed;filter:none;background:var(--foregroundColorA,#333E52);border-color:var(--paleColor,#53677B);}" +
-            ".tnFlyGo svg{width:1.3em;height:1.3em;fill:currentColor;}";
+            ".tnFlyChoice .tnFlyOpt.on{background:var(--highlightColor,#8D31B0);color:#fff;font-weight:bold;}";
         (document.head || document.documentElement).appendChild(st);
     }
 
@@ -203,12 +196,10 @@
     function sidebarButton(R) {
         if (!R || !active() || !canUse()) return null;
         ensureStyle();
-        // While the Fly map is open, the Fly button itself becomes the big Take Flight! button.
-        if (window.tnFlyMapOpen) return goButton(R, "tnFly");
         var why = blockReason();
         var tip = why || ("Fly somewhere outdoors on this planet" +
             (cost() ? " (" + cost() + " energy)." : " on your hoverboard (no energy)."));
-        var fly = R.createElement("div", {
+        return R.createElement("div", {
             key: "tnFly",
             id: "tnFlyButton",
             className: "tnFlyBtn" + (why ? " disabled" : ""),
@@ -219,36 +210,6 @@
             onClick: function (e) { if (e && e.stopPropagation) e.stopPropagation(); openMap(); },
             onKeyDown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMap(); } },
             dangerouslySetInnerHTML: { __html: wingIcon() + "<span>Fly</span>" }
-        });
-        return fly;
-    }
-
-    // ---------------------------------------------------------------------------
-    // Take Flight! (the big confirm button)
-    // ---------------------------------------------------------------------------
-    function picked() { return P(function () { return window.ui.state.fullMapSelectedRoom; }, null); }
-    function goButton(R, key) {
-        ensureStyle();
-        var room = picked();
-        var why = canLandReason(room);
-        var go = function (e) {
-            if (e && e.stopPropagation) e.stopPropagation();
-            var r = picked();
-            var w = canLandReason(r);
-            if (w) { note(w); return; }
-            flyTo(r);
-        };
-        return R.createElement("div", {
-            key: key,
-            id: "tnFlyButton",
-            className: "tnFlyGo" + (why ? " disabled" : ""),
-            role: "button",
-            tabIndex: 0,
-            title: why || landTip(room),
-            "aria-disabled": why ? "true" : "false",
-            onClick: go,
-            onKeyDown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(e); } },
-            dangerouslySetInnerHTML: { __html: wingIcon() + "<span>Take Flight!</span>" }
         });
     }
 
@@ -288,9 +249,7 @@
                 }, opt === "wings" ? "Use Wings" : "Use Hoverboard"));
             });
         }
-        var c = cost();
-        kids.push(R.createElement("div", { key: "tnFly_hint", className: "tnFlyHint" },
-            "Pick an outdoor spot you’ve found, then press Take Flight! on the left. " + (c ? c + " energy per flight." : "No energy needed.")));
+        if (!kids.length) return null;
         return R.createElement("div", { key: "tnFlyChoice", className: "tnFlyChoice" }, kids);
     }
 
@@ -365,10 +324,7 @@
     setInterval(function () {
         if (!window.tnFlyMapOpen) return;
         var now = P(function () { return window.ui.state.modalType; }, null);
-        if (flyModal === null || now !== flyModal) {
-            window.tnFlyMapOpen = false;
-            try { window.ui.render(); } catch (err) {}   // take Take Flight! back off the sidebar
-        }
+        if (flyModal === null || now !== flyModal) window.tnFlyMapOpen = false;
     }, 400);
 
     // ---------------------------------------------------------------------------
@@ -406,7 +362,6 @@
         setMode: setMode,
         _text: takeOffText,
         _boardName: boardName,
-        _boards: boards,
-        _go: goButton
+        _boards: boards
     };
 })();
