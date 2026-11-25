@@ -205,7 +205,8 @@
     // like the Dong Designer. Registered with the game at start-up.
     // ---------------------------------------------------------------------------
     var ITEM_CLASS = "TnFemmeFormer";
-    function itemClass() { return window.TnFemmeFormerItem || null; }
+    // The item class, registered on first use if start-up registration hasn't happened yet.
+    function itemClass() { return window.TnFemmeFormerItem || ensureItem(); }
     function newItem() { var C = itemClass(); return C ? new C() : null; }
     function carried() {
         var C = itemClass();
@@ -213,9 +214,62 @@
     }
     function onShip() { return P(function () { return window.InShipInterior(); }, false); }
 
-    function defineItem(req) {
-        var Base = req(95164).Jo, registry = req(54014).yq, names = req(18366).g, text = req(69289).m;
+    // The game's webpack require. Pushing a chunk runs its callback right away once the
+    // game's runtime is loaded, so this works at any time after start-up.
+    var pushes = 0;
+    function gameRequire() {
+        var chunks = window.webpackChunktits_html || (typeof self !== "undefined" ? self.webpackChunktits_html : null);
+        if (!chunks || typeof chunks.push !== "function") return null;
+        var req = null;
+        pushes++;
+        try { chunks.push([["tn-femme-former-" + Date.now() + "-" + pushes], {}, function (r) { req = r; }]); } catch (err) { return null; }
+        return typeof req === "function" ? req : null;
+    }
+    function mod(req, id) { return P(function () { return req(id); }, null); }
+
+    // The pieces the item needs, from the game's modules where they can be reached, and from
+    // window.Serialization (the game's class registry) where they can't.
+    function itemParts() {
+        var req = gameRequire();
+        var reg = window.Serialization || P(function () { return mod(req, 54014).yq; }, null);
+        var classes = P(function () { return reg.RegisteredClasses; }, null);
+        var Base = P(function () { return mod(req, 95164).Jo; }, null);
+        if (typeof Base !== "function" && classes) {
+            // Every item in the registry shares the same base class; borrow it from one we know.
+            ["AmberSeed", "DongDesigner", "Kirkite"].some(function (name) {
+                var C = classes[name];
+                if (typeof C !== "function") return false;
+                Base = Object.getPrototypeOf(C);
+                return typeof Base === "function";
+            });
+        }
+        return {
+            Base: typeof Base === "function" ? Base : null,
+            reg: reg,
+            names: P(function () { return mod(req, 18366).g; }, null),
+            text: P(function () { return mod(req, 69289).m; }, null)
+        };
+    }
+
+    var lastError = null;
+    function ensureItem() {
+        if (window.TnFemmeFormerItem) return window.TnFemmeFormerItem;
+        if (!window.GLOBAL) return null;
+        try { defineItem(itemParts()); }
+        catch (err) {
+            var first = !lastError || String(lastError) !== String(err);
+            lastError = err;
+            if (first) { try { console.warn("[TN] Femme Former item couldn't register", err); } catch (e) {} }
+        }
+        return window.TnFemmeFormerItem || null;
+    }
+
+    function defineItem(parts) {
+        var Base = parts.Base, reg = parts.reg, names = parts.names, text = parts.text;
+        if (!Base) throw new Error("the game's item class wasn't found");
         var g = window.GLOBAL;
+        var existing = P(function () { return reg.RegisteredClasses[ITEM_CLASS]; }, null);
+        if (typeof existing === "function") { window.TnFemmeFormerItem = existing; return; }
         class TnFemmeFormer extends Base {
             constructor() {
                 super();
@@ -223,10 +277,11 @@
                 this.type = g.GADGET;
                 this.shortName = "FemmeF.";
                 this.longName = "TamaniCorp Femme Former";
-                names.addFullName(this.shortName, text.toTitleCase(this.longName));
+                if (names) P(function () { names.addFullName("FemmeF.", text ? text.toTitleCase("TamaniCorp Femme Former") : "TamaniCorp Femme Former"); });
                 this.description = "a boxed TamaniCorp Femme Former";
                 this.tooltip = "A long, padded TamaniCorp bench in glossy pink vinyl, folded up for carrying. Lie on it stomach-first, let its two cups seal around your breasts, and it can reshape your chest and your pussy in a single session.\n\nIt needs real power, so it only works once it’s installed on your ship. Use it from your inventory while you’re aboard to install it.";
-                names.addTooltip(this.shortName, this.tooltip);
+                var tip = this.tooltip;
+                if (names) P(function () { names.addTooltip("FemmeF.", tip); });
                 this.basePrice = PRICE;
                 this.addFlag(g.NOT_CONSUMED_BY_DEFAULT);
                 this.customIcon = "misc_toy";
@@ -244,22 +299,21 @@
                 return false;
             }
         }
-        registry.registerClass(ITEM_CLASS, TnFemmeFormer);
+        Object.defineProperty(TnFemmeFormer, "name", { value: ITEM_CLASS });
+        // Make one to be sure the class works before the game sees it.
+        new TnFemmeFormer();
+        if (reg && typeof reg.registerClass === "function") reg.registerClass(ITEM_CLASS, TnFemmeFormer);
+        else if (reg && reg.RegisteredClasses) reg.RegisteredClasses[ITEM_CLASS] = TnFemmeFormer;
         window.TnFemmeFormerItem = TnFemmeFormer;
     }
+
+    // Register at start-up, so saves that hold the item load it. Tries for about a minute.
     (function registerItem(tries) {
-        var chunks = window.webpackChunktits_html || (typeof self !== "undefined" ? self.webpackChunktits_html : null);
-        if (!chunks || typeof chunks.push !== "function" || !window.GLOBAL) {
-            if (tries < 120) setTimeout(function () { registerItem(tries + 1); }, 500);
+        if (ensureItem()) {
+            try { console.info("[TN] Femme Former item ready"); } catch (e) {}
             return;
         }
-        chunks.push([["tn-femme-former-" + tries], {}, function (req) {
-            try { defineItem(req); }
-            catch (err) {
-                try { console.warn("[TN] Femme Former item couldn't register", err); } catch (e) {}
-                if (tries < 20) setTimeout(function () { registerItem(tries + 1); }, 1000);
-            }
-        }]);
+        if (tries < 120) setTimeout(function () { registerItem(tries + 1); }, 500);
     })(0);
 
     function install(item) {
@@ -310,7 +364,8 @@
     // Found on Tarkus: Oil Sea Beach, three rooms south of the Polluted Beach (room 230)
     // ---------------------------------------------------------------------------
     function tarkusBox(slot) {
-        if (!active() || !itemClass()) return false;
+        if (!active()) return false;
+        itemClass();
         var f = flags();
         if (f.TN_FEMME_FORMER_FOUND === undefined) {
             window.output("\n\nHalf-buried in the oily sand, something long and pink catches your eye: a padded box about the size of a massage table, its glossy vinyl streaked with grime but otherwise intact. Do you take a closer look?");
@@ -323,6 +378,15 @@
             return true;
         }
         return false;
+    }
+
+    // Shown if the game wouldn't take the item. The console has the details.
+    function itemProblem(where) {
+        window.clearOutput();
+        head();
+        window.output("The Femme Former won’t budge. (<i>The Femme Former mod couldn’t add its item to the game, so " + where + ". Nothing was taken or spent. Please report this with the browser console’s “[TN] Femme Former” line" + (lastError ? ": " + String(lastError && lastError.message || lastError) : "") + ".</i>)");
+        window.clearMenu();
+        window.addButton(0, "Next", window.mainGameMenu);
     }
 
     function investigate() {
@@ -343,7 +407,7 @@
         var before = carried();
         flags().TN_FEMME_FORMER_FOUND = 1;
         var it = newItem();
-        if (!it) { flags().TN_FEMME_FORMER_FOUND = 0; window.mainGameMenu(); return; }
+        if (!it) { flags().TN_FEMME_FORMER_FOUND = 0; itemProblem("you can’t carry it yet"); return; }
         window.itemCollect(function () {
             if (carried() > before) { window.mainGameMenu(); return; }
             window.clearOutput();
@@ -359,7 +423,8 @@
     // Booth in Lerris's shop (the TamaniCorp shop on Tavros)
     // ---------------------------------------------------------------------------
     function boothButton(slot) {
-        if (!active() || !itemClass()) return false;
+        if (!active()) return false;
+        itemClass();
         window.output("\n\nNear the back of the shop, a TamaniCorp booth glows pink under a sign reading <b>Femme Former</b>.");
         window.addButton(slot, "Femme Former", booth, NAME, "A TamaniCorp booth advertising a machine that reshapes breasts and pussies in one go.");
         return true;
@@ -397,7 +462,7 @@
         head();
         var pc = pcx(), f = flags();
         var it = newItem();
-        if (!it) { window.mainGameMenu(); return; }
+        if (!it) { itemProblem("the booth can’t sell one yet"); return; }
         var before = carried();
         pc.credits -= PRICE;
         window.output("You tap the holographic Buy button. Confetti made of light rains over the bench, and a jingle plays far too loudly for a shop this size.");
@@ -912,6 +977,7 @@
         _uninstall: uninstall,
         _buy: buy,
         _take: take,
+        _ensureItem: ensureItem,
         _apply: apply,
         _start: start,
         _chest: chestChanges,
