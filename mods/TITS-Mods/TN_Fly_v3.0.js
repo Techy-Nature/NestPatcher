@@ -51,19 +51,18 @@
         if (P(function () { return typeof it.is === "function" && it.is("Hoverboard"); }, false)) return true;
         return /hover ?board|holo ?board/i.test(P(function () { return it.getClassName(); }, ""));
     }
-    function boards() {
+    function board() {
         var pc = player();
-        return pc ? P(function () { return pc.inventory.storage.filter(isBoard); }, []) : [];
+        return pc ? P(function () {
+            var found = null;
+            pc.inventory.storage.some(function (it) { if (isBoard(it)) { found = it; return true; } return false; });
+            return found;
+        }, null) : null;
     }
-    function hasHoverboard() { return boards().length > 0; }
-    // With two or more boards, each flight takes a random one.
-    function pickBoard() {
-        var all = boards();
-        return all.length ? all[Math.floor(Math.random() * all.length)] : null;
-    }
+    function hasHoverboard() { return !!board(); }
     // What the scenes call it: "pink hoverboard", "teal holoboard", "bare steel holoboard"...
-    function boardName(it) {
-        if (it === undefined) it = pickBoard();
+    function boardName() {
+        var it = board();
         if (!it) return "hoverboard";
         if (P(function () { return it.getClassName() === "TnHoloboard"; }, false)) {
             if (it.tnBare) return "bare steel holoboard";
@@ -173,13 +172,7 @@
             ".tnFlyChoice .tnFlyHint{flex-basis:100%;text-align:center;opacity:.85;}" +
             ".tnFlyChoice .tnFlyOpt{padding:.35em .9em;border-radius:.3125em;border:.1em solid var(--paleColor,#53677B);" +
             "background:var(--foregroundColorA,#333E52);color:var(--textColor,#fff);cursor:pointer;}" +
-            ".tnFlyChoice .tnFlyOpt.on{background:var(--highlightColor,#8D31B0);color:#fff;font-weight:bold;}" +
-            ".tnFlyGo{display:flex;align-items:center;justify-content:center;gap:.5em;margin:.3em 0 .4em;padding:.6em 1em;" +
-            "border-radius:.4em;border:.15em solid var(--highlightColor,#8D31B0);background:var(--highlightColor,#8D31B0);color:#fff;" +
-            "font:bold 1.25em Lato,sans-serif;cursor:pointer;user-select:none;box-shadow:0 .15em .5em rgba(0,0,0,.4);}" +
-            ".tnFlyGo:hover{filter:brightness(1.15);}" +
-            ".tnFlyGo.disabled{opacity:.45;cursor:not-allowed;filter:none;background:var(--foregroundColorA,#333E52);border-color:var(--paleColor,#53677B);}" +
-            ".tnFlyGo svg{width:1.3em;height:1.3em;fill:currentColor;}";
+            ".tnFlyChoice .tnFlyOpt.on{background:var(--highlightColor,#8D31B0);color:#fff;font-weight:bold;}";
         (document.head || document.documentElement).appendChild(st);
     }
 
@@ -203,12 +196,10 @@
     function sidebarButton(R) {
         if (!R || !active() || !canUse()) return null;
         ensureStyle();
-        // While the Fly map is open, the Fly button itself becomes the big Take Flight! button.
-        if (window.tnFlyMapOpen) return goButton(R, "tnFly");
         var why = blockReason();
         var tip = why || ("Fly somewhere outdoors on this planet" +
             (cost() ? " (" + cost() + " energy)." : " on your hoverboard (no energy)."));
-        var fly = R.createElement("div", {
+        return R.createElement("div", {
             key: "tnFly",
             id: "tnFlyButton",
             className: "tnFlyBtn" + (why ? " disabled" : ""),
@@ -219,36 +210,6 @@
             onClick: function (e) { if (e && e.stopPropagation) e.stopPropagation(); openMap(); },
             onKeyDown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMap(); } },
             dangerouslySetInnerHTML: { __html: wingIcon() + "<span>Fly</span>" }
-        });
-        return fly;
-    }
-
-    // ---------------------------------------------------------------------------
-    // Take Flight! (the big confirm button)
-    // ---------------------------------------------------------------------------
-    function picked() { return P(function () { return window.ui.state.fullMapSelectedRoom; }, null); }
-    function goButton(R, key) {
-        ensureStyle();
-        var room = picked();
-        var why = canLandReason(room);
-        var go = function (e) {
-            if (e && e.stopPropagation) e.stopPropagation();
-            var r = picked();
-            var w = canLandReason(r);
-            if (w) { note(w); return; }
-            flyTo(r);
-        };
-        return R.createElement("div", {
-            key: key,
-            id: "tnFlyButton",
-            className: "tnFlyGo" + (why ? " disabled" : ""),
-            role: "button",
-            tabIndex: 0,
-            title: why || landTip(room),
-            "aria-disabled": why ? "true" : "false",
-            onClick: go,
-            onKeyDown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(e); } },
-            dangerouslySetInnerHTML: { __html: wingIcon() + "<span>Take Flight!</span>" }
         });
     }
 
@@ -290,7 +251,7 @@
         }
         var c = cost();
         kids.push(R.createElement("div", { key: "tnFly_hint", className: "tnFlyHint" },
-            "Pick an outdoor spot you’ve found, then press Take Flight! on the left. " + (c ? c + " energy per flight." : "No energy needed.")));
+            "Pick an outdoor spot you’ve found, then press Fly. " + (c ? c + " energy per flight." : "No energy needed.")));
         return R.createElement("div", { key: "tnFlyChoice", className: "tnFlyChoice" }, kids);
     }
 
@@ -310,9 +271,8 @@
         var naga = P(function () { return pc.isNaga(); }, false);
         var where = "<b>" + esc(titleCase(dest.name)) + "</b>";
         var t;
-        var ride = boardName(pickBoard());   // one board per flight, picked at random
         if (m === "hoverboard") {
-            t = "You pull your " + ride + " out of your pack and drop it on the ground. It hums to life and bobs a hand’s width up, waiting for you. ";
+            t = "You pull your " + boardName() + " out of your pack and drop it on the ground. It hums to life and bobs a hand’s width up, waiting for you. ";
             if (taur) t += "Getting all of your [pc.legsNoun] on it takes some careful shuffling, but once you’re balanced, you lean forward";
             else if (naga) t += "You coil your [pc.tail] onto the deck, settle your weight and lean forward";
             else t += "You hop on, plant your [pc.feet] and lean forward";
@@ -322,7 +282,7 @@
             return t;
         }
         if (hasHoverboard()) {
-            t = "You drop your " + ride + " and hop on, letting it carry you into a running start. As it picks up speed, you ";
+            t = "You drop your " + boardName() + " and hop on, letting it carry you into a running start. As it picks up speed, you ";
             t += taur ? "gather your [pc.legsNoun] under you" : naga ? "wind your [pc.tail] tight" : "crouch low";
             t += " and kick off its deck, springing high into the air. The board bobs up after you, and you snag it and stow it in your pack as your [pc.wings] snap open.";
             t += " A few hard flaps and you’re climbing, the ground falling away below you.";
@@ -365,10 +325,7 @@
     setInterval(function () {
         if (!window.tnFlyMapOpen) return;
         var now = P(function () { return window.ui.state.modalType; }, null);
-        if (flyModal === null || now !== flyModal) {
-            window.tnFlyMapOpen = false;
-            try { window.ui.render(); } catch (err) {}   // take Take Flight! back off the sidebar
-        }
+        if (flyModal === null || now !== flyModal) window.tnFlyMapOpen = false;
     }, 400);
 
     // ---------------------------------------------------------------------------
@@ -405,8 +362,6 @@
         mode: mode,
         setMode: setMode,
         _text: takeOffText,
-        _boardName: boardName,
-        _boards: boards,
-        _go: goButton
+        _boardName: boardName
     };
 })();
