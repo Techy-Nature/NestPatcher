@@ -51,18 +51,19 @@
         if (P(function () { return typeof it.is === "function" && it.is("Hoverboard"); }, false)) return true;
         return /hover ?board|holo ?board/i.test(P(function () { return it.getClassName(); }, ""));
     }
-    function board() {
+    function boards() {
         var pc = player();
-        return pc ? P(function () {
-            var found = null;
-            pc.inventory.storage.some(function (it) { if (isBoard(it)) { found = it; return true; } return false; });
-            return found;
-        }, null) : null;
+        return pc ? P(function () { return pc.inventory.storage.filter(isBoard); }, []) : [];
     }
-    function hasHoverboard() { return !!board(); }
+    function hasHoverboard() { return boards().length > 0; }
+    // With two or more boards, each flight takes a random one.
+    function pickBoard() {
+        var all = boards();
+        return all.length ? all[Math.floor(Math.random() * all.length)] : null;
+    }
     // What the scenes call it: "pink hoverboard", "teal holoboard", "bare steel holoboard"...
-    function boardName() {
-        var it = board();
+    function boardName(it) {
+        if (it === undefined) it = pickBoard();
         if (!it) return "hoverboard";
         if (P(function () { return it.getClassName() === "TnHoloboard"; }, false)) {
             if (it.tnBare) return "bare steel holoboard";
@@ -169,7 +170,6 @@
             "padding:.7em 1em;border-radius:.4em;background:var(--foregroundColorB,#2C3649);color:var(--textColor,#fff);" +
             "border-left:.3em solid var(--highlightColor,#8D31B0);box-shadow:0 .3em 1em rgba(0,0,0,.5);font:1em Lato,sans-serif;}" +
             ".tnFlyChoice{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.5em;margin:.4em 0;font:1em Lato,sans-serif;}" +
-            ".tnFlyChoice .tnFlyHint{flex-basis:100%;text-align:center;opacity:.85;}" +
             ".tnFlyChoice .tnFlyOpt{padding:.35em .9em;border-radius:.3125em;border:.1em solid var(--paleColor,#53677B);" +
             "background:var(--foregroundColorA,#333E52);color:var(--textColor,#fff);cursor:pointer;}" +
             ".tnFlyChoice .tnFlyOpt.on{background:var(--highlightColor,#8D31B0);color:#fff;font-weight:bold;}";
@@ -249,9 +249,7 @@
                 }, opt === "wings" ? "Use Wings" : "Use Hoverboard"));
             });
         }
-        var c = cost();
-        kids.push(R.createElement("div", { key: "tnFly_hint", className: "tnFlyHint" },
-            "Pick an outdoor spot you’ve found, then press Fly. " + (c ? c + " energy per flight." : "No energy needed.")));
+        if (!kids.length) return null;
         return R.createElement("div", { key: "tnFlyChoice", className: "tnFlyChoice" }, kids);
     }
 
@@ -271,8 +269,9 @@
         var naga = P(function () { return pc.isNaga(); }, false);
         var where = "<b>" + esc(titleCase(dest.name)) + "</b>";
         var t;
+        var ride = boardName(pickBoard());   // one board per flight, picked at random
         if (m === "hoverboard") {
-            t = "You pull your " + boardName() + " out of your pack and drop it on the ground. It hums to life and bobs a hand’s width up, waiting for you. ";
+            t = "You pull your " + ride + " out of your pack and drop it on the ground. It hums to life and bobs a hand’s width up, waiting for you. ";
             if (taur) t += "Getting all of your [pc.legsNoun] on it takes some careful shuffling, but once you’re balanced, you lean forward";
             else if (naga) t += "You coil your [pc.tail] onto the deck, settle your weight and lean forward";
             else t += "You hop on, plant your [pc.feet] and lean forward";
@@ -282,7 +281,7 @@
             return t;
         }
         if (hasHoverboard()) {
-            t = "You drop your " + boardName() + " and hop on, letting it carry you into a running start. As it picks up speed, you ";
+            t = "You drop your " + ride + " and hop on, letting it carry you into a running start. As it picks up speed, you ";
             t += taur ? "gather your [pc.legsNoun] under you" : naga ? "wind your [pc.tail] tight" : "crouch low";
             t += " and kick off its deck, springing high into the air. The board bobs up after you, and you snag it and stow it in your pack as your [pc.wings] snap open.";
             t += " A few hard flaps and you’re climbing, the ground falling away below you.";
@@ -362,6 +361,7 @@
         mode: mode,
         setMode: setMode,
         _text: takeOffText,
-        _boardName: boardName
+        _boardName: boardName,
+        _boards: boards
     };
 })();

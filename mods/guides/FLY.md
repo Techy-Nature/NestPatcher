@@ -7,7 +7,7 @@ on the planet they're on, with wings or any hoverboard. Both files have to be in
 ## Who can fly
 
 - **Wings:** any kind of wings Steele has (not shark fins or tentacle "wings"). 5 energy a flight.
-- **Any hoverboard:** the pink hoverboard, Anno's Holoboard (any color, or bare steel) or a board from another mod, carried in your inventory. No energy. The take-off scene names the board you carry.
+- **Any hoverboard:** the pink hoverboard, Anno's Holoboard (any color, or bare steel) or a board from another mod, carried in your inventory. No energy. The take-off scene names the board you carry. With two or more, each flight picks one at random.
 - **Both:** pick how you go under the map (see below).
 
 Without wings or a hoverboard, the Fly button doesn't show.
