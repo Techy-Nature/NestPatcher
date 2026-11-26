@@ -26,6 +26,8 @@
  *   TN_BX_CONFRONT_TS, TN_BX_SHIP (nights aboard), TN_BX_MISSIONARY, TN_BX_ANAL, TN_BX_DITZY,
  *   TN_BX_TREATED, TN_BX_BOOTHCOLD, TN_BX_MET_KASE, TN_BIANCA_FAMILIARITY. Sets the game's own
  *   BIANCA_CONFRONTED and BIANCA_MET_ANNO flags.
+ * Changes (2026-11-26): the codex log (Log > Roaming Encounters > Bianca) lists every step left
+ *   at each stage, from the first bar evening to Confess, with Done / Not yet and where to go.
  * Changes (2026-11-23):
  *   - Her familiarity now lives in its own save flag, TN_BIANCA_FAMILIARITY. The .mod sends the
  *     game's bianca.familiarity() here, so every scene, the codex and both Bianca mods read
@@ -847,9 +849,33 @@
         } catch (err) { if (window.console) console.error("[Bianca Extras] bar", err); }
     };
 
-    /* ---------- Codex log: relationship meter ---------- */
+    /* ---------- Codex log: relationship meter + every step of her route ---------- */
     // Called from the codex (Log > Roaming Encounters > Bianca), right under the game's
     // Affection line. cS is the game's own log-line helper, passed in by the .mod hook.
+    // Every hint below matches what the game, Bianca Extras and Bianca's Clinic really check.
+    function timeLeft(min) {
+        min = Math.max(0, Math.ceil(min));
+        var d = Math.floor(min / 1440), h = Math.ceil((min - d * 1440) / 60);
+        if (h === 24) { d += 1; h = 0; }
+        var parts = [];
+        if (d) parts.push(d + (d === 1 ? " day" : " days"));
+        if (h || !d) parts.push(h + (h === 1 ? " hour" : " hours"));
+        return parts.join(", ");
+    }
+    function clinicLines(cS) {
+        var K = window.tnBiancaClinic;
+        if (!K || (window.tnBiancaClinicEnabled && !window.tnBiancaClinicEnabled())) return "";
+        var out = "";
+        if (safe(K.opened, false)) {
+            out += cS("Ketria Clinic (optional)", "Open: Tavros Merchant Deck, west of the Merchant’s Thoroughfare, 8 AM to 6 PM. Arian is at the front desk and Dr. Rewell is in the exam hall.");
+            var inNow = safe(K.isOpen, false);
+            out += cS("Bianca at the clinic", inNow ? "In now, until 2 PM (Checkup, Chat, Lunch at noon, Help Out)" :
+                "9 AM to 2 PM every third day; next " + safe(K.nextOpen, "soon") + (pc && safe(function () { return pc.hasStatusEffect("Bianca Gone"); }, false) ? " (not while she’s away)" : ""));
+        } else {
+            out += cS("Ketria Clinic (optional)", "Opens in " + timeLeft(safe(K.openInMin, 4320)) + ", 3 days after your Tavros talk. Her email will say so. It’s on the Tavros Merchant Deck, west of the Merchant’s Thoroughfare.");
+        }
+        return out;
+    }
     window.tnBiancaCodexLog = function (cS) {
         try {
             if (!on() || typeof cS !== "function") return "";
@@ -864,18 +890,64 @@
             else if (p === 1) stage = "Keeping her distance. Confront her when you’re ready.";
             else stage = "Getting to know her";
             var out = cS("Relationship", bar) + cS("Stage", stage);
-            // Before Confront: what's still missing, so nobody has to guess the steps.
-            if (p === 0 && !isLover()) {
-                var yes = function (v) { return v ? "Done" : "Not yet"; };
-                var cud = Math.min(num("TN_BX_CUDDLES"), 3);
-                out += cS("To Confront", "do all of these, then Confront shows up") +
-                    cS("Familiarity", Math.min(Math.round(fam()), 50) + "/50") +
-                    cS("Talk: Children", talked(GLOBAL.BIANCA_TOPIC_CHILDREN) ? "Done" : "Not yet (bar talk after 8 PM, familiarity 40)") +
-                    cS("Talk: Family", talked(GLOBAL.BIANCA_TOPIC_FAMILY) ? "Done" : "Not yet (bar talk after 8 PM; needs familiarity 49, sex with her 5 times and every other topic first)") +
-                    cS("Sex with her", yes(flags.BIANCA_SEXED !== undefined)) +
-                    cS("Cuddles", cud + "/3 (Spend Time, then Cuddle, once per meeting; the third leads to Confront)");
+            var done = function (v, hint) { return v ? "Done" : "Not yet" + (hint ? " (" + hint + ")" : ""); };
+            var sexN = num("BIANCA_SEXED");
+
+            if (isLover()) {
+                out += cS("Lovers", "Done. Now open: the bar Cuddle, Intimate and Int. Doggy on your ship, and free checkups at her clinic.");
+                out += clinicLines(cS);
+                return out;
             }
-            if (p >= 4 && !isLover()) out += cS("Nights on Your Ship", Math.min(num("TN_BX_SHIP"), 20) + "/20");
+
+            if (p === 0) {
+                // Before Confront
+                var others = [["Herself", GLOBAL.BIANCA_TOPIC_HERSELF], ["Mods", GLOBAL.BIANCA_TOPIC_MODS], ["Work", GLOBAL.BIANCA_TOPIC_WORK],
+                    ["Stories", GLOBAL.BIANCA_TOPIC_STORIES], ["Parents", GLOBAL.BIANCA_TOPIC_PARENTS], ["Doctor", GLOBAL.BIANCA_TOPIC_DOCTOR]];
+                var missing = [];
+                for (var i = 0; i < others.length; i++) if (!talked(others[i][1])) missing.push(others[i][0]);
+                var met = num("MET_BIANCA");
+                var spent = Math.min(num("BIANCA_TIME_SPENT"), 2);
+                out += cS("To Confront", "do all of these, then Confront shows up") +
+                    cS("Familiarity", Math.min(Math.round(fam()), 50) + "/50 (talking, Spend Time and sex raise it)") +
+                    cS("Sex with her", done(sexN > 0, "in the wild: Spend Time, then Sex. Needs familiarity 30, and lust 50 the first time")) +
+                    cS("Bar evenings", done((met & 32) !== 0, "Spend Time with her in the wild twice (" + spent + "/2, needs familiarity 25), then visit the bar after 8 PM on the planet where her booth is this week. It takes a few evenings before she lets you sit with her")) +
+                    cS("Other topics", missing.length ? "Not yet: " + missing.join(", ") + ". Herself, Mods and Work can be asked anywhere; Stories and Parents (familiarity 30) and Doctor (35, after Stories and Parents) only at the bar" : "Done") +
+                    cS("Talk: Children", done(talked(GLOBAL.BIANCA_TOPIC_CHILDREN), "bar talk after 8 PM, familiarity 40")) +
+                    cS("Talk: Family", done(talked(GLOBAL.BIANCA_TOPIC_FAMILY), "bar talk after 8 PM; needs familiarity 49, sex with her " + Math.min(sexN, 5) + "/5, and every other topic first")) +
+                    cS("Cuddles", Math.min(num("TN_BX_CUDDLES"), 3) + "/3 (in the wild: Spend Time, then Cuddle, once per meeting; the third leads to Confront)");
+                return out;
+            }
+
+            if (p === 1) {
+                out += cS("Confront", "Not yet (find her in the wild; she’ll offer Confront or Back Off again. Until then her booth is cold and she skips the bars)");
+                return out;
+            }
+
+            if (p === 2) {
+                out += cS("Confront", "Done") +
+                    cS("Back from her trip", "in " + timeLeft(WEEK - (now() - num("TN_BX_CONFRONT_TS")))) +
+                    cS("Then", "she emails you (I’m ready to talk) and waits for you on Tavros, Residential Deck, South-East Plaza");
+                return out;
+            }
+
+            if (p === 3) {
+                out += cS("Confront", "Done") + cS("Her email", "Sent (I’m ready to talk)") +
+                    cS("Meet her", "Not yet (Tavros, Residential Deck, South-East Plaza, any time of day)") +
+                    cS("After that", "Ketria Clinic opens 3 days later, and the rest of her story opens up");
+                return out;
+            }
+
+            // Love track (after the Tavros talk), not lovers yet
+            var f = Math.round(fam());
+            out += cS("Tavros talk", "Done") +
+                cS("To Confess", "do all of these, then Confess shows up when you meet her in the wild") +
+                cS("Familiarity", Math.min(f, 100) + "/100 (talking, Spend Time, Hug, Kiss, nights on your ship and clinic visits raise it)") +
+                cS("Closer (51%)", f >= 51 ? "Done: Hug and Kiss (Spend Time), how you approach her in the wild, and Your Ship and Booth Tease at the bar are open" :
+                    "Not yet (at 51% you get Hug and Kiss in Spend Time, a choice of how to approach her in the wild, and Your Ship and Booth Tease at the bar)") +
+                cS("Nights on Your Ship", Math.min(num("TN_BX_SHIP"), 20) + "/20 (at the bar after 8 PM, Your Ship; one per night, needs 51%)") +
+                cS("Confess", "Not yet (at 100% and 20 nights; she takes a day away afterwards)");
+            if (C.treated() && flags.TN_BX_TREATED === undefined) out += cS("Treatment talk", "Not yet (happens on its own at 51%, in the wild or at the bar)");
+            out += clinicLines(cS);
             return out;
         } catch (err) { return ""; }
     };

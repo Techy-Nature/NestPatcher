@@ -109,6 +109,12 @@
     }
     setInterval(noteReunion, 3000);
     function opened() { noteReunion(); return loveTrack() && flags.TN_BXC_TS !== undefined && now() - num("TN_BXC_TS") >= OPEN_AFTER; }
+    // Minutes until the clinic opens (for Bianca's codex checklist).
+    function openInMin() {
+        noteReunion();
+        if (!loveTrack() || flags.TN_BXC_TS === undefined) return OPEN_AFTER;
+        return Math.max(0, OPEN_AFTER - (now() - num("TN_BXC_TS")));
+    }
     function clinicOpen() { return opened() && hrs() >= CLINIC_OPEN && hrs() < CLINIC_CLOSE; }
     function clinicDay() { return opened() && today() % 3 === 0; }
     function biancaGone() { return safe(function () { return pc.hasStatusEffect("Bianca Gone"); }, false); }
@@ -658,5 +664,5 @@
         addButton(0, "Next", mainGameMenu);
     }
 
-    window.tnBiancaClinic = { isOpen: isOpen, opened: opened, clinicDay: clinicDay, clinicOpen: clinicOpen, enter: enterClinic, menu: clinicMenu, chats: CHATS.length, rewell: rewellEnter, nest: nestMenuIntro };
+    window.tnBiancaClinic = { isOpen: isOpen, opened: opened, nextOpen: nextOpenText, openInMin: openInMin, clinicDay: clinicDay, clinicOpen: clinicOpen, enter: enterClinic, menu: clinicMenu, chats: CHATS.length, rewell: rewellEnter, nest: nestMenuIntro };
 })();
