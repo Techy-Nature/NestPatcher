@@ -1,10 +1,11 @@
 /* TN Fly for Trials in Tainted Space (Modv3.0, checked against 0.9.168).
    Fast travel by air for a Steele with wings and/or any hoverboard (the pink one, Anno's Holoboard or a modded board).
 
-   - A Fly button sits in the left sidebar, above Steele's picture. It only shows when
-     Steele has wings (any kind) or carries any hoverboard.
-   - It opens the game's own map in Fly mode. Pick an outdoor spot you've already found
-     on this planet and press the floating wings button over the map.
+   - Whenever Steele has wings (any kind) or carries any hoverboard, a tiny wings button
+     sits on the minimap (the corner across from Show Full Map). Tap it to open the big map
+     in Fly mode, pick an outdoor spot you've already found on this planet, then tap the
+     round wings button floating over the map ("Take off"). On a map opened the usual way,
+     the floating button reads "Fly" and switches it into Fly mode.
    - Steele takes off with a short scene, then lands there (the move itself works like
      the game's own Teleport cheat, so arrival events still happen).
    - Wings: 5 energy per flight. Hoverboard only: no energy.
@@ -159,13 +160,6 @@
         var st = document.createElement("style");
         st.id = "tnFlyStyle";
         st.textContent =
-            ".tnFlyBtn{display:flex;align-items:center;justify-content:center;gap:.4em;margin:.3em 0 .2em;padding:.35em .6em;" +
-            "border-radius:.3125em;border:.1em solid var(--paleColor,#53677B);background:var(--foregroundColorA,#333E52);" +
-            "color:var(--textColor,#fff);font:bold 1em Lato,sans-serif;cursor:pointer;user-select:none;}" +
-            ".tnFlyBtn:hover{background:var(--highlightColor,#8D31B0);}" +
-            ".tnFlyBtn.disabled{opacity:.45;cursor:not-allowed;}" +
-            ".tnFlyBtn.disabled:hover{background:var(--foregroundColorA,#333E52);}" +
-            ".tnFlyBtn svg{width:1.3em;height:1.3em;fill:currentColor;}" +
             ".tnFlyNote{position:fixed;left:50%;bottom:12%;transform:translateX(-50%);z-index:2147483000;max-width:80vw;" +
             "padding:.7em 1em;border-radius:.4em;background:var(--foregroundColorB,#2C3649);color:var(--textColor,#fff);" +
             "border-left:.3em solid var(--highlightColor,#8D31B0);box-shadow:0 .3em 1em rgba(0,0,0,.5);font:1em Lato,sans-serif;}" +
@@ -174,14 +168,18 @@
             "background:var(--foregroundColorA,#333E52);color:var(--textColor,#fff);cursor:pointer;}" +
             ".tnFlyChoice .tnFlyOpt.on{background:var(--highlightColor,#8D31B0);color:#fff;font-weight:bold;}" +
             ".dialogBody.tnFlyBody{position:relative;}" +
-            ".tnFlyWings{position:absolute;left:50%;bottom:1.2em;transform:translateX(-50%);z-index:20;width:4.6em;height:4.6em;" +
+            ".tnFlyWings{position:absolute;left:50%;bottom:1.2em;transform:translateX(-50%);z-index:20;width:5em;height:5em;" +
             "border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.05em;" +
             "border:.15em solid #fff;background:var(--highlightColor,#8D31B0);color:#fff;cursor:pointer;user-select:none;" +
-            "box-shadow:0 .25em .9em rgba(0,0,0,.55);font:bold .85em Lato,sans-serif;animation:tnFlyBob 2.4s ease-in-out infinite;}" +
+            "box-shadow:0 .25em .9em rgba(0,0,0,.55);font:bold .85em Lato,sans-serif;text-align:center;line-height:1.1;}" +
+            ".tnFlyWings.ready{animation:tnFlyBob 2.4s ease-in-out infinite;}" +
             ".tnFlyWings svg{width:2.4em;height:2.4em;fill:currentColor;}" +
             ".tnFlyWings:hover{filter:brightness(1.15);}" +
             ".tnFlyWings.disabled{background:var(--foregroundColorA,#333E52);border-color:var(--paleColor,#53677B);opacity:.6;" +
             "cursor:not-allowed;animation:none;filter:none;}" +
+            ".sm_btn_container.tnFlyMini{left:0;right:auto;height:auto;z-index:4;}" +
+            ".rightSideBar .sm_btn_container.tnFlyMini{left:auto;right:0;}" +
+            ".sm_btn_container.tnFlyMini .btn.tnFlyOff .image{opacity:.45;}" +
             "@keyframes tnFlyBob{0%,100%{transform:translate(-50%,0);}50%{transform:translate(-50%,-.3em);}}";
         (document.head || document.documentElement).appendChild(st);
     }
@@ -200,34 +198,13 @@
 
     function wingIcon() { return P(function () { return window.svgIcon("wings"); }, ""); }
 
-    // ---------------------------------------------------------------------------
-    // Sidebar button (the .mod puts this above Steele's picture)
-    // ---------------------------------------------------------------------------
-    function sidebarButton(R) {
-        if (!R || !active() || !canUse()) return null;
-        ensureStyle();
-        var why = blockReason();
-        var tip = why || ("Fly somewhere outdoors on this planet" +
-            (cost() ? " (" + cost() + " energy)." : " on your hoverboard (no energy)."));
-        return R.createElement("div", {
-            key: "tnFly",
-            id: "tnFlyButton",
-            className: "tnFlyBtn" + (why ? " disabled" : ""),
-            role: "button",
-            tabIndex: 0,
-            title: tip,
-            "aria-disabled": why ? "true" : "false",
-            onClick: function (e) { if (e && e.stopPropagation) e.stopPropagation(); openMap(); },
-            onKeyDown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMap(); } },
-            dangerouslySetInnerHTML: { __html: wingIcon() + "<span>Fly</span>" }
-        });
-    }
-
+    // Opens the map (if it isn't open yet) and switches it into Fly mode.
     function openMap() {
         var why = blockReason();
         if (why) { note(why); return; }
         try {
-            window.ui.showFullMap();          // the .mod resets Fly mode here...
+            if (!mapIsOpen()) window.ui.showFullMap();   // the .mod resets Fly mode here...
+            window.ui.state.fullMapSelectedRoom = null;  // a tap on the normal map walks, so start fresh
             flyModal = window.ui.state.modalType;
             window.tnFlyMapOpen = true;       // ...so turn it on after
             window.ui.render();
@@ -264,13 +241,39 @@
     }
 
     // The floating wings button over the Fly map (the .mod puts it in the map's body).
+    function mapIsOpen() {
+        return P(function () { return !!document.querySelector(".full_map_viewer"); }, false);
+    }
     function picked() { return P(function () { return window.ui.state.fullMapSelectedRoom; }, null); }
+    // On the normal map it switches the map into Fly mode; in Fly mode it takes off.
     function wingsButton(R) {
-        if (!R) return null;
+        if (!R || !active() || !canUse()) return null;
         ensureStyle();
+        var flying = !!window.tnFlyMapOpen;
+        var stop = function (e) { if (e && e.stopPropagation) e.stopPropagation(); };
+        if (!flying) {
+            var blocked = blockReason();
+            var tip = blocked || ("Fly somewhere outdoors on this planet" +
+                (cost() ? " (" + cost() + " energy)." : " on your hoverboard (no energy)."));
+            var start = function (e) { stop(e); openMap(); };
+            return R.createElement("div", {
+                key: "tnFlyWings",
+                id: "tnFlyWings",
+                className: "tnFlyWings" + (blocked ? " disabled" : ""),
+                role: "button",
+                tabIndex: 0,
+                title: tip,
+                "aria-label": tip,
+                "aria-disabled": blocked ? "true" : "false",
+                onClick: start,
+                onPointerDown: stop,
+                onDoubleClick: stop,
+                onKeyDown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); start(e); } },
+                dangerouslySetInnerHTML: { __html: wingIcon() + "<span>Fly</span>" }
+            });
+        }
         var room = picked();
         var why = canLandReason(room);
-        var stop = function (e) { if (e && e.stopPropagation) e.stopPropagation(); };
         var go = function (e) {
             stop(e);
             var r = picked();
@@ -281,7 +284,7 @@
         return R.createElement("div", {
             key: "tnFlyWings",
             id: "tnFlyWings",
-            className: "tnFlyWings" + (why ? " disabled" : ""),
+            className: "tnFlyWings" + (why ? " disabled" : " ready"),
             role: "button",
             tabIndex: 0,
             title: why || landTip(room),
@@ -291,8 +294,33 @@
             onPointerDown: stop,
             onDoubleClick: stop,
             onKeyDown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(e); } },
-            dangerouslySetInnerHTML: { __html: wingIcon() + "<span>Fly</span>" }
+            dangerouslySetInnerHTML: { __html: wingIcon() + "<span>Take off</span>" }
         });
+    }
+
+    // The tiny button on the minimap: opens the big map straight into Fly mode.
+    function minimapButton(R, mapOpen) {
+        if (!R || !active() || !canUse()) return null;
+        ensureStyle();
+        var blocked = blockReason();
+        var tip = blocked || ("Fly" + (cost() ? " (" + cost() + " energy)" : " on your hoverboard"));
+        var go = function (e) { if (e && e.stopPropagation) e.stopPropagation(); openMap(); };
+        var op = P(function () { return window.game.gameOptions.bustControlOpacity; }, undefined);
+        return R.createElement("div", { key: "tnFlyMini", className: "sm_btn_container tnFlyMini" },
+            R.createElement("div", {
+                id: "tnFlyMiniBtn",
+                title: tip,
+                "aria-label": tip,
+                role: "button",
+                tabIndex: 0,
+                className: "btn tnFlyMini_btn" + (mapOpen ? " hidden" : "") + (blocked ? " tnFlyOff" : ""),
+                style: { opacity: op },
+                onClick: go,
+                onDoubleClick: function (e) { if (e && e.stopPropagation) e.stopPropagation(); },
+                onKeyDown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(e); } }
+            },
+                R.createElement("span", { className: "image shade", dangerouslySetInnerHTML: { __html: wingIcon() } }),
+                R.createElement("span", { className: "image", dangerouslySetInnerHTML: { __html: wingIcon() } })));
     }
 
     function canLand(room) { return !canLandReason(room); }
@@ -378,7 +406,7 @@
             id: MOD_ID,
             name: "Fly",
             author: "TN",
-            description: "A Fly button above Steele's picture: fly to any outdoor spot you've found on this planet with wings (5 energy) or a hoverboard (free).",
+            description: "A tiny wings button on the minimap opens the map in Fly mode: fly to any outdoor spot you've found on this planet with wings (5 energy) or a hoverboard (free).",
             supportsToggle: true,
             onEnabledChange: function () { try { window.ui.render(); } catch (err) {} return true; }
         });
@@ -391,9 +419,9 @@
     })(0);
 
     window.tnFly = {
-        sidebarButton: sidebarButton,
         mapChoice: mapChoice,
         wingsButton: wingsButton,
+        minimapButton: minimapButton,
         canLand: canLand,
         landTip: landTip,
         flyTo: flyTo,
