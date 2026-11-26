@@ -26,6 +26,7 @@ Latest: 3.0
 - **Bust Gender Filter:** Battle busts now reliably hide. The **Battle busts** setting is now **Filtered**, **Hide all** or **Always show**, and the settings page shows whether the battle hook is on. Now `TN_BustGenderFilter_v3.0.js`; delete `TN_BustGenderFilter_v2.9.js`.
 - **Game Fixes:** New. Fixes six bugs in the game itself: the shop's buy and sell hotkeys, Crackle Jelly ignoring locked skin colour, a pregnancy warning that never fired, "You already have undefined" at Ceria's salon, Lund draining lust twice as fast as meant, and a leftover from Phaedra's behemoth fight. File: `TN_GameFixes_v1.0.mod`.
 - **Launcher Fixes:** New, desktop only and off by default. Fixes the desktop launcher: **Reset game data** failing once you had saves, and image pack downloads that saved error pages, left broken files or kept failing after a dropped connection. On Windows, Linux and Mac, remove the `#` before its line in `enabled.txt`; leave it off on Android. File: `TN_LauncherFixes_v1.0.mod`.
+- **Save Editor:** Fix: the editor's **Save File** button did nothing on Android. It now opens a pop-up: name the file and tap **Save**, and the game's own save window keeps it (on PC, a download). Load it with **Load From File**. Same file name.
 - **Changelog:** Shows Modv3.0 as installed. Now `TN_Changelog_v3.0.js`; delete `TN_Changelog_v2.9.js`.
 
 ## Modv2.9 — Crew stories and new faces (2026-11-11)
