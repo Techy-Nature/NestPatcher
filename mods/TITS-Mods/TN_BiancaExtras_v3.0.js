@@ -864,6 +864,17 @@
             else if (p === 1) stage = "Keeping her distance. Confront her when you’re ready.";
             else stage = "Getting to know her";
             var out = cS("Relationship", bar) + cS("Stage", stage);
+            // Before Confront: what's still missing, so nobody has to guess the steps.
+            if (p === 0 && !isLover()) {
+                var yes = function (v) { return v ? "Done" : "Not yet"; };
+                var cud = Math.min(num("TN_BX_CUDDLES"), 3);
+                out += cS("To Confront", "do all of these, then Confront shows up") +
+                    cS("Familiarity", Math.min(Math.round(fam()), 50) + "/50") +
+                    cS("Talk: Children", talked(GLOBAL.BIANCA_TOPIC_CHILDREN) ? "Done" : "Not yet (bar talk after 8 PM, familiarity 40)") +
+                    cS("Talk: Family", talked(GLOBAL.BIANCA_TOPIC_FAMILY) ? "Done" : "Not yet (bar talk after 8 PM; needs familiarity 49, sex with her 5 times and every other topic first)") +
+                    cS("Sex with her", yes(flags.BIANCA_SEXED !== undefined)) +
+                    cS("Cuddles", cud + "/3 (Spend Time, then Cuddle, once per meeting; the third leads to Confront)");
+            }
             if (p >= 4 && !isLover()) out += cS("Nights on Your Ship", Math.min(num("TN_BX_SHIP"), 20) + "/20");
             return out;
         } catch (err) { return ""; }

@@ -16,6 +16,7 @@ Author: Neston
 #     the bar Cuddle), and the game's own bar Stealth Sex no longer loops at the end.
 #   - Codex > Log > Roaming Encounters > Bianca: a relationship meter, her stage, and nights
 #     aboard toward Confess, under the game's Affection line.
+#   - Bar talk: Family no longer needs the rescue event in the wild.
 # Needles use @@name@@ wildcards for minified names so they match PC and Android builds.
 
 # Familiarity lives in TN_BIANCA_FAMILIARITY: every bianca.familiarity() call in the game goes to the mod
@@ -131,3 +132,9 @@ Replace [main.js]:
 @@Bu@@+=@@cS@@("Affection",@@re@@.m.percent(bianca.familiarity())+(100!==bianca.familiarityMax()?" ("+@@re@@.m.percent(bianca.familiarityMax())+" Max)":""))
 With:
 @@Bu@@+=@@cS@@("Affection",@@re@@.m.percent(bianca.familiarity())+(100!==bianca.familiarityMax()?" ("+@@re@@.m.percent(bianca.familiarityMax())+" Max)":"")),window.tnBiancaCodexLog&&(@@Bu@@+=window.tnBiancaCodexLog(@@cS@@))
+
+# Bar talk: Family no longer waits on the wild rescue event (the other Family requirements stay)
+Replace [main.js]:
+)?64&flags.MET_BIANCA?window.biancaTalkedTopic(GLOBAL.BIANCA_TOPIC_FAMILY)?
+With:
+)?(64&flags.MET_BIANCA||window.tnBiancaExtrasEnabled&&window.tnBiancaExtrasEnabled())?window.biancaTalkedTopic(GLOBAL.BIANCA_TOPIC_FAMILY)?
