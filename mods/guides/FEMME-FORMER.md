@@ -66,15 +66,18 @@ The game's own locks still apply, and their buttons are greyed out with the reas
 ## If the box or the booth doesn't show up
 
 1. Make sure both `TN_FemmeFormer_v3.0.mod` and `TN_FemmeFormer_v3.0.js` are in your mods folder
-   and in `enabled.txt`, then patch again. The box needs the `.mod` (it adds the box to the beach)
-   and the `.js` (the box itself).
+   and in `enabled.txt`, then patch again. The `.js` is the box itself. The `.mod` adds it to the
+   beach, and the `.js` has a backup way onto the beach if that part didn't apply.
 2. Check that **Femme Former** is on in Android Mods (Android) or TN Mod Settings (desktop).
 3. Walk onto the right square: from the **Polluted Beach**, go **south three times**. The beach's
    text mentions a pile of wrecked ships you have to squeeze past. If a fight starts there, win or
    lose, then step off the square and back on.
 4. If the box shows up but **Take It** says the Femme Former "won't budge", the mod couldn't add its
-   item to the game. Nothing is taken or spent. Open the browser console (desktop: Ctrl+Shift+I) and
-   look for the line that starts with `[TN] Femme Former`, and pass it on.
+   item to the game. Nothing is taken or spent.
+5. Either way, the mod writes what it sees to the log. On Android, turn on Debug Mode in Android Mods
+   and open **TN DEBUG**; on desktop, open the console (Ctrl+Shift+I). Look for lines that start with
+   `[Femme Former]`: `loaded`, `item ready`, `beach hook ready`, and `at the beach: ...` when you step
+   onto the square. If there are no `[Femme Former]` lines at all, the `.js` file isn't loading.
 
 ## Flags (for the save editor)
 
