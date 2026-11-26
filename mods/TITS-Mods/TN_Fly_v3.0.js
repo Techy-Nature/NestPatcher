@@ -2,7 +2,7 @@
    Fast travel by air for a Steele with wings and/or any hoverboard (the pink one, Anno's Holoboard or a modded board).
 
    - Whenever Steele has wings (any kind) or carries any hoverboard, a tiny wings button
-     sits on the minimap (the corner across from Show Full Map). Tap it to open the big map
+     sits on the left edge of the minimap, halfway down. Tap it to open the big map
      in Fly mode, pick an outdoor spot you've already found on this planet, then tap the
      round wings button floating over the map ("Take off"). On a map opened the usual way,
      the floating button reads "Fly" and switches it into Fly mode.
@@ -177,8 +177,10 @@
             ".tnFlyWings:hover{filter:brightness(1.15);}" +
             ".tnFlyWings.disabled{background:var(--foregroundColorA,#333E52);border-color:var(--paleColor,#53677B);opacity:.6;" +
             "cursor:not-allowed;animation:none;filter:none;}" +
-            ".sm_btn_container.tnFlyMini{left:0;right:auto;height:auto;z-index:4;}" +
-            ".rightSideBar .sm_btn_container.tnFlyMini{left:auto;right:0;}" +
+            // Same class as the game's minimap button strip, so each layout's top/height rules
+            // line it up; pinned to the left edge with the button halfway down (mirrors the compass).
+            ".sm_btn_container.tnFlyMini{left:0 !important;right:auto !important;" +
+            "justify-content:center !important;padding-left:.25em;z-index:4;}" +
             ".sm_btn_container.tnFlyMini .btn.tnFlyOff .image{opacity:.45;}" +
             "@keyframes tnFlyBob{0%,100%{transform:translate(-50%,0);}50%{transform:translate(-50%,-.3em);}}";
         (document.head || document.documentElement).appendChild(st);

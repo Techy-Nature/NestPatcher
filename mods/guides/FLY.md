@@ -15,8 +15,7 @@ Without wings or a hoverboard, the Fly buttons don't show.
 ## Flying somewhere
 
 1. Stand somewhere outdoors on the normal game screen (not in a scene or a fight).
-2. Tap the tiny **wings** button on the minimap (the top corner across from the Show Full Map
-   button). The big map opens, titled **Fly**.
+2. Tap the tiny **wings** button on the left edge of the minimap, halfway down. The big map opens, titled **Fly**.
    If you open the big map the usual way instead, press the round **Fly** button floating over
    the bottom of it to switch it into Fly mode.
 3. Tap an outdoor spot you've found. Indoor rooms, caves and places you haven't found yet

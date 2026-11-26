@@ -8,7 +8,7 @@
 #   3. In Fly mode, tapping a room only picks it (no walking there).
 #   4. Opening the map always starts outside Fly mode.
 #   5. The floating wings button over the map.
-#   6. The tiny wings button on the minimap (opposite corner to Show Full Map).
+#   6. The tiny wings button on the left edge of the minimap, halfway down.
 
 # Fly part 1 of 6
 Rep [main.js]:
@@ -44,4 +44,4 @@ W:
 Rep [main.js]:
 @@l@@.createElement("div",{className:"sm_btn_container"},@@M@@&&!@@d@@&&(@@F@@||@@i@@)?@@l@@.createElement("div",{title:"Show Full Map",className:"btn full_map_btn".concat(ui.state.modalType===@@W@@.iM.FULL_MAP_VIEWER?" hidden":""),
 W:
-@@M@@&&!@@d@@&&(@@F@@||@@i@@)&&window.tnFly&&window.tnFly.minimapButton?window.tnFly.minimapButton(@@l@@,ui.state.modalType===@@W@@.iM.FULL_MAP_VIEWER):null,@@l@@.createElement("div",{className:"sm_btn_container"},@@M@@&&!@@d@@&&(@@F@@||@@i@@)?@@l@@.createElement("div",{title:"Show Full Map",className:"btn full_map_btn".concat(ui.state.modalType===@@W@@.iM.FULL_MAP_VIEWER?" hidden":""),
+@@M@@&&!@@d@@&&window.tnFly&&window.tnFly.minimapButton?window.tnFly.minimapButton(@@l@@,ui.state.modalType===@@W@@.iM.FULL_MAP_VIEWER):null,@@l@@.createElement("div",{className:"sm_btn_container"},@@M@@&&!@@d@@&&(@@F@@||@@i@@)?@@l@@.createElement("div",{title:"Show Full Map",className:"btn full_map_btn".concat(ui.state.modalType===@@W@@.iM.FULL_MAP_VIEWER?" hidden":""),
