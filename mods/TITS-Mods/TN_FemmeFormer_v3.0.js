@@ -83,6 +83,11 @@
         return (window.tnModMenuActive !== true || typeof window.isTnModEnabled !== "function") ||
             window.isTnModEnabled(MOD_ID);
     }
+    // Logs go to the console and to the TN DEBUG overlay (Android Mods diagnostics).
+    function dbg(msg) {
+        try { console.info("[TN] [Femme Former] " + msg); } catch (e) {}
+        try { if (window.tnModMenuActive === true && typeof window.tnDebugLog === "function") window.tnDebugLog("[Femme Former] " + msg); } catch (e) {}
+    }
     function P(fn, dflt) { try { var v = fn(); return v === undefined ? dflt : v; } catch (err) { return dflt; } }
     function G(key) { return P(function () { return window.GLOBAL[key]; }, undefined); }
     function pcx() { return window.pc; }
@@ -259,7 +264,10 @@
         catch (err) {
             var first = !lastError || String(lastError) !== String(err);
             lastError = err;
-            if (first) { try { console.warn("[TN] Femme Former item couldn't register", err); } catch (e) {} }
+            if (first) {
+                try { console.warn("[TN] Femme Former item couldn't register", err); } catch (e) {}
+                dbg("item couldn't register: " + String(err && err.message || err));
+            }
         }
         return window.TnFemmeFormerItem || null;
     }
@@ -309,10 +317,7 @@
 
     // Register at start-up, so saves that hold the item load it. Tries for about a minute.
     (function registerItem(tries) {
-        if (ensureItem()) {
-            try { console.info("[TN] Femme Former item ready"); } catch (e) {}
-            return;
-        }
+        if (ensureItem()) { dbg("item ready"); return; }
         if (tries < 120) setTimeout(function () { registerItem(tries + 1); }, 500);
     })(0);
 
@@ -363,10 +368,13 @@
     // ---------------------------------------------------------------------------
     // Found on Tarkus: Oil Sea Beach, three rooms south of the Polluted Beach (room 230)
     // ---------------------------------------------------------------------------
+    var boxShown = false;    // set when the box ran this visit, so the backup hook below doesn't run it twice
     function tarkusBox(slot) {
-        if (!active()) return false;
-        itemClass();
+        boxShown = true;
         var f = flags();
+        dbg("at the beach: mod " + (active() ? "on" : "off") + ", item " + (itemClass() ? "ready" : "missing") +
+            ", found flag " + P(function () { return f.TN_FEMME_FORMER_FOUND; }, "?"));
+        if (!active()) return false;
         if (f.TN_FEMME_FORMER_FOUND === undefined) {
             window.output("\n\nHalf-buried in the oily sand, something long and pink catches your eye: a padded box about the size of a massage table, its glossy vinyl streaked with grime but otherwise intact. Do you take a closer look?");
             window.addButton(slot || 0, "Pink Box", investigate, "Pink Box", "Take a closer look at the long, pink box in the sand.");
@@ -958,10 +966,42 @@
         });
         return true;
     }
+    dbg("loaded");
     (function waitForModMenu(tries) {
         if (register()) return;
         if (window.tnModMenuActive === false && tries >= 6) return;
         if (tries < 240) setTimeout(function () { waitForModMenu(tries + 1); }, 500);
+    })(0);
+
+    // Backup for the Tarkus box: the .mod adds it to the beach's own text, and this hook also
+    // catches the beach through the Rust Coast encounter check, in case that patch didn't apply.
+    var BOX_ROOM = "230";
+    function atBoxRoom() {
+        return P(function () {
+            var r = window.getCurrentRoom();
+            return r && String(r.index) === BOX_ROOM && /Oil Sea Beach/i.test(String(r.name));
+        }, false);
+    }
+    (function hookBeach(tries) {
+        var orig = window.rustCoastEncounters;
+        if (typeof orig === "function") {
+            if (orig.tnFemmeFormerHook) return;
+            var hooked = function () {
+                try {
+                    if (atBoxRoom()) {
+                        if (!boxShown) { dbg("beach patch didn't run; showing the box from the backup hook"); tarkusBox(0); }
+                        boxShown = false;
+                    }
+                } catch (err) { dbg("backup hook error: " + String(err && err.message || err)); }
+                return orig.apply(this, arguments);
+            };
+            hooked.tnFemmeFormerHook = true;
+            window.rustCoastEncounters = hooked;
+            dbg("beach hook ready");
+            return;
+        }
+        // Tarkus's content loads later, when you first need it.
+        setTimeout(function () { hookBeach(tries + 1); }, tries < 120 ? 500 : 5000);
     })(0);
 
     window.tnFemmeFormer = {
