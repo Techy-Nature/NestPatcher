@@ -5,9 +5,9 @@
 #   1-2. The Fly button above Steele's picture (normal sidebar and the classic sidebar).
 #   3.   The map's title reads "Fly" in Fly mode.
 #   4.   Use Wings / Use Hoverboard under the map in Fly mode.
-#   5.   The map's Teleport button becomes Fly in Fly mode (without cheats on).
-#   6.   In Fly mode, tapping a room only picks it (no walking there).
-#   7.   Opening the map normally always leaves Fly mode.
+#   5.   In Fly mode, tapping a room only picks it (no walking there).
+#   6.   Opening the map normally always leaves Fly mode.
+#   7.   In Fly mode, a floating wings button over the map takes off for the picked spot.
 
 # Fly part 1 of 7
 Rep [main.js]:
@@ -35,18 +35,18 @@ W:
 
 # Fly part 5 of 7
 Rep [main.js]:
-flags.CHEATS_ENABLED&&this.createButton("Teleport",(function(){[@@Wl@@.gO.MAIN_TEXT].includes(ui.state.mainElement)?moveToRoom(@@z@@,!0):skipToRoom(@@z@@),ui.render()}),null,!(@@z@@&&!@@te@@&&@@oe@@),"Teleport","".concat(flags.CHEATS_ENABLED?"Cheat":"Debug"," Teleport"),
-W:
-(flags.CHEATS_ENABLED||window.tnFlyMapOpen&&window.tnFly)&&this.createButton(window.tnFlyMapOpen&&window.tnFly?"Fly":"Teleport",(function(){if(window.tnFlyMapOpen&&window.tnFly)return window.tnFly.flyTo(@@z@@);[@@Wl@@.gO.MAIN_TEXT].includes(ui.state.mainElement)?moveToRoom(@@z@@,!0):skipToRoom(@@z@@),ui.render()}),null,window.tnFlyMapOpen&&window.tnFly?!window.tnFly.canLand(@@z@@):!(@@z@@&&!@@te@@&&@@oe@@),"Teleport",window.tnFlyMapOpen&&window.tnFly?window.tnFly.landTip(@@z@@):"".concat(flags.CHEATS_ENABLED?"Cheat":"Debug"," Teleport"),
-
-# Fly part 6 of 7
-Rep [main.js]:
 @@e@@.stopPropagation(),@@lh@@.L.handlePathRoutingRequest(@@e@@.target.dataset.roomindex)
 W:
 @@e@@.stopPropagation(),window.tnFlyMapOpen||@@lh@@.L.handlePathRoutingRequest(@@e@@.target.dataset.roomindex)
 
-# Fly part 7 of 7
+# Fly part 6 of 7
 Rep [main.js]:
 key:"showFullMap",value:function(){var @@e@@=this;
 W:
 key:"showFullMap",value:function(){var @@e@@=this;window.tnFlyMapOpen=!1;
+
+# Fly part 7 of 7
+Rep [main.js]:
+@@l@@.createElement("div",{className:"dialogBody".concat(@@X@@?" flip_sides":"")},
+W:
+@@l@@.createElement("div",{className:"dialogBody".concat(@@X@@?" flip_sides":"").concat(window.tnFlyMapOpen&&window.tnFly?" tnFlyBody":"")},window.tnFlyMapOpen&&window.tnFly?window.tnFly.wingsButton(@@l@@):null,

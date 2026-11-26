@@ -4,7 +4,7 @@
    - A Fly button sits in the left sidebar, above Steele's picture. It only shows when
      Steele has wings (any kind) or carries any hoverboard.
    - It opens the game's own map in Fly mode. Pick an outdoor spot you've already found
-     on this planet and press Fly (where the cheat Teleport button normally is).
+     on this planet and press the floating wings button over the map.
    - Steele takes off with a short scene, then lands there (the move itself works like
      the game's own Teleport cheat, so arrival events still happen).
    - Wings: 5 energy per flight. Hoverboard only: no energy.
@@ -133,7 +133,7 @@
         var why = blockReason();
         if (why) return why;
         var here = currentRoom();
-        if (!room) return "Pick an outdoor spot on the map, then press Fly.";
+        if (!room) return "Pick an outdoor spot on the map first.";
         if (room === here) return "You’re already here.";
         if (!here || room.parentLocation !== here.parentLocation) return "You can only fly around this planet.";
         if (!P(function () { return room.isDiscovered; }, false) || room.hiddenIfNotOccupied) return "You haven’t found that place yet.";
@@ -172,7 +172,17 @@
             ".tnFlyChoice{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.5em;margin:.4em 0;font:1em Lato,sans-serif;}" +
             ".tnFlyChoice .tnFlyOpt{padding:.35em .9em;border-radius:.3125em;border:.1em solid var(--paleColor,#53677B);" +
             "background:var(--foregroundColorA,#333E52);color:var(--textColor,#fff);cursor:pointer;}" +
-            ".tnFlyChoice .tnFlyOpt.on{background:var(--highlightColor,#8D31B0);color:#fff;font-weight:bold;}";
+            ".tnFlyChoice .tnFlyOpt.on{background:var(--highlightColor,#8D31B0);color:#fff;font-weight:bold;}" +
+            ".dialogBody.tnFlyBody{position:relative;}" +
+            ".tnFlyWings{position:absolute;left:50%;bottom:1.2em;transform:translateX(-50%);z-index:20;width:4.6em;height:4.6em;" +
+            "border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.05em;" +
+            "border:.15em solid #fff;background:var(--highlightColor,#8D31B0);color:#fff;cursor:pointer;user-select:none;" +
+            "box-shadow:0 .25em .9em rgba(0,0,0,.55);font:bold .85em Lato,sans-serif;animation:tnFlyBob 2.4s ease-in-out infinite;}" +
+            ".tnFlyWings svg{width:2.4em;height:2.4em;fill:currentColor;}" +
+            ".tnFlyWings:hover{filter:brightness(1.15);}" +
+            ".tnFlyWings.disabled{background:var(--foregroundColorA,#333E52);border-color:var(--paleColor,#53677B);opacity:.6;" +
+            "cursor:not-allowed;animation:none;filter:none;}" +
+            "@keyframes tnFlyBob{0%,100%{transform:translate(-50%,0);}50%{transform:translate(-50%,-.3em);}}";
         (document.head || document.documentElement).appendChild(st);
     }
 
@@ -251,6 +261,38 @@
         }
         if (!kids.length) return null;
         return R.createElement("div", { key: "tnFlyChoice", className: "tnFlyChoice" }, kids);
+    }
+
+    // The floating wings button over the Fly map (the .mod puts it in the map's body).
+    function picked() { return P(function () { return window.ui.state.fullMapSelectedRoom; }, null); }
+    function wingsButton(R) {
+        if (!R) return null;
+        ensureStyle();
+        var room = picked();
+        var why = canLandReason(room);
+        var stop = function (e) { if (e && e.stopPropagation) e.stopPropagation(); };
+        var go = function (e) {
+            stop(e);
+            var r = picked();
+            var w = canLandReason(r);
+            if (w) { note(w); return; }
+            flyTo(r);
+        };
+        return R.createElement("div", {
+            key: "tnFlyWings",
+            id: "tnFlyWings",
+            className: "tnFlyWings" + (why ? " disabled" : ""),
+            role: "button",
+            tabIndex: 0,
+            title: why || landTip(room),
+            "aria-label": why || landTip(room),
+            "aria-disabled": why ? "true" : "false",
+            onClick: go,
+            onPointerDown: stop,
+            onDoubleClick: stop,
+            onKeyDown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(e); } },
+            dangerouslySetInnerHTML: { __html: wingIcon() + "<span>Fly</span>" }
+        });
     }
 
     function canLand(room) { return !canLandReason(room); }
@@ -351,6 +393,7 @@
     window.tnFly = {
         sidebarButton: sidebarButton,
         mapChoice: mapChoice,
+        wingsButton: wingsButton,
         canLand: canLand,
         landTip: landTip,
         flyTo: flyTo,
