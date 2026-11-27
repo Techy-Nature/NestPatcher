@@ -1,11 +1,11 @@
-# TN mod pack (Modv2.9)
+# TN mod pack (Modv3.1)
 
-Neston's mods for **Trials in Tainted Space 0.9.168**, ready to use with NestPatcher 1.4 (PC), the Android patcher 1.3, GUI 0.5 or the Android app 0.3, or newer. Older patchers can't read the `@@name@@` wildcards in `TN_TattooParlor_v2.6.mod` and `TN_HoloChastity_v2.6.mod`.
+Neston's mods for **Trials in Tainted Space 0.9.169** (they still work on 0.9.168), ready to use with NestPatcher 1.4 (PC), the Android patcher 1.3, GUI 0.5 or the Android app 0.3, or newer. Older patchers can't read the `@@name@@` wildcards in `TN_TattooParlor_v2.6.mod` and `TN_HoloChastity_v2.6.mod`.
 
 | Folder | What's in it |
 |---|---|
 | [`TITS-Mods/`](TITS-Mods/) | Every mod in the pack, plus `enabled.txt` (the load list). Copy everything in this folder into your `nestmods` folder. |
-| [`guides/`](guides/) | Install guides and notes. Start with [`INSTALL-Modv2.9.md`](guides/INSTALL-Modv2.9.md). |
+| [`guides/`](guides/) | Install guides and notes. Start with [`INSTALL-Modv3.1.md`](guides/INSTALL-Modv3.1.md). |
 | [`tools/`](tools/) | `taur_gate_scan.js`, which writes `TN_taur-naga_gates.mod` for the Taur/Naga Scene Bypass mod, and `sex_scene_scan_v2.9.js`, which writes `TN_SexGalleryScenes_v2.9.js` (the Sex Scene Gallery's scene list). Only needed after a game update. |
 
 The notes for every version are in [`changelog.md`](../changelog.md) at the top of the repo. That's also the file the in-game Changelog downloads.
@@ -13,7 +13,7 @@ The notes for every version are in [`changelog.md`](../changelog.md) at the top 
 ## Quick install
 
 1. Back up your `nestmods` folder.
-2. Delete every `.mod` and `.js` file and `enabled.txt` in it. Keep the `logs` folder. Keep `backup` too, unless the game was updated (for example 0.9.167 to 0.9.168): then delete it. (NestPatcher CLI 1.12, GUI 0.14, Mac 1.9, Android patcher 1.6 and Android app 0.10 notice an old-version `backup` and set it aside by themselves.)
+2. Delete every `.mod` and `.js` file and `enabled.txt` in it. Keep the `logs` folder. Keep `backup` too, unless the game was updated (for example 0.9.168 to 0.9.169): then delete it. (NestPatcher CLI 1.12, GUI 0.14, Mac 1.9, Android patcher 1.6 and Android app 0.10 notice an old-version `backup` and set it aside by themselves.)
 3. Copy everything from `TITS-Mods/` into `nestmods`.
 4. Patch with NestPatcher: run Test my mods, then Patch the game.
 

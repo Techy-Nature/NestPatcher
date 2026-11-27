@@ -45,9 +45,10 @@ W:
 x===pc&&"function"==typeof window.tnChastityCockLocked&&window.tnChastityCockLocked()&&O.push("LOCKED IN CHASTITY"),O.length>0?(B.push(O),N.push(R)):I.push(R)}return{choices:I,ineligibles:N,reasons:B}
 
 Rep [main.js]:
-var u=@@penisSort@@(arguments[0]),l=u.choices,h=u.ineligibles,c=u.reasons,d=[0];
+# Modv3.1: the game renamed the router's local names in 0.9.169, so they are wildcards now.
+e.cockOwner),@@prOwner@@=void 0===@@prOwnerArg@@?pc:@@prOwnerArg@@;@@prScene@@||(0,@@prLog@@.Zb)(@@prLog@@.WN.Core,@@prLog@@.qS.Fatal,"penisRouter did not receive a target scene to execute.");var @@pr@@=@@penisSort@@(arguments[0]),@@prChoices@@=@@pr@@.choices,@@prInel@@=@@pr@@.ineligibles,@@prReasons@@=@@pr@@.reasons,@@prArgs@@=[0];
 W:
-var u=@@penisSort@@(arguments[0]),l=u.choices,h=u.ineligibles,c=u.reasons,d=[0];if(0===l.length&&r===pc&&"function"==typeof window.tnChastityRouterBlock&&window.tnChastityRouterBlock())return;
+e.cockOwner),@@prOwner@@=void 0===@@prOwnerArg@@?pc:@@prOwnerArg@@;@@prScene@@||(0,@@prLog@@.Zb)(@@prLog@@.WN.Core,@@prLog@@.qS.Fatal,"penisRouter did not receive a target scene to execute.");var @@pr@@=@@penisSort@@(arguments[0]),@@prChoices@@=@@pr@@.choices,@@prInel@@=@@pr@@.ineligibles,@@prReasons@@=@@pr@@.reasons,@@prArgs@@=[0];if(0===@@prChoices@@.length&&@@prOwner@@===pc&&"function"==typeof window.tnChastityRouterBlock&&window.tnChastityRouterBlock())return;
 
 Rep [main.js]:
 key:"cocksThatFit",value:function(){for(var e=this,

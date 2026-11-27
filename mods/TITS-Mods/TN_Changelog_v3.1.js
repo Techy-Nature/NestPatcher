@@ -1,5 +1,5 @@
 /*
- * TN_Changelog_v3.0.js — in-game changelog for the TN mod pack (TiTS Android build)
+ * TN_Changelog_v3.1.js — in-game changelog for the TN mod pack (TiTS Android build)
  * ---------------------------------------------------------------------------
  * Adds a "Changelog" button to the Info section of the main menu sidebar (the same
  * section as Wiki), showing the installed mod version as Modv#.# and what changed.
@@ -40,7 +40,7 @@
   // ===========================================================================
   //  EDIT HERE
   // ===========================================================================
-  var MOD_VERSION = "3.0";   // the version of THIS build (shown as Modv3.0)
+  var MOD_VERSION = "3.1";   // the version of THIS build (shown as Modv3.1)
 
   // Optional: a hosted Markdown (or JSON) changelog, e.g.
   //   "https://raw.githubusercontent.com/<you>/<repo>/main/changelog.md"
@@ -49,6 +49,15 @@
   var REMOTE_URL = "https://raw.githubusercontent.com/Techy-Nature/NestPatcher/main/changelog.md";
 
   var CHANGELOG = [
+    {
+      version: "3.1",
+      date: "2026-11-27",
+      title: "TiTS 0.9.169",
+      changes: [
+        { mod: "TiTS 0.9.169", text: "The pack now works on TiTS 0.9.169, and still works on 0.9.168. The update renamed the game's hidden internal names, so 23 patches in nine mods stopped finding their spot: Lessau's shop items (Drakongaru, Drako Hornitol and Drago Hornitol), Shelly Cabin Returns, Stella D'Amore, Steph Irson, Zheniya, Treetop Tattoo Clarity and Holo-Lock Chastity. They now find those names by themselves, so the next game update is less likely to break them. Same file names. Everything Game Fixes fixes is still broken in 0.9.169, so it stays." },
+        { mod: "Changelog", text: "Shows Modv3.1 as installed. Now `TN_Changelog_v3.1.js`; delete `TN_Changelog_v3.0.js`." }
+      ]
+    },
     {
       version: "3.0",
       date: "2026-11-24",

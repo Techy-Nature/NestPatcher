@@ -1,6 +1,6 @@
 # TN Mod Pack Changelog
 
-Latest: 3.0
+Latest: 3.1
 
 <!--
   How this file works (this comment is not shown in the game):
@@ -12,6 +12,11 @@ Latest: 3.0
   - You can use **bold**, *italics*, ~~strike~~, `code` and [links](https://example.com).
   - Bump "Latest:" when you release; players on an older build see "Modv#.# is available".
 -->
+
+## Modv3.1 — TiTS 0.9.169 (2026-11-27)
+
+- **TiTS 0.9.169:** The pack now works on TiTS 0.9.169, and still works on 0.9.168. The update renamed the game's hidden internal names, so 23 patches in nine mods stopped finding their spot: Lessau's shop items (Drakongaru, Drako Hornitol and Drago Hornitol), Shelly Cabin Returns, Stella D'Amore, Steph Irson, Zheniya, Treetop Tattoo Clarity and Holo-Lock Chastity. They now find those names by themselves, so the next game update is less likely to break them. Same file names. Everything Game Fixes fixes is still broken in 0.9.169, so it stays.
+- **Changelog:** Shows Modv3.1 as installed. Now `TN_Changelog_v3.1.js`; delete `TN_Changelog_v3.0.js`.
 
 ## Modv3.0 — Bianca's lover, flying, the Femme Former, haptics and full scene text (2026-11-24)
 

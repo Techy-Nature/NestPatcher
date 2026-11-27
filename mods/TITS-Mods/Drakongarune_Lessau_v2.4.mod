@@ -1,6 +1,7 @@
 # Drakongaru v3 - Lessau shop + inventory item + "drakongaru" species name
 # Canon target form: wolf-based dragon hybrid (a dragon werewolf).
-# Checked against TiTS 0.9.167: main.d3448d52.js and content_uveto.feeb5a00.js (Lessau's shop is still vi.d).
+# Checked against TiTS 0.9.167: main.d3448d52.js and content_uveto.feeb5a00.js.
+# Modv3.1: Lessau's shop module was vi in 0.9.168 and Ii in 0.9.169, so it's @@lessauShop@@ now (works on both).
 # v3: the game now names a PC with the pill's form a "drakongaru" (see the Add Javascript block),
 #     optional: Android Mods > Drakongaru > Species name "drakongaru" (on by default),
 #     and the pill gives a pair of wings (wingCount 2) like the game's own dragon wings.
@@ -198,9 +199,9 @@ class Drakongaru extends BaseItem {
 registry.registerClass(Drakongaru.getClassName(),Drakongaru);},16969:(e,t,o)=>{
 
 Rep [content_uveto.js]:
-window.showShop({items:e,shopkeeper:new vi.d})
+window.showShop({items:e,shopkeeper:new @@lessauShop@@.d})
 W:
-((window.tnModMenuActive!==true||typeof window.isTnModEnabled!=="function")||window.isTnModEnabled("drakongaru"))&&e.push(o(9912346).D),window.showShop({items:e,shopkeeper:new vi.d})
+((window.tnModMenuActive!==true||typeof window.isTnModEnabled!=="function")||window.isTnModEnabled("drakongaru"))&&e.push(o(9912346).D),window.showShop({items:e,shopkeeper:new @@lessauShop@@.d})
 
 # Registers the item in Android Mods. The actual disable checks live in
 # the two patched game locations above, not just in the menu display.
