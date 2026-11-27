@@ -1,5 +1,6 @@
 # DragoHornitol — standalone dragon-horn transformative for KittyPatcher TiTS.
 # Updated for TiTS 0.9.166: main.45162d27.js and content_uveto.2c153e40.js.
+# Modv3.1: Lessau's shop module name is @@lessauShop@@ now (vi in 0.9.168, Ii in 0.9.169).
 # Only affects horns; does not check race or modify other body parts.
 # Uses its own module ID (9912348). Drakongaru uses 9912346 and DrakoHornitol 9912347.
 
@@ -64,9 +65,9 @@ class DragoHornitol extends BaseItem {
 registry.registerClass(DragoHornitol.getClassName(),DragoHornitol);},16969:(e,t,o)=>{
 
 Rep [content_uveto.js]:
-window.showShop({items:e,shopkeeper:new vi.d})
+window.showShop({items:e,shopkeeper:new @@lessauShop@@.d})
 W:
-((window.tnModMenuActive!==true||typeof window.isTnModEnabled!=="function") || window.isTnModEnabled("tn.dragohornitol")) && e.push(o(9912348).D),window.showShop({items:e,shopkeeper:new vi.d})
+((window.tnModMenuActive!==true||typeof window.isTnModEnabled!=="function") || window.isTnModEnabled("tn.dragohornitol")) && e.push(o(9912348).D),window.showShop({items:e,shopkeeper:new @@lessauShop@@.d})
 
 Add Javascript:
 (function(){

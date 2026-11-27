@@ -5,17 +5,18 @@ Author: Kitty
 #   version is unchanged. Crew version also has taur and naga lines for kneeling by the bunk.
 # Updated for TiTS 0.9.168 (2026-11-02, Modv2.8): the egg reward is function _b (followed by zb).
 #   It was Cb (followed by _b) in 0.9.166 and 0.9.167.
+# Modv3.1: both names are wildcards now (@@eggGift@@, @@afterGift@@), so it works on 0.9.168 and 0.9.169.
 
 
 Replace [content_tavros.js]:
-function _b(){var e=[];
+function @@eggGift@@(){var e=[];arguments.length>0&&void 0!==arguments[0]&&arguments[0]?(e.push(new
 With:
-function _b(){var tnReturn=arguments.length>1&&typeof arguments[1]==="function"?arguments[1]:mainGameMenu,e=[];
+function @@eggGift@@(){var tnReturn=arguments.length>1&&typeof arguments[1]==="function"?arguments[1]:mainGameMenu,e=[];arguments.length>0&&void 0!==arguments[0]&&arguments[0]?(e.push(new
 
 Replace [content_tavros.js]:
-itemCollect(mainGameMenu,[e[rand(e.length)]]):(clearMenu(),addButton(0,"Next",mainGameMenu))}function zb
+itemCollect(mainGameMenu,[e[rand(e.length)]]):(clearMenu(),addButton(0,"Next",mainGameMenu))}function @@afterGift@@(
 With:
-itemCollect(tnReturn,[e[rand(e.length)]]):(clearMenu(),addButton(0,"Next",tnReturn))}function zb
+itemCollect(tnReturn,[e[rand(e.length)]]):(clearMenu(),addButton(0,"Next",tnReturn))}function @@afterGift@@(
 
 Replace [content_tavros.js]:
 window.oviliumEggReward()}function a(){

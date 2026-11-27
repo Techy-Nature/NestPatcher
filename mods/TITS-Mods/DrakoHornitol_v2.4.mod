@@ -1,6 +1,7 @@
 # DrakoHornitol - independent draconic horn-growing pill.
 # Install alongside Drakongaru_Lessau_v2.mod (or its horn-free successor).
 # Requires the same TiTS main.js and Lessau shop anchor as Drakongaru (updated for 0.9.166).
+# Modv3.1: Lessau's shop module name is @@lessauShop@@ now (vi in 0.9.168, Ii in 0.9.169).
 # Only characters with penis anatomy and without a vagina can use it.
 # Repeated doses grow existing draconic horns by 1-3 inches, up to 24 inches.
 
@@ -79,9 +80,9 @@ registry.registerClass(DrakoHornitol.getClassName(),DrakoHornitol);
 },16969:(e,t,o)=>
 
 Replace [content_uveto.js]:
-window.showShop({items:e,shopkeeper:new vi.d})
+window.showShop({items:e,shopkeeper:new @@lessauShop@@.d})
 With:
-((window.tnModMenuActive!==true||typeof window.isTnModEnabled!=="function")||window.isTnModEnabled("tn.drakoHornitol"))&&e.push(o(9912347).D),window.showShop({items:e,shopkeeper:new vi.d})
+((window.tnModMenuActive!==true||typeof window.isTnModEnabled!=="function")||window.isTnModEnabled("tn.drakoHornitol"))&&e.push(o(9912347).D),window.showShop({items:e,shopkeeper:new @@lessauShop@@.d})
 
 Add Javascript:
 (function () {
