@@ -14,7 +14,7 @@
  *     Dr. Ketria or Dr. Rewell, ask where to find them, or look at Arian. (Draft scenes: Neston
  *     will write Arian's full scenes.)
  *   - Dr. Bianca Ketria: 9 AM to 2 PM, every third day. On those days she skips her rounds in the
- *     wilds; her booth and the bars keep their usual hours. Checkup, Chat, Lunch, Help Out.
+ *     wilds; her booth and the bars keep their usual hours. Checkup, Chat, Lunch, Help Out, Dinner.
  *     No sex at the clinic (lovers get a kiss).
  *   - Dr. Charles Rewell: the geneticist from the very start of the game, who sat with Victor and
  *     designed Steele. Retired from Steele Tech, he now shares the clinic with Bianca and helps
@@ -24,6 +24,8 @@
  *   TN_BXC_HELP_DAY, TN_BXC_CHAT, PC_MET_ARIAN, TN_BXC_APPT_K, TN_BXC_APPT_R, TN_BXC_RW_MET,
  *   TN_BXC_RW_TALKS, TN_BXC_RW_SCAN_DAY, TN_BXC_RW_KIDS.
  * Toggle: Options -> Android Mods -> "Bianca's Clinic".
+ * Changes (2026-11-27): Bianca's office gets a Dinner button (from Bianca Extras): on the love
+ *   track at 51%+, ask her to dinner at her apartment that evening.
  * Fixes (2026-11-22): Arian's directions no longer glue two quotes together; "already on her
  *   list" only shows while she's in; Checkup is greyed out when you can't pay (like her booth);
  *   the email uses curly apostrophes like the rest;
@@ -368,6 +370,8 @@
         else addButton(2, "Lunch", lunch, "Lunch", "Take Bianca out for lunch. She needs reminding to eat.");
         if (num("TN_BXC_HELP_DAY") === d + 1) addDisabledButton(3, "Help Out", "Help Out", "You already helped out today.");
         else addButton(3, "Help Out", helpOut, "Help Out", "Spend an hour helping Bianca around the clinic.");
+        // Bianca Extras: ask her to dinner at her apartment tonight (love track, 51%).
+        safe(function () { if (typeof window.tnBiancaDinnerButton === "function") window.tnBiancaDinnerButton(4, function () { back(); }); });
         addButton(14, "Leave", leave);
     }
     function back() { addButton(0, "Next", function () { start("CLOTHED"); output("Bianca smooths down her coat. " + q("Anything else?")); clinicMenu(); }); }

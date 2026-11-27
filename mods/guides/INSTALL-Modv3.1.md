@@ -33,7 +33,7 @@ still in 0.9.169.
 5. **Windows, Linux and Mac only:** remove the `#` at the start of the
    `TN_LauncherFixes_v1.1.mod` line in `enabled.txt` if you want the launcher fixes.
 6. Run NestPatcher: **Test my mods**, then **Patch the game**. The test should end with
-   `801 replacements` and no `MISS` lines (811 on desktop with the launcher fixes on).
+   `802 replacements` and no `MISS` lines (812 on desktop with the launcher fixes on).
 7. Restart TiTS. The in-game **Changelog** should say `Installed: Modv3.1`.
 
 On Android you can update the pack before you have the 0.9.169 APK: these files work on
@@ -52,7 +52,8 @@ On Android you can update the pack before you have the 0.9.169 APK: these files 
 
 - NestPatcher (Linux 1.13) dry run: 656 replacements, no MISS, on both 0.9.169 and 0.9.168.
   With Tease Restore added: 659 replacements, no MISS, on 0.9.169. With Implant Slots added: 801
-  replacements, no MISS, on 0.9.169 (desktop and Android patcher 1.6).
+  replacements, no MISS, on 0.9.169 (desktop and Android patcher 1.6). With Bianca's apartment
+  dinners added: 802 replacements, no MISS, on 0.9.169 (desktop and Android patcher 1.6).
 - A real desktop patch of 0.9.169 with the launcher fixes on: 666 replacements, every patched
   file passed the syntax check, and each renamed spot was checked by hand in the patched files.
 - Android patcher 1.6 dry run on the 0.9.169 game files: 656 replacements, no MISS.
