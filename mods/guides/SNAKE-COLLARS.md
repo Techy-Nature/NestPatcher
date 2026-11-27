@@ -13,8 +13,8 @@ Switch: Options > **Android Mods** (Android) or **TN Mod Settings** (desktop) > 
 
 1. Copy `TN_SnakeCollars_v1.0.mod` and `TN_SnakeCollars_v1.0.js` into your mods folder.
 2. Make sure both lines are in `enabled.txt` (they're in the pack's copy already).
-3. Run NestPatcher: **Test my mods**. It should end with `811 replacements` and no `MISS`
-   lines (821 on desktop with the launcher fixes on).
+3. Run NestPatcher: **Test my mods**. It should end with `812 replacements` and no `MISS`
+   lines (822 on desktop with the launcher fixes on).
 4. Run **Patch the game**, then restart TiTS.
 
 ## Collar the Blue Viper
@@ -52,8 +52,9 @@ once she's on your crew with obedience 33 or more. You need a cock.
 
 1. Press **Breed Her**: **Crew > Blue Viper**, or **Crew > Slavebreaker** (the button is
    after **Kick Her Out**).
-2. Each time there's a chance she catches: 50% at normal virility, up to 90% with more.
-   You can try as often as you like.
+2. Each time there's a chance she catches: 50% at normal fertility, up to 90% with more.
+   None while you're sterile or on Sterilex (the button says so). You can try as often as you
+   like.
 3. After **3 days** it shows. **Breed Her** goes grey and says which day she's on.
 4. At **14 days** her menu has **Laying!**. Be there and she lays one egg. If you're away, she
    lays it on her own a day later. Either way the egg goes to the nursery on Tavros and
