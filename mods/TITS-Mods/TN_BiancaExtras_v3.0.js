@@ -26,6 +26,12 @@
  *   TN_BX_CONFRONT_TS, TN_BX_SHIP (nights aboard), TN_BX_MISSIONARY, TN_BX_ANAL, TN_BX_DITZY,
  *   TN_BX_TREATED, TN_BX_BOOTHCOLD, TN_BX_MET_KASE, TN_BIANCA_FAMILIARITY. Sets the game's own
  *   BIANCA_CONFRONTED and BIANCA_MET_ANNO flags.
+ * Changes (2026-11-27): Bianca has her own apartment, #156 at the west end of the Residential
+ *   Deck's West Walkway, next door to Aina's (the .mod opens the game's empty room behind the steel
+ *   wall). Ask her to Dinner at her clinic (her hours, love track, 51%), then knock on her door
+ *   after 6 PM that day: a candlelit dinner after her long day, then Sleep, Missionary,
+ *   Foxxy-Style or Entwined, and breakfast at her place in the morning (written by Neston).
+ *   Flags: TN_BX_DINNER_DAY, TN_BX_DINNERS, TN_BX_APT_SEX. The codex lists how to get there.
  * Changes (2026-11-26): the codex log (Log > Roaming Encounters > Bianca) lists every step left
  *   at each stage, from the first bar evening to Confess, with Done / Not yet and where to go.
  * Changes (2026-11-23):
@@ -849,6 +855,236 @@
         } catch (err) { if (window.console) console.error("[Bianca Extras] bar", err); }
     };
 
+    /* ---------- Bianca's apartment: candlelit dinner and a night at her place (Neston, 2026-11-27) ---------- */
+    // Her apartment is #156 at the west end of the Residential Deck's West Walkway, next door to
+    // Aina's (the game's empty "RESIDENTIAL DECK 15W" room behind the steel wall; the .mod turns it
+    // into her apartment). Ask her to dinner at her clinic (her hours, love track, 51%), then knock
+    // on her door after 6 PM that same day. Flags: TN_BX_DINNER_DAY (days + 1 of the date),
+    // TN_BX_DINNERS (nights at her place), TN_BX_APT_SEX.
+    var APT_ROOM = "RESIDENTIAL DECK 15W";
+    var DINNER_FROM = 18;
+    function dayNo() { return safe(function () { return days; }, 0); }
+    function hourNo() { return safe(function () { return hours; }, 12); }
+    function aptKnown() { return on() && loveTrack(); }
+    function dinnerTonight() { return aptKnown() && num("TN_BX_DINNER_DAY") === dayNo() + 1; }
+    function dinnerReady() { return dinnerTonight() && hourNo() >= DINNER_FROM; }
+    // taur / naga / biped text
+    function tnb(t, n, b) { return C.taur() ? t : C.naga() ? n : b; }
+    function love(a, b) { return C.lover() ? a : b; }
+
+    S["apt_invite"] = function () {
+        return "Bianca looks like she’s been at it since dawn. Her coat is creased, a strand of hair has slipped out of its clip and keeps falling across her eyes, and three empty tea mugs stand in a row on her desk like soldiers. When you ask how her day is going, she laughs, a little too brightly.\n\n" +
+            "<i>“Busy. Good busy,”</i> she adds quickly, catching your look. <i>“Two sets of stitches, a broken wrist, a very angry baby with an ear infection, and a gentleman who swallowed a data chip on purpose. I close my door at two, and then I have charts, and house calls, and Charles wants to go over a case with me...”</i> She rubs her eyes. <i>“I’ll be home by six. Probably.”</i>\n\n" +
+            "You ask what she’s doing for dinner.\n\n" +
+            "Bianca blinks at you, as if you’d asked in a language she hasn’t spoken in years. <i>“Dinner,”</i> she repeats. <i>“I was going to eat whatever is in the cold box. Standing up.”</i> Her ears droop. <i>“That isn’t very doctorly of me, is it?”</i>\n\n" +
+            "Then let you cook for her tonight, you tell her.\n\n" +
+            "For a moment she only looks at you. Then her tails start to sway, slowly at first, and then hard enough to rattle the chart rack. <i>“At my apartment?”</i> She glances at the open door and lowers her voice. <i>“I would like that. I would like that </i>very<i> much.”</i>\n\n" +
+            "She pulls a pen from her pocket, scribbles on a prescription slip and presses it into your hand. <i>Residential Deck, West Walkway, all the way to the end. #156, next door to the flower boxes. After six. Bring an appetite.</i> Underneath, smaller: <i>And nothing else. I have everything.</i>\n\n" +
+            "<i>“It’s a very small apartment,”</i> she warns you. <i>“And I’ve never had anyone over. So you will have to forgive the... everything.”</i> She tucks the stray strand of hair behind her ear and smiles, and all at once she doesn’t look tired at all. <i>“Six o’clock, " + love("love", "[pc.name]") + ". Don’t be late, or I’ll eat the cold box after all.”</i>";
+    };
+    S["apt_door"] = function () {
+        return "You knock on the door marked 156. From inside comes a thump, a muffled curse, the sound of something metal rolling across a floor, and then the door slides open.\n\n" +
+            "Bianca is still half in her work clothes. The white coat is gone, but she’s in her clinic blouse with the sleeves rolled up past her elbows, and her hair is down, loose and a little wild, golden waves spilling over her shoulders. She has a wooden spoon in one hand and a smear of flour on one cheek that she clearly doesn’t know about.\n\n" +
+            "<i>“You’re here,”</i> she says, sounding almost surprised, as if part of her expected you not to come. <i>“You’re here and I’m not ready. I meant to change. I meant to do a great many things.”</i> She steps back to let you in. " +
+            tnb("<i>“Mind the doorway. It wasn’t built with you in mind. Neither was anything else, I’m afraid.”</i> You duck and turn and make it through with only a little scraping.",
+                "You slide in after her, coil after coil, until the end of your tail is over the threshold and the door can close.",
+                "") + "\n\n" +
+            "The apartment is small, just as she warned: one main room with a kitchenette along the wall, a narrow door to a bedroom, and a window over the walkway’s strip of hydroponic hedges. But it is very much <i>hers.</i> There are plants on every flat surface, a shelf crammed with medical journals and a suspicious number of paperback romances, and by the door a framed holo of a much younger Bianca in a field medic’s uniform, grinning beside three other soldiers. On the little round table by the window, someone has set out two plates, two glasses and a crowd of candles in mismatched holders, not yet lit.\n\n" +
+            "You ask about the spoon.\n\n" +
+            "<i>“Ah.”</i> Bianca looks at it. <i>“I was going to let you cook. That was the plan. And then I came home and I couldn’t sit still, so I started on the bread, and then the bread needed a soup, and...”</i> She trails off with a sheepish, lopsided smile. <i>“Twenty years of night shifts. I don’t know how to sit down while someone else is working.”</i>\n\n" +
+            "You take the spoon out of her hand, turn her around by the shoulders and steer her to the nearest chair. She protests all the way there, and sits down anyway.";
+    };
+    S["apt_dinner"] = function () {
+        return "The soup turns out to need only stirring, a pinch of salt, and someone to stop Bianca from getting up every forty seconds to check on it. You pour her a glass of wine and give her a job, and her job is to talk. So she does. She tells you about the baby with the ear infection, who screamed at her for ten straight minutes and then fell asleep in her arms. About the man with the data chip, who, it turned out, was trying to keep his late wife’s messages out of a creditor’s hands. About Charles, who made her a cup of tea at four o’clock and told her she was allowed to go home.\n\n" +
+            "<i>“And I did,”</i> she says, sounding faintly amazed. <i>“I went home. I have a home to go to.”</i> She turns her glass slowly on the table. <i>“For a long time I didn’t, you know. I had a booth, and a berth on a ship, and a bed I slept in when I fell over. This...”</i> She looks around at the plants, the books, the candles. <i>“This is new.”</i>\n\n" +
+            "When the bread comes out of the oven, she lights the candles one by one with a long match, very carefully, the way she does everything. Then she switches off the overhead light, and the little room turns gold.\n\n" +
+            "Dinner is simple: a thick, peppery soup, bread hot enough to burn your fingers, and a wedge of something cheese-like from a Tavros deli that she swears is <i>almost</i> like the real thing. " +
+            tnb("There’s no chair on Tavros that would hold you, so you fold your legs and lie down beside the tiny table, which puts you at exactly the right height to steal bread off her plate.",
+                "You coil up beside the tiny table, the tip of your tail curled loosely around her ankle.",
+                "You eat with your knees touching under the tiny table.") +
+            " Somewhere between the second bowl and the third glass of wine, Bianca stops sitting up straight. She props her chin on her hand and just watches you in the candlelight, her violet eyes soft and heavy-lidded, a fond little smile tugging at her lips.\n\n" +
+            "You ask what she’s looking at.\n\n" +
+            "<i>“You,”</i> she says simply. <i>“I spend all day looking at people and asking what’s wrong with them. It’s very nice to look at someone and not need to ask.”</i>\n\n" +
+            "Afterwards you do the dishes together, which mostly means she washes, you dry, and she flicks water at you whenever you look too pleased with yourself. When the last plate is put away, she doesn’t let go of your hand. She blows out all but two of the candles and takes those two with her to the bedroom door.\n\n" +
+            "She stops in the doorway and looks back at you. The tiredness is gone from her face. What’s there instead is quieter, and much warmer.\n\n" +
+            "<i>“Stay with me tonight" + love(", my love", "") + ",”</i> she says softly. <i>“However you like. I just don’t want this evening to end yet.”</i>";
+    };
+    S["apt_sleep"] = function () {
+        return "You tell her she’s had a long day, and that tonight all you want is to hold her. Bianca’s ears go soft, and for a second you think she might cry. Instead she laughs, a little damply, and pulls you toward the bed.\n\n" +
+            "<i>“Doctor’s orders?”</i>\n\n" +
+            "<i>“Doctor’s orders,”</i> you agree.\n\n" +
+            tnb("Her bed is nowhere near big enough for you, so the two of you drag the mattress off the frame and onto the floor, laughing the whole time. Once you’re settled, your lower body curls around the edge of it like a wall, and Bianca nestles into the warm curve of your barrel with a contented sigh.",
+                "Your coils spill off the bed and across half the floor. Bianca tucks her feet into the warm loops of your tail and sighs like she’s sinking into a hot bath.",
+                "She curls up against you under far too many blankets, her head on your [pc.chest] and her tails draped over your [pc.legOrLegs].") + "\n\n" +
+            "She sets the candles on the nightstand, and you lie together in their light, listening to the station hum. Bianca talks for a while about nothing at all: a recipe her mother used to make, the plant on the windowsill that refuses to flower, whether Arian would like a plant for the front desk. Her words come slower, and further apart. Somewhere in the middle of a sentence about fertilizer, she falls asleep, one hand curled against your chest.\n\n" +
+            "You blow out the candles, and a little while later you follow her.";
+    };
+    S["apt_missionary"] = function () {
+        return "Bianca sets the two candles on the nightstand and turns to face you. Her fingers are steady as she unbuttons her blouse, but her eyes keep flicking up to yours, as if to check that you’re still looking. You are. She lets the blouse slip from her shoulders, then the rest, until she’s standing in front of you in nothing but candlelight, her golden fur glowing with it.\n\n" +
+            "<i>“Your turn,”</i> she murmurs, and she undresses you with a doctor’s careful hands, stopping to kiss each new inch of you she uncovers.\n\n" +
+            tnb("Her bed would never hold you, so she pulls the mattress down onto the rug and lies back on it, legs parted, holding her arms up to you. You step over her carefully and lower your forequarters until she’s cradled beneath your chest, her legs hooked over your forelegs. She reaches up, cups your face in both hands and draws you down until your foreheads touch.",
+                "You coil around her on the bed, loop over loop, and lift her hips gently on your tail until she’s cradled in a nest of warm scales. She lies back in it and holds her arms out to you, and you lean down until your foreheads touch.",
+                "She lies back on the bed and draws you down with her, her legs parting around your hips. For a moment you just stay like that, foreheads touching, her breath warm on your lips.") + "\n\n" +
+            "<i>“Slowly,”</i> she whispers. <i>“We have all night, and I want to feel every minute of it.”</i>\n\n" +
+            "So you go slowly. You guide your [pc.cock] to her entrance and press in inch by careful inch, watching her face the whole time. Her lips part. Her eyes flutter closed, then open again, as if she can’t bear to stop looking at you. When you’re fully inside her, she lets out a long, trembling breath and laces her fingers through yours on the pillow beside her head.\n\n" +
+            "<i>“There you are,”</i> she says softly.\n\n" +
+            "You move together without any hurry: long, deep strokes, each one drawn out until she sighs, her hips rising to meet yours in an easy rhythm. The candlelight paints slow shadows over her body, the rise and fall of her breasts, the soft curve of her belly, the sheen of sweat in the hollow of her throat. You kiss her there, and she shivers. You kiss her lips, and she smiles into it. You lose track of time.\n\n" +
+            SB("thrust") +
+            "<i>“[pc.name],”</i> she breathes, over and over, as if it’s the only word she knows. Her tails curl up around your " + tnb("flanks", "coils", "back") + " and hold you close, her legs tighten around your " + tnb("forelegs", "tail", "waist") + ", and her claws trail gently down your back.\n\n" +
+            "The pleasure builds the way a tide comes in, slowly and then all at once. Bianca’s breath catches. Her fingers tighten around yours. <i>“Don’t stop,”</i> she whispers. <i>“Stay right there. Stay with me.”</i>\n\n" +
+            "She comes with her eyes open, looking right at you, her whole body arching up against you as she shudders and clenches around your length. The sight of it, the feel of it, pulls you over right behind her. You press deep" + (C.knot() ? ", your [pc.knot] swelling to lock you together, and" : " and") + " spill yourself into her in long, slow pulses, and she holds you through every one of them, murmuring your name against your cheek.\n\n" +
+            "Afterwards, neither of you moves for a long time. Bianca strokes " + (C.hair() ? "your [pc.hair]" : "the back of your head") + ", her heartbeat slowing " + tnb("against your chest", "under your hand", "under your [pc.chest]") + ". One of the candles gutters out.\n\n" +
+            (C.firstTime()
+                ? "<i>“I used to think,”</i> she says quietly, <i>“that love was something you did in a hurry. Between shifts. Before somebody needed you.”</i> She kisses your temple. <i>“Thank you for showing me it isn’t.”</i>"
+                : "<i>“I could get used to this,”</i> she murmurs. <i>“Coming home to candles. Coming home to you.”</i>") +
+            (C.lover() ? " A moment later, so softly you almost miss it: <i>“I love you.”</i>" : "");
+    };
+    S["apt_foxxy"] = function () {
+        return "<i>“I want to try something,”</i> Bianca says, a little shyly, once the last of your clothes have joined hers on the floor. " +
+            tnb("Her bed won’t take your weight, so she pulls the mattress down onto the rug first, then kneels on it with her back to you.", "She climbs onto the bed and kneels with her back to you.", "She climbs onto the bed and kneels with her back to you.") +
+            " Looking over her shoulder, she sweeps her tails aside and lowers herself onto her elbows, her generous rump raised in the candlelight. <i>“Foxxy-style,”</i> she says, and then flushes to the tips of her ears. <i>“That’s what we called it in the barracks. Don’t laugh.”</i>\n\n" +
+            "You don’t laugh. Mostly.\n\n" +
+            "<i>“Not rough tonight,”</i> she adds, softer. <i>“Not fast. I just want to feel you behind me. Holding me.”</i>\n\n" +
+            tnb("You step over her carefully and lower your barrel until it rests warm and heavy along her back, your forelegs planted on either side of her. She sighs at the weight of you, the way someone sighs under a thick blanket on a cold night.",
+                "You rise up behind her on your coils and wind a loop of tail around her thighs, gently, holding rather than pinning. She leans back into it with a contented hum.",
+                "You kneel behind her and take your time touching her: the dip of her spine, the flare of her hips, the base of each tail where the fur is softest. She arches into your hands like a cat, which you wisely decide not to tell her.") + "\n\n" +
+            "When you slide into her, she lets out a low, wavering moan and pushes back to take you deeper. You hold still for a moment, letting her feel all of you, and she shivers from her ears to her tails.\n\n" +
+            "Then you begin to move: slow, rolling thrusts, each one drawn out, her hips swaying back to meet you. You " + tnb("bend your upper body down as far as it will go", "lean over her back", "lean over her back") + " and kiss the nape of her neck, then the soft fur behind her ear, and she melts. Her tails curl around your " + tnb("barrel", "coils", "waist") + ", holding you to her.\n\n" +
+            "<i>“Like that,”</i> she sighs. <i>“Oh, [pc.name], just like that.”</i>\n\n" +
+            tnb("You can’t hold her the way you’d like from up there, so you let your voice do it. You tell her how good she feels, how beautiful she looks in the candlelight, how much you wanted this all day. Every word makes her tremble.",
+                "Your coils tighten around her in a slow, full-body embrace, and you draw her up against your chest and kiss her over her shoulder while your hand finds her breast, thumb circling her nipple. She gasps into your mouth.",
+                "You slide an arm around her waist and draw her up until her back is pressed to your [pc.chest], and she turns her head to kiss you over her shoulder, clumsy and sweet. Your free hand cradles her breast, thumb circling her nipple, and she gasps into your mouth.") + "\n\n" +
+            SB("thrust") +
+            "Your rhythm never quickens much, but it deepens, and Bianca comes apart beneath you anyway. Her breath comes in little hitching gasps. Her fingers twist in the sheets. " +
+            tnb("", "Your hand slips down between her thighs to find her clit, circling it in time with your strokes, ", "Your hand slips down between her thighs to find her clit, circling it in time with your strokes, ") +
+            tnb("She whimpers your name.", "and she whimpers your name.", "and she whimpers your name.") + "\n\n" +
+            "When she comes, it’s with a long, shaking cry that she muffles in the pillow, her pussy rippling around your [pc.cock] in slow, squeezing waves. You hold her through it, and the feel of her draws your own climax out of you a moment later. You sink deep" + (C.knot() ? ", tie her with your [pc.knot]," : "") + " and fill her, groaning into the fur of her shoulder, while she presses back against you as if to keep every drop.\n\n" +
+            tnb("Eventually you ease off her and lie down on the mattress, and she curls up against your chest between your forelegs, her tails draped over you both like a blanket.",
+                "You sink down onto the bed together, still joined, wrapped in your coils, her tails draped over you both like a blanket.",
+                "You sink down onto the bed together, still joined, spooned up behind her with your arm around her waist, her tails draped over you both like a blanket.") +
+            " Bianca laces her fingers through yours and holds your hand against her heart.\n\n" +
+            "<i>“Foxxy-style,”</i> you remind her.\n\n" +
+            "She groans and hides her face in the pillow, but her tails thump happily against your [pc.legOrLegs]. <i>“I am never telling you anything ever again,”</i> she mumbles. A pause. <i>“" + love("I love you. ", "") + "Next time, I want to be on top.”</i>";
+    };
+    S["apt_entwined"] = function () {
+        return "Bianca sets the candles on the nightstand and pulls you down " + tnb("onto the mattress she’s dragged to the floor for you", "onto the bed", "onto the bed") + " with her, and for a long time you just kiss. There’s no hurry in it. Her hands wander over you the way they do at the clinic, careful and thorough, except that now every touch lingers.\n\n" +
+            "<i>“Let me look at you,”</i> she murmurs, and for once she isn’t checking for anything at all.\n\n" +
+            "You undress each other slowly. She lays you back, kisses her way down your [pc.chest] to your belly and lower still, and gives your [pc.vagina] one slow, deliberate lick that makes you gasp. Then she climbs back up, laughing softly at the look on your face, and settles against you.\n\n" +
+            tnb("You lie on your side, and she presses close against the place where your upper body meets your barrel, one thick thigh hooked over your flank, until your sexes meet.",
+                "You curl your tail around her and draw her flush against you, and she wraps a leg over your coils until her pussy presses against yours.",
+                "She hooks one thick thigh over yours and slides down until her pussy presses against yours, wet heat on wet heat.") + "\n\n" +
+            "The first slow roll of her hips makes you both moan. She finds your hand and laces her fingers through yours, and you rock together without hurrying, your [pc.clit] sliding against hers with every motion. " +
+            (C.hasTits() ? "Her breasts press soft against yours." : "Her breasts press soft against your [pc.chest].") + " Her tails wrap around you both.\n\n" +
+            "<i>“I spent so long,”</i> she whispers against your lips, <i>“thinking this part of my life was over.”</i> She grinds down, slow and deep, and you both shiver. <i>“I was so wrong.”</i>\n\n" +
+            "You come first, with a cry she catches in a kiss, your [pc.girlCum] slicking both your thighs. Bianca follows right after you, her whole body trembling, her claws pricking gently into your shoulders as she rides it out.\n\n" +
+            "Afterwards she doesn’t let you go. She stays tangled up with you in the warm sheets, nose buried in your neck, drawing slow circles on your back while the candles burn low.\n\n" +
+            "<i>“" + love("I love you. ", "") + "Stay for breakfast,”</i> she murmurs, already half asleep. <i>“I make very good eggs now.”</i>";
+    };
+    S["apt_morning"] = function () {
+        return "You wake to the smell of coffee and frying eggs, with grey-blue morning light leaking in around the bedroom blind. The candles on the nightstand have burned down to stubs, and Bianca’s side of the bed is still warm.\n\n" +
+            "In the main room, Bianca is at the stove in a fluffy robe, her hair tied up in a messy knot, humming to herself. Two plates are already waiting on the little round table. When she sees you in the doorway, her whole face lights up.\n\n" +
+            "<i>“Good morning,”</i> she says. <i>“Sit. Eat. I’m told breakfast is the most important meal of the day. I’m told that by me, mostly, and I have recently started listening.”</i>\n\n" +
+            "The eggs are, as promised, very good. You eat together by the window while the walkway wakes up outside: doors sliding open, a neighbor walking something small and fluffy on a leash, the clank of a delivery drone. Bianca steals a piece of your toast and pretends she didn’t.\n\n" +
+            "Eventually she checks the time and sighs. <i>“I have rounds today,”</i> she says, with obvious reluctance. <i>“And patients who don’t know how to look after themselves.”</i> She gives you a pointed look over the rim of her mug. <i>“Some of them are even my favorites.”</i>\n\n" +
+            "She dresses quickly and kisses you at the door, then hesitates there with her coat over one arm, looking back at you in her little apartment as if she wants to remember it exactly like this.\n\n" +
+            "<i>“" + love("I love you. ", "") + "Thank you for dinner, [pc.name],”</i> she says softly. <i>“For staying. The door locks itself when you go; it’s very clever.”</i> Her tails swish. <i>“Come back soon.”</i>\n\n" +
+            "Then she’s gone, and you’re left with an empty plate, a warm apartment and the faint scent of candle smoke.";
+    };
+
+    // Clinic: the Dinner button in her office (called by TN_BiancaClinic's clinic menu).
+    window.tnBiancaDinnerButton = function (slot, back) {
+        try {
+            if (!aptKnown()) return;
+            if (fam() < 51) { addDisabledButton(slot, "Dinner", "Dinner", "You’ll need to get a little closer to Bianca first."); return; }
+            if (dinnerTonight()) { addDisabledButton(slot, "Dinner", "Dinner", "You already have a date tonight: her apartment, #156 at the west end of the Residential Deck’s West Walkway, after 6 PM."); return; }
+            addButton(slot, "Dinner", function () {
+                CTX = { wild: false };
+                play(["apt_invite"], function () {
+                    flags.TN_BX_DINNER_DAY = dayNo() + 1;
+                    safe(function () { processTime(5); });
+                    if (typeof back === "function") back(); else next(mainGameMenu);
+                }, { bust: "CLOTHED", author: "Neston" });
+            }, "Dinner", "She looks like she’s had a long day already. Offer to make her dinner tonight, at her place.");
+        } catch (err) { if (window.console) console.error("[Bianca Extras] dinner button", err); }
+    };
+
+    // The West Walkway (called by the patched "RESIDENTIAL DECK 15" room). Returns true when it
+    // wrote the west end of the walkway itself, so the game's "steel wall" line is skipped.
+    window.tnBiancaWalkway = function () {
+        if (!aptKnown()) return false;
+        try {
+            output("\n\nThe walkway ends to the west at a gigantic steel wall, where this part of the station is still under construction. Set into it, right at the end and next door to Aina’s, is a single newer door numbered 156, with a small brass plate: <i>Dr. B. Ketria.</i>");
+            var slot = Math.min(4, Math.max(0, lastButtonIndex() + 1));
+            if (dinnerReady()) {
+                output(" Warm, flickering light spills out from under it, and something smells wonderful. She’s expecting you.");
+                addButton(slot, "Knock West", aptKnock, "Bianca’s Door", "Knock on Bianca’s door. Dinner is waiting.");
+            } else if (dinnerTonight()) {
+                output(" It’s dark and quiet behind it. Bianca said she’d be home from the clinic by six.");
+                addDisabledButton(slot, "Knock West", "Bianca’s Door", "Bianca isn’t home from the clinic yet. Come back after 6 PM.");
+            } else {
+                output(" The light under it is off.");
+            }
+            return true;
+        } catch (err) { return false; }
+    };
+    window.tnBiancaAptName = function () { return aptKnown() ? "Bianca’s Apartment" : "Apartment 156"; };
+    // Inside her apartment (the patched "RESIDENTIAL DECK 15W" room).
+    window.tnBiancaAptRoom = function () {
+        try {
+            if (!aptKnown()) { output("A small, empty apartment. The door to the walkway is east."); return false; }
+            output("Bianca’s apartment is small, warm and full of plants. A kitchenette runs along one wall, every jar on its shelf labeled in her neat, slanted handwriting. A little round table sits by the window, still crowded with candles in mismatched holders, and the shelf beside it is packed with medical journals and a small, guilty stack of paperback romances. A narrow door leads to the bedroom. By the front door hangs a framed holo of a much younger Bianca in a field medic’s uniform, grinning beside three other soldiers.");
+            output("\n\nBianca isn’t home. The door to the walkway, east, will lock behind you.");
+        } catch (err) {}
+        return false;
+    };
+    function aptKnock() {
+        CTX = { wild: false, apt: true };
+        safe(function () { moveToRoom(APT_ROOM); });
+        play(["apt_door", "\f", "apt_dinner"], function () {
+            safe(function () { processTime(150); });
+            safe(function () { pc.energy(20); });
+            aptMenu();
+        }, { bust: "CASUAL", author: "Neston" });
+    }
+    function aptSex(nm) {
+        CTX.first = !num("TN_BX_APT_SEX");
+        play([nm], function () {
+            IncrementFlag("TN_BX_APT_SEX");
+            cum(); sexed();
+            safe(function () { processTime(60 + rand(30)); });
+            next(aptMorning);
+        }, { bust: "NUDE", author: "Neston" });
+    }
+    function aptMenu() {
+        clearMenu();
+        addButton(0, "Sleep", function () { play(["apt_sleep"], function () { next(aptMorning); }, { bust: "NUDE", author: "Neston" }); },
+            "Sleep", "She’s had a long day. Hold her and let her fall asleep in your arms.");
+        var ok = compatible();
+        var noBody = "Your current form is incompatible with Bianca’s.";
+        function gate(slot, label, fn, tip, need) {
+            if (!ok) { addDisabledButton(slot, label, label, noBody); return; }
+            if (need) { addDisabledButton(slot, label, label, need); return; }
+            addButton(slot, label, fn, label, tip);
+        }
+        var noCock = C.cock() ? null : "You’ll need a cock for this.";
+        gate(1, "Missionary", function () { aptSex("apt_missionary"); }, "Make love to her face to face, slowly, by candlelight.", noCock);
+        gate(2, "Foxxy-Style", function () { aptSex("apt_foxxy"); }, "She’s on her hands and knees and looking back at you. Take her from behind, slow and loving tonight.", noCock);
+        gate(3, "Entwined", function () { aptSex("apt_entwined"); }, "Lie with her, pussy to pussy, and take all the time in the world.", C.vagOnly() ? null : "This one is for when you have a pussy and no cock.");
+    }
+    function aptMorning() {
+        try {
+            var m = ((31 - hours) % 24) * 60 - minutes;
+            if (m < 240) m += 1440;
+            processTime(m);
+            sleepHeal();
+        } catch (err) {}
+        delete flags.TN_BX_DINNER_DAY;
+        IncrementFlag("TN_BX_DINNERS");
+        safe(function () { bianca.familiarity(1); });
+        play(["apt_morning"], function () { CTX = {}; next(mainGameMenu); }, { bust: "CASUAL", author: "Neston" });
+    }
+    window.tnBiancaApt = { dinnerTonight: dinnerTonight, dinnerReady: dinnerReady, knock: aptKnock, menu: aptMenu };
+
     /* ---------- Codex log: relationship meter + every step of her route ---------- */
     // Called from the codex (Log > Roaming Encounters > Bianca), right under the game's
     // Affection line. cS is the game's own log-line helper, passed in by the .mod hook.
@@ -869,8 +1105,12 @@
         if (safe(K.opened, false)) {
             out += cS("Ketria Clinic (optional)", "Open: Tavros Merchant Deck, west of the Merchant’s Thoroughfare, 8 AM to 6 PM. Arian is at the front desk and Dr. Rewell is in the exam hall.");
             var inNow = safe(K.isOpen, false);
-            out += cS("Bianca at the clinic", inNow ? "In now, until 2 PM (Checkup, Chat, Lunch at noon, Help Out)" :
+            out += cS("Bianca at the clinic", inNow ? "In now, until 2 PM (Checkup, Chat, Lunch at noon, Help Out, Dinner)" :
                 "9 AM to 2 PM every third day; next " + safe(K.nextOpen, "soon") + (pc && safe(function () { return pc.hasStatusEffect("Bianca Gone"); }, false) ? " (not while she’s away)" : ""));
+            if (loveTrack()) out += cS("Dinner at her place (optional)", dinnerTonight()
+                ? (dinnerReady() ? "Tonight: she’s home now. Knock on #156 at the west end of the Residential Deck’s West Walkway, next to Aina’s" : "Tonight, after 6 PM: #156 at the west end of the Residential Deck’s West Walkway, next to Aina’s")
+                : fam() >= 51 ? "Ask her at the clinic (Dinner, during her hours), then knock on her door that evening after 6 PM: #156 at the west end of the Residential Deck’s West Walkway, next to Aina’s" + (num("TN_BX_DINNERS") ? " (" + num("TN_BX_DINNERS") + " so far)" : "")
+                : "Not yet (needs 51%; then ask her at the clinic)");
         } else {
             out += cS("Ketria Clinic (optional)", "Opens in " + timeLeft(safe(K.openInMin, 4320)) + ", 3 days after your Tavros talk. Her email will say so. It’s on the Tavros Merchant Deck, west of the Merchant’s Thoroughfare.");
         }
@@ -894,7 +1134,7 @@
             var sexN = num("BIANCA_SEXED");
 
             if (isLover()) {
-                out += cS("Lovers", "Done. Now open: the bar Cuddle, Intimate and Int. Doggy on your ship, and free checkups at her clinic.");
+                out += cS("Lovers", "Done. Now open: the bar Cuddle, Intimate and Int. Doggy on your ship, free checkups at her clinic, and dinner at her apartment.");
                 out += clinicLines(cS);
                 return out;
             }

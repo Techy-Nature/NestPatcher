@@ -17,6 +17,8 @@ Author: Neston
 #   - Codex > Log > Roaming Encounters > Bianca: a relationship meter, her stage, and nights
 #     aboard toward Confess, under the game's Affection line.
 #   - Bar talk: Family no longer needs the rescue event in the wild.
+#   - Her apartment (#156, west end of the Residential Deck's West Walkway, next to Aina's): ask her
+#     to Dinner at her clinic, then knock after 6 PM for a candlelit dinner and a night at her place.
 # Needles use @@name@@ wildcards for minified names so they match PC and Android builds.
 
 # Familiarity lives in TN_BIANCA_FAMILIARITY: every bianca.familiarity() call in the game goes to the mod
@@ -138,3 +140,11 @@ Replace [main.js]:
 )?64&flags.MET_BIANCA?window.biancaTalkedTopic(GLOBAL.BIANCA_TOPIC_FAMILY)?
 With:
 )?(64&flags.MET_BIANCA||window.tnBiancaExtrasEnabled&&window.tnBiancaExtrasEnabled())?window.biancaTalkedTopic(GLOBAL.BIANCA_TOPIC_FAMILY)?
+
+# Bianca's apartment: #156 at the west end of the Residential Deck's West Walkway, next door to Aina's.
+# The game's empty "RESIDENTIAL DECK 15W" room behind the steel wall becomes her apartment. Its door
+# stays locked from the walkway; on the night of a dinner date you knock (Knock West) and she lets you in.
+Replace [content_tavros.js]:
+@@A@@.addFlags(@@se@@.tb.INDOOR,@@se@@.tb.PUBLIC,@@se@@.tb.NUDITY_ILLEGAL),@@A@@.runOnEnter=function(){return!!window.checkIfAinaIsAround()||(clearOutput(),output("This part of the walkway is fairly standard. There’s a few humble decorations outside the stock-standard doors: pot plants, mats, the usual fare. Even in space and during such an advanced technological era, some things don’t change all that much."),output("\n\nYou see a room to the north with a sign reading: ‘Paige’s Yoga Class & Seminar’--"),hours>=17||hours<9||pc.hasStatusEffect("PAIGE_COMA_CD")?output("though it doesn’t seem to be open at the moment."):output("perhaps you can give it a visit if you are interested."),output("\n\nTo the south, you notice a residence with two barn-like doors. Attached to the artificial windows are boxes filled with blossoming flowers. The number beside the door is 154."),output("\n\nThe thoroughfare here ends in a gigantic steel wall to the west. Seems that part of the station is still under construction. You can only head back east."),!1)},@@o@@.addRoom(@@A@@);var @@W@@=new @@Nj@@.du;@@W@@.index="RESIDENTIAL DECK 15W",@@W@@.east=@@A@@,@@W@@.eastLockedCondition=function(){return!0},@@o@@.addRoom(@@W@@);
+With:
+@@A@@.addFlags(@@se@@.tb.INDOOR,@@se@@.tb.PUBLIC,@@se@@.tb.NUDITY_ILLEGAL),@@A@@.runOnEnter=function(){return!!window.checkIfAinaIsAround()||(clearOutput(),output("This part of the walkway is fairly standard. There’s a few humble decorations outside the stock-standard doors: pot plants, mats, the usual fare. Even in space and during such an advanced technological era, some things don’t change all that much."),output("\n\nYou see a room to the north with a sign reading: ‘Paige’s Yoga Class & Seminar’--"),hours>=17||hours<9||pc.hasStatusEffect("PAIGE_COMA_CD")?output("though it doesn’t seem to be open at the moment."):output("perhaps you can give it a visit if you are interested."),output("\n\nTo the south, you notice a residence with two barn-like doors. Attached to the artificial windows are boxes filled with blossoming flowers. The number beside the door is 154."),(window.tnBiancaWalkway&&window.tnBiancaWalkway()||output("\n\nThe thoroughfare here ends in a gigantic steel wall to the west. Seems that part of the station is still under construction. You can only head back east.")),!1)},@@o@@.addRoom(@@A@@);var @@W@@=new @@Nj@@.du;@@W@@.index="RESIDENTIAL DECK 15W",@@W@@.east=@@A@@,@@W@@.eastLockedCondition=function(){return!1},@@W@@.name="Apartment 156",@@W@@.variableName=function(){return window.tnBiancaAptName?window.tnBiancaAptName():"Apartment 156"},@@W@@.moveMinutes=1,@@W@@.addFlags(@@se@@.tb.INDOOR,@@se@@.tb.PRIVATE),@@W@@.runOnEnter=function(){return window.tnBiancaAptRoom?window.tnBiancaAptRoom():(output("A small, empty apartment. The door to the walkway is east."),!1)},@@o@@.addRoom(@@W@@);
