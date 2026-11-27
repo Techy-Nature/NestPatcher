@@ -1,0 +1,397 @@
+/* TN Snake Collars for Trials in Tainted Space (v1.0, Modv3.1, checked against 0.9.169).
+   Collar the Blue Viper with one of Urbolg's collars, and keep the slavebreaker's own collar
+   scene working when the Blue Viper got the collar first.
+
+   - Urbolg (Zheng Shi hangar), once you've met the Blue Viper:
+       "Viper Collar"   asks for the one-of-a-kind collar on his workstation. He keys it to
+                        your codex and fits it for a slyveren hood. 100,000 credits. Once only.
+       "Another Collar" once that collar is gone and someone still needs one (the Blue Viper,
+                        or the slavebreaker after her collar went to the Blue Viper): he makes
+                        a new one. Ready 10 hours later, 200,000 credits when you fetch it,
+                        the same as the game's slavebreaker collar.
+     His workstation stays empty for three days after he hands the collar over, so the game's
+     own "Collar" / "Slave Collar" buttons wait until he's built himself a new one.
+   - The Blue Viper (Cherry's Tap-Hall): "Collar Her" shows whenever you carry a collar.
+     She stays in Cherry's wall, but her hypnosis can't reach you any more (her obedience
+     count goes back to 0) and she serves you for free: "Suck Me" (needs a cock) and
+     "Tongue" (your pussy, or your ass if you have none). Same 3-hour rest as the game's scenes.
+   - The slavebreaker: her "Collar Her" scene is the game's own. It counts every collar you
+     carry, so if the one you bought for her went to the Blue Viper, the next one Urbolg makes
+     works on her too.
+   - Collars carried: the game's slavebreaker collar (bought, not used, not given to the Blue
+     Viper) plus TN_SNAKE_COLLARS. The Blue Viper takes a TN collar first, so the slavebreaker's
+     own stays for her when you have both.
+   - Flags: TN_SNAKE_COLLARS (collars carried, beyond the game's), TN_VIPER_COLLARED (1),
+     TN_VIPER_COLLARED_TS, TN_VIPER_OLD_OBEDIENCE, TN_VIPER_VISITS, TN_SB_COLLAR_TO_VIPER (1 = the
+     slavebreaker collar went to the Blue Viper), TN_URBY_COLLAR_GIVEN (+ _TS),
+     TN_SNAKE_COLLAR_ORDER_TS, TN_SNAKE_COLLARS_MADE.
+
+   Needs TN_SnakeCollars_v1.0.mod (the buttons in the game's menus and the Stats line).
+   Toggle: Android Mods / TN Mod Settings > "Snake Collars". Turned off, the game acts as it
+   was written (the Blue Viper's booth is the game's again); every flag is kept for later. */
+(function () {
+    "use strict";
+    if (window.tnSnakeCollar) return;
+
+    var MOD_ID = "TN_SnakeCollars";
+    var NAME = "Snake Collars";
+    var WORKBENCH_PRICE = 100000;
+    var REMAKE_PRICE = 200000;
+    var REMAKE_MINUTES = 600;            // the game's slavebreaker collar takes 10 hours too
+    var WORKBENCH_BACK_MINUTES = 3 * 24 * 60;
+    var REST_MINUTES = 180;              // the game's own BlueViperDisable time
+
+    function P(fn, dflt) { try { var v = fn(); return v === undefined ? dflt : v; } catch (err) { return dflt; } }
+    function dbg(msg) {
+        try { console.info("[TN] [Snake Collars] " + msg); } catch (e) {}
+        try { if (window.tnModMenuActive === true && typeof window.tnDebugLog === "function") window.tnDebugLog("[Snake Collars] " + msg); } catch (e) {}
+    }
+    function on() {
+        return (window.tnModMenuActive !== true || typeof window.isTnModEnabled !== "function") ||
+            window.isTnModEnabled(MOD_ID);
+    }
+    function F() { return window.flags; }
+    function PC() { return window.pc; }
+    function now() { return P(function () { return window.GetGameTimestamp(); }, 0); }
+    function num(v) { v = Number(v); return isFinite(v) ? v : 0; }
+    function credits(text) { return Number(text).toLocaleString(); }
+    function out(text) { window.output(text); }
+    function para(text) { window.output("\n\n" + text); }
+    function bumpFlag(key) {
+        try { window.IncrementFlag(key); } catch (err) { F()[key] = num(F()[key]) + 1; }
+    }
+
+    // -----------------------------------------------------------------------------
+    // The collar count
+    // -----------------------------------------------------------------------------
+    function sbGameCollarHeld() {
+        var f = F();
+        return !!f.SLAVEBREAKER_COLLAR_BOUGHT && !f.SLYV_COLLAR_TS && f.TN_SB_COLLAR_TO_VIPER !== 1;
+    }
+    function extra() { return Math.max(0, Math.floor(num(F().TN_SNAKE_COLLARS))); }
+    function held() { return (sbGameCollarHeld() ? 1 : 0) + extra(); }
+    function viperMet() { return F().BLUE_VIPER_MET !== undefined; }
+    function viperIsCollared() { return F().TN_VIPER_COLLARED === 1; }
+    function viperNeeds() { return viperMet() && !viperIsCollared(); }
+    // The slavebreaker needs one from Urbolg only when hers went to the Blue Viper.
+    function sbNeeds() { var f = F(); return !f.SLYV_COLLAR_TS && f.TN_SB_COLLAR_TO_VIPER === 1; }
+    function workbenchGiven() { return F().TN_URBY_COLLAR_GIVEN === 1; }
+    function orderTs() { return F().TN_SNAKE_COLLAR_ORDER_TS; }
+
+    // -----------------------------------------------------------------------------
+    // Urbolg
+    // -----------------------------------------------------------------------------
+    function urbolgShow() { P(function () { window.urbolg.showAll(); }); }
+    function urbolgBack() {
+        P(function () { window.clearMenu(); });
+        window.addButton(0, "Next", window.mainGameMenu);
+    }
+
+    function urbolgButton(slot) {
+        if (!on()) return;
+        var pc = PC();
+        if (P(function () { return pc.hasSlaveCollar(); }, false)) return;
+        var ts = orderTs();
+        if (ts !== undefined) {
+            if (now() - num(ts) < REMAKE_MINUTES) {
+                window.addDisabledButton(slot, "Fetch Collar", "Fetch the Collar", "Urbolg said ten hours. It’s probably not ready yet.");
+            } else if (num(pc.credits) >= REMAKE_PRICE) {
+                window.addButton(slot, "Fetch Collar", urbolgFetch, "Fetch the Collar", "Pick up the collar Urbolg made you.\n\n<b>Price:</b> " + credits(REMAKE_PRICE) + " Credits");
+            } else {
+                window.addDisabledButton(slot, "Fetch Collar", "Fetch the Collar", "You can’t afford his asking price for the collar.\n\n<b>Price:</b> " + credits(REMAKE_PRICE) + " Credits");
+            }
+            return;
+        }
+        if (!workbenchGiven()) {
+            if (viperNeeds()) window.addButton(slot, "Viper Collar", urbolgWorkbench, "Viper Collar", "Ask Urbolg about the collar on his workstation. It might be just the thing for a certain blue snake at Cherry’s.");
+            return;
+        }
+        if (held() === 0 && (viperNeeds() || sbNeeds())) {
+            window.addButton(slot, "Another Collar", urbolgOrder, "Another Collar", "His workstation collar is spoken for. Ask Urbolg to make you a new one.");
+        }
+    }
+
+    function urbolgWorkbench() {
+        window.clearOutput(); urbolgShow(); window.author("Neston");
+        var f = F(), pc = PC();
+        out("You nod at the oddly mechanical piece of jewelry sitting on his workstation. <i>“That collar of yours. Ever think about putting it on someone who deserves it?”</i>");
+        para("Urbolg doesn’t even look up from his work. <i>“Every day. Who’d ye have in mind?”</i>");
+        para("You tell him about the blue snake stuck in the wall at Cherry’s, the one with the silver tattoos who talks right into people’s heads.");
+        para("<i>That</i> gets him to look up. He barks out a laugh. <i>“Her? Half this station’s been on its knees in front of that snake at one point or another, and the other half’s too scared to walk past her booth. Every one of ’em walks out calling her Mistress.”</i> He scratches his chin with a metal finger. <i>“Nobody tells her no. She won’t like it.”</i>");
+        if (f.URBY_COLLAR_FUN !== undefined) para("He squints at you. <i>“And after what it did to ye last time, ye want to snap it on somebody else for a change. Smart. Didn’t think ye had it in ye.”</i>");
+        para("<i>“Here’s the thing,”</i> he goes on, picking the collar up and turning it over. <i>“This one’s keyed to me. Anyone wearing it goes all doe-eyed for ol’ Urbolg, and I don’t need a snake wedged in a wall calling me Master. I can key it to yer codex and fit it under a hood so it sits right on a slyveren. It’s one of a kind, mind. Ye want it, it’ll cost ye.”</i>");
+        para("<i>“How much?”</i>");
+        para("<i>“" + credits(WORKBENCH_PRICE) + " credits,”</i> he says, setting it back down. <i>“And that’s me being nice.”</i>");
+        window.processTime(5);
+        window.clearMenu();
+        if (num(pc.credits) >= WORKBENCH_PRICE) window.addButton(0, "Pay", urbolgWorkbenchPay, "Pay", "Pay " + credits(WORKBENCH_PRICE) + " credits for the collar.");
+        else window.addDisabledButton(0, "Pay", "Pay", "You don’t have " + credits(WORKBENCH_PRICE) + " credits.");
+        window.addButton(1, "Not Now", urbolgNotNow, "Not Now", "Maybe later.");
+    }
+    function urbolgNotNow() {
+        window.clearOutput(); urbolgShow(); window.author("Neston");
+        out("<i>“Maybe later,”</i> you tell him.");
+        para("<i>“It’s not going anywhere,”</i> Urbolg grunts, already turning back to his work. <i>“Unless some idiot puts it on, anyway.”</i>");
+        urbolgBack();
+    }
+    function urbolgWorkbenchPay() {
+        window.clearOutput(); urbolgShow(); window.author("Neston");
+        var f = F(), pc = PC();
+        pc.credits = num(pc.credits) - WORKBENCH_PRICE;
+        f.TN_URBY_COLLAR_GIVEN = 1;
+        f.TN_URBY_COLLAR_GIVEN_TS = now();
+        f.TN_SNAKE_COLLARS = extra() + 1;
+        out("You set a credit chit to " + credits(WORKBENCH_PRICE) + " and drop it into his open palm. It vanishes into his apron.");
+        para("Urbolg pulls a hand-sized computer out of another pocket, taps at it, and plugs a thin cable into the collar. Your codex chirps. A new device is asking to pair with it, and its name is just a string of numbers. <i>“Say yes,”</i> he tells you, and you do. The collar’s little readout flickers from his name to yours.");
+        para("Next he pries the band open, swaps a pair of links for longer ones and bends a lip into the back so it’ll sit flat under a hood. <i>“There. Slyveren necks are thicker’n they look.”</i> He presses it into your hands. <i>“It’ll size itself once it’s on her. Snap it shut and don’t let go till it hisses. And ye break it, don’t come crying to me.”</i>");
+        para("You stow the collar away with the rest of your gear. <b>You have a collar for the Blue Viper.</b>");
+        window.processTime(15);
+        dbg("workbench collar bought");
+        urbolgBack();
+    }
+    function urbolgOrder() {
+        window.clearOutput(); urbolgShow(); window.author("Neston");
+        var f = F();
+        var forViper = viperNeeds();
+        out("<i>“I need another collar,”</i> you tell Urbolg.");
+        para("He sets his wrench down very slowly. <i>“Another one.”</i>");
+        if (forViper && f.SLYV_COLLAR_TS) para("<i>“The slavebreaker’s got hers. Now I need one for the snake at Cherry’s.”</i>");
+        else if (forViper) para("<i>“For the snake at Cherry’s.”</i>");
+        else para("<i>“The last one went around the snake at Cherry’s. The slavebreaker still needs hers.”</i>");
+        para("<i>“Building yerself a little zoo, are ye?”</i> He snorts and drags a box of parts across his workstation. <i>“Fine. Same as last time: proper materials, me time, and insurance that I’m not catching heat for whatever ye’re doing with ’em. Two hundred thousand. Come back in ten hours.”</i> He waves you off and starts sorting links.");
+        f.TN_SNAKE_COLLAR_ORDER_TS = now();
+        window.processTime(5);
+        dbg("collar ordered");
+        urbolgBack();
+    }
+    function urbolgFetch() {
+        window.clearOutput(); urbolgShow(); window.author("Neston");
+        var f = F(), pc = PC();
+        pc.credits = num(pc.credits) - REMAKE_PRICE;
+        delete f.TN_SNAKE_COLLAR_ORDER_TS;
+        f.TN_SNAKE_COLLARS = extra() + 1;
+        bumpFlag("TN_SNAKE_COLLARS_MADE");
+        out("<i>“Is it ready?”</i>");
+        para("Urbolg drops a new collar on the workstation in front of you. It’s a little thicker than a normal slave collar, two pieces that click together with magnets, and the lip in the back is already shaped to sit under a hood. <i>“Keyed to yer codex already. Money first.”</i>");
+        para("You pay him " + credits(REMAKE_PRICE) + " credits and he lets you take it. <b>You have a new collar.</b>");
+        window.processTime(3);
+        dbg("collar fetched");
+        urbolgBack();
+    }
+
+    function workbenchGone() {
+        if (!on() || !workbenchGiven()) return false;
+        return now() - num(F().TN_URBY_COLLAR_GIVEN_TS) < WORKBENCH_BACK_MINUTES;
+    }
+    function workbenchGoneButton(slot) {
+        window.addDisabledButton(slot, "Collar", "Collar", "The collar that used to sit on his workstation is yours now. Urbolg grumbles that he’s building himself a new one.");
+    }
+
+    // -----------------------------------------------------------------------------
+    // The Blue Viper
+    // -----------------------------------------------------------------------------
+    function viperShow() {
+        P(function () { window.showBust("WALL_SLYVEREN"); });
+        P(function () { window.showName("Blue Viper"); });
+        window.author("Neston");
+    }
+    function viperCollared() { return on() && viperIsCollared(); }
+
+    function viperButton(slot) {
+        if (!on() || viperIsCollared() || held() < 1) return;
+        window.addButton(slot, "Collar Her", viperCollarScene, "Collar Her", "Snap one of Urbolg’s collars around her neck. She stays in Cherry’s wall, but she’d be yours. <b>This is a hard-hearted thing to do.</b>");
+    }
+
+    function takeCollarForViper() {
+        var f = F();
+        if (extra() > 0) { f.TN_SNAKE_COLLARS = extra() - 1; return "tn"; }
+        if (sbGameCollarHeld()) { f.TN_SB_COLLAR_TO_VIPER = 1; return "sb"; }
+        return "";
+    }
+
+    function viperCollarScene() {
+        window.clearOutput(); viperShow();
+        var f = F(), pc = PC();
+        var thrall = num(f.BLUE_VIPER_OBEDIENCE) >= 3;
+        var which = takeCollarForViper();
+        out("You take out the collar and let her see it.");
+        para("The slyveren’s hood flares wide. For a heartbeat those sapphire eyes are only curious, then they narrow to slits. <i>“And what,”</i> she asks, sweet as syrup, <i>“is that?”</i>");
+        para("She doesn’t wait for an answer. Pressure slides into the back of your skull, warm and heavy, the same gentle willpower that’s pulled you into this booth before. <i>Put that down, dear. You don’t want to do that.</i>");
+        if (thrall) {
+            para("Your fingers twitch open. Of course you don’t want to do this. She’s your Mistress. She’s always been your Mistress, and a good slave doesn’t... a good slave doesn’t...");
+            para("You bite the inside of your cheek hard enough to taste copper. The sting cuts through the honey in your head for one second, and one second is all you need. You lunge before she can pull you back under.");
+        } else {
+            para("You grit your teeth. The pull is strong, but you’ve felt it before, and you know what it feels like now. That helps. You step in close before she can push harder.");
+        }
+        para("She’s wedged into Cherry’s wall from the waist down, so there’s nowhere for her to go. She jerks her head back and you follow it, sliding the band under the flare of her hood and around her throat. The two halves snap together with a heavy click. The collar hisses, shrinks to fit the thick column of her neck, and settles against her scales" + (which === "sb" ? ", the magnets locking it tight under her hood" : "") + ".");
+        para("The pressure in your head shuts off like a cut wire.");
+        para("The Tap-Hall comes back all at once: the music, the red light, somebody laughing three booths down. The slyveren’s eyes go wide. Her hood flares again, and you feel... nothing. Then the collar gives a short, warning buzz and she yelps out loud, the first sound you’ve ever heard her make with her actual mouth that wasn’t a purr.");
+        para("<i>“You... you little...”</i> She swallows the rest of it. Her tail lashes once inside the wall, and then, slowly, she makes herself smile. <i>“Very well. It seems I misjudged you, [pc.name]. I so rarely do.”</i>");
+        para("Your codex has a new entry. The collar’s owner reads <i>Steele</i>, and there’s a little row of buttons under it that you don’t need to press. She stays right where she is; Cherry owns the wall, after all, and the Tap-Hall’s other customers still pay. You don’t. Her mouth is yours whenever you want it, and her voice will stay in her own head from now on.");
+        para("<b>The Blue Viper wears your collar.</b>");
+        f.TN_VIPER_COLLARED = 1;
+        f.TN_VIPER_COLLARED_TS = now();
+        if (f.BLUE_VIPER_OBEDIENCE !== undefined) f.TN_VIPER_OLD_OBEDIENCE = f.BLUE_VIPER_OBEDIENCE;
+        f.BLUE_VIPER_OBEDIENCE = 0;
+        P(function () { pc.addHard(10); });
+        window.processTime(10);
+        dbg("Blue Viper collared with the " + (which === "sb" ? "slavebreaker's collar" : "TN collar"));
+        window.clearMenu();
+        window.addButton(0, "Next", window.mainGameMenu);
+    }
+
+    function viperBooth() {
+        window.clearOutput(); viperShow();
+        var f = F(), pc = PC();
+        var first = f.TN_VIPER_VISITS === undefined;
+        bumpFlag("TN_VIPER_VISITS");
+        out("Domiciled in her clean, cozy alcove is the blue and silver slyveren, and around her throat, right below the flare of her hood, sits your collar. Its little readout pulses whenever your codex comes near. The argent patterns on her scales still glow, the red light of the Tap-Hall still slides right off her, and she’s still one of the most beautiful things on Zhèng Shi. But when she looks at you now, nothing tugs at the back of your mind.");
+        if (first) {
+            para("Her hood lifts in the old haughty way, then sinks again. <i>“So. My keeper returns.”</i> Her voice comes only from her lips now, low and rich. <i>“Do you know how many people have stood where you’re standing? Hundreds. And every one of them left thanking me.”</i> Her eyes slide to your codex. <i>“And you just had to be the clever one.”</i>");
+            para("<i>“Are you going to sulk the whole time?”</i>");
+            para("<i>“I am considering it.”</i> A forked tongue flicks out over her plush lips. <i>“But I am also hungry, and a keeper ought to feed her pet. What will it be?”</i>");
+        } else {
+            para(pick([
+                "<i>“[pc.name],”</i> she purrs, and it’s only a purr. <i>“Come to feed me, or come to admire your handiwork?”</i>",
+                "Her hood flares in greeting. <i>“My keeper. I was beginning to think you’d forgotten me.”</i> She taps the collar with one claw. <i>“As if I could forget you.”</i>",
+                "<i>“Ah, there you are.”</i> She stretches as far as the wall allows, heavy breasts swaying. <i>“The other customers are dreadfully boring now that I can’t make them beg. Do something interesting.”</i>"
+            ]));
+        }
+        window.processTime(2);
+        viperMenu();
+    }
+    function viperMenu() {
+        var pc = PC();
+        window.clearMenu();
+        if (P(function () { return pc.hasCock(); }, false)) window.addButton(0, "Suck Me", viperSuck, "Suck Me", "Have her take your cock. She does it your way now.");
+        else window.addDisabledButton(0, "Suck Me", "Suck Me", "You need a cock for this.");
+        var tongueTip = P(function () { return pc.hasVagina(); }, false) ? "Have that long, grooved tongue on your [pc.pussiesLight]." : "Have that long, grooved tongue on your [pc.asshole].";
+        window.addButton(1, "Tongue", viperTongue, "Tongue", tongueTip);
+        window.addButton(14, "Leave", viperLeave, "Leave", "Leave her to the other customers.");
+    }
+    function viperLeave() {
+        window.clearOutput(); viperShow();
+        out("You give her collar a little tap and turn to go.");
+        para("<i>“Leaving so soon?”</i> she calls after you, and if there’s a hint of real disappointment under the theater, she’d never admit it. <i>“Do come back, keeper. I get so very bored.”</i>");
+        window.processTime(1);
+        window.clearMenu();
+        window.addButton(0, "Next", window.mainGameMenu);
+    }
+    function rest() {
+        var pc = PC();
+        P(function () {
+            if (!pc.hasStatusEffect("BlueViperDisable")) pc.createStatusEffect("BlueViperDisable");
+            pc.setStatusMinutes("BlueViperDisable", REST_MINUTES);
+        });
+    }
+
+    function viperSuck() {
+        window.clearOutput(); viperShow();
+        var pc = PC();
+        var c = P(function () { return pc.smallestCockIndex(); }, 0);
+        out(P(function () { return pc.isCrotchExposed(); }, false) ? "Your [pc.cock " + c + "] is already out" : "You free your [pc.cock " + c + "]");
+        out(", and her nostrils flare the moment it’s in the open air. She doesn’t say a word, but her tongue slides out, long and grooved and glistening, and curls in a slow, hungry question.");
+        para("<i>“Slowly,”</i> you tell her.");
+        para("<i>“Slowly,”</i> she agrees, with only a little bit of an eye-roll.");
+        para("She takes you in one plush-lipped inch at a time, sapphire eyes on yours the whole way down. Her mouth is hot and wet and almost unbearably soft, her tongue wrapping around your shaft like a living sleeve. When she gets greedy and tries to swallow you all at once, you rest two fingers on her collar and she stops dead, then goes back to that maddening, careful pace with a muffled huff through her nose.");
+        para("It’s a different woman sucking you off. No voice in your head telling you what you want, no warm pull dragging your hips forward. Just the sounds she makes, the wet sway of her heavy breasts against the edge of the alcove, and a throat that ripples and pulls around your [pc.cockHead " + c + "] while she hums. She’s very, very good at this. She has every reason to want you to come back.");
+        para("When you’re close you tell her so, and she sinks down to the root and stays there, her hood fanned wide and her throat milking you in long, slow waves. You cum with a groan, " + (P(function () { return pc.cumQ(); }, 0) >= 1000 ? "a flood of [pc.cum] that swells her belly against the wall’s padding while she gulps it down without spilling a drop" : "and she drinks every pulse of [pc.cum] like it’s the best thing she’s tasted all week") + ".");
+        para("She pulls off with a soft pop and licks her lips clean, very slowly, while you watch. <i>“There,”</i> she says. <i>“Was that slow enough for you, keeper?”</i>");
+        bumpFlag("BLUE_VIPER_SUCKED");
+        bumpFlag("TN_VIPER_SUCKED");
+        window.processTime(25);
+        P(function () { pc.orgasm(); });
+        rest();
+        window.clearMenu();
+        window.addButton(0, "Next", window.mainGameMenu);
+    }
+
+    function viperTongue() {
+        window.clearOutput(); viperShow();
+        var pc = PC();
+        var pussy = P(function () { return pc.hasVagina(); }, false);
+        out("<i>“Not your mouth today,”</i> you tell her. <i>“Your tongue.”</i>");
+        para("Her hood twitches. <i>“My tongue is for cocks, keeper. It always has been.”</i>");
+        para("You tap the codex on your wrist. You don’t press anything; you just tap it.");
+        para("<i>“...My tongue is for whatever you like,”</i> she amends, with great dignity.");
+        if (pussy) {
+            para("You " + (P(function () { return pc.isCrotchExposed(); }, false) ? "step" : "strip and step") + " in close and brace a hand on the wall above her head. That long, grooved tongue slides out and drags up the length of your [pc.pussy] in one slow lick, and you have to grab the edge of the alcove. It’s longer than you thought, longer than you’d think possible, and when she slides it inside, it just keeps going, curling and flicking against places nobody ever reaches.");
+            para("For someone who claims she only likes cocks, she learns fast. She finds your [pc.clit] with the tip and circles it while the rest of her tongue works deep inside you, and when your knees start to shake she makes a pleased little noise against your folds. You cum hard, [pc.girlCum] slicking her chin while she laps at you right through it, and you don’t stop her until your legs won’t hold you up any more.");
+        } else {
+            para("You " + (P(function () { return pc.isCrotchExposed(); }, false) ? "turn" : "strip and turn") + " around and brace your hands on your knees. Her breath is warm on your [pc.butt] for a moment, then that long, grooved tongue slides between your cheeks and laps slowly across your [pc.asshole]. You shiver. She does it again, and again, then presses the tip in and keeps going, and going, until she’s curling and flicking deep inside you in a way no tongue has any right to.");
+            if (P(function () { return pc.hasCock(); }, false)) para("When she finds your prostate she makes a pleased little noise and presses right on it, over and over, until you’re leaking all over the floor of the booth. You cum without anyone touching your [pc.cocksLight], [pc.cum] spattering the padding below her while she laps at you right through it.");
+            else para("She works you open with slow, patient strokes, curling and pressing until you’re shaking, and when you finally cum it’s with a gasp that turns heads three booths down. She keeps licking right through it until you have to pull away.");
+        }
+        para("When you finally straighten up, she’s licking her lips with an expression you can’t quite read. <i>“Do come back, keeper,”</i> she says, and she almost sounds like she means it.");
+        bumpFlag("TN_VIPER_TONGUED");
+        window.processTime(25);
+        P(function () { pc.orgasm(); });
+        rest();
+        window.clearMenu();
+        window.addButton(0, "Next", window.mainGameMenu);
+    }
+
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+    // -----------------------------------------------------------------------------
+    // The slavebreaker
+    // -----------------------------------------------------------------------------
+    function slavebreakerHas() { return held() > 0; }
+    function slavebreakerUse() {
+        if (!on()) return;
+        var f = F();
+        if (sbGameCollarHeld()) return; // her own collar, the game's normal path
+        if (extra() < 1) return;
+        f.TN_SNAKE_COLLARS = extra() - 1;
+        // Close the game's own "Buy a Collar" path at Urbolg; she has a collar now.
+        f.SLAVEBREAKER_COLLAR_BOUGHT = 1;
+        f.SLAVEBREAKER_COLLAR_FETCH = 1;
+        if (!f.SLAVEBREAKER_COLLAR_REQUEST_TS) f.SLAVEBREAKER_COLLAR_REQUEST_TS = now();
+        dbg("slavebreaker collared with a TN collar");
+    }
+
+    // -----------------------------------------------------------------------------
+    // Stats
+    // -----------------------------------------------------------------------------
+    function statsLine(text) {
+        if (!on() || !viperIsCollared()) return text;
+        return String(text).replace(/^Met her/, "Met her, wears your collar");
+    }
+
+    // -----------------------------------------------------------------------------
+    // Mod menu
+    // -----------------------------------------------------------------------------
+    function register() {
+        if (window.tnModMenuActive !== true || typeof window.registerModMenu !== "function") return false;
+        window.registerModMenu({
+            id: MOD_ID,
+            name: NAME,
+            author: "TN",
+            description: "Collar the Blue Viper at Cherry’s Tap-Hall on Zhèng Shi. Ask Urbolg for the collar on his workstation (Viper Collar, " + credits(WORKBENCH_PRICE) + " credits) or have him make another (Another Collar, " + credits(REMAKE_PRICE) + " credits, ready in 10 hours), then use Collar Her in her booth. The slavebreaker’s own collar scene takes the next collar if hers went to the Blue Viper. Turned off, the game acts as written and your collars are remembered.",
+            supportsToggle: true,
+            onEnabledChange: function () { return true; }
+        });
+        return true;
+    }
+    (function waitForModMenu(tries) {
+        if (register()) return;
+        if (window.tnModMenuActive === false && tries >= 6) return;
+        if (tries < 240) setTimeout(function () { waitForModMenu(tries + 1); }, 500);
+    })(0);
+
+    window.tnSnakeCollar = {
+        version: "1.0",
+        on: on,
+        held: held,
+        viperCollared: viperCollared,
+        viperBooth: viperBooth,
+        viperButton: viperButton,
+        urbolgButton: urbolgButton,
+        workbenchGone: workbenchGone,
+        workbenchGoneButton: workbenchGoneButton,
+        slavebreakerHas: slavebreakerHas,
+        slavebreakerUse: slavebreakerUse,
+        statsLine: statsLine
+    };
+    dbg("loaded");
+})();
