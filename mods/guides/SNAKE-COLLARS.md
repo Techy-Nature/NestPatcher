@@ -13,8 +13,8 @@ Switch: Options > **Android Mods** (Android) or **TN Mod Settings** (desktop) > 
 
 1. Copy `TN_SnakeCollars_v1.0.mod` and `TN_SnakeCollars_v1.0.js` into your mods folder.
 2. Make sure both lines are in `enabled.txt` (they're in the pack's copy already).
-3. Run NestPatcher: **Test my mods**. It should end with `669 replacements` and no `MISS`
-   lines (679 on desktop with the launcher fixes on).
+3. Run NestPatcher: **Test my mods**. It should end with `811 replacements` and no `MISS`
+   lines (821 on desktop with the launcher fixes on).
 4. Run **Patch the game**, then restart TiTS.
 
 ## Collar the Blue Viper
