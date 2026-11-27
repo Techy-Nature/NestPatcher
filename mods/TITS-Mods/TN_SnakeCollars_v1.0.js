@@ -27,7 +27,7 @@
      Cherry's, where "Come Aboard" brings her back). She counts toward your crew capacity.
    - Breed Her (needs a cock): on the ship, in the Blue Viper's crew menu and in your
      slavebreaker's (obedience 33+). Each time there's a chance she catches (50% at normal
-     virility, up to 90%). She shows after 3 days, lays one egg at 14 days ("Laying!" in her
+     fertility, up to 90%; none while you're sterile or on Sterilex). She shows after 3 days, lays one egg at 14 days ("Laying!" in her
      menu, or on her own a day later), and the egg goes to the Tavros nursery. It hatches 14
      days later as a slyveren (naga) child, with emails from Briget. A week's rest after
      laying before she can carry another.
@@ -533,8 +533,16 @@
         return String(s).split(",").map(Number).filter(function (n) { return isFinite(n) && n > 0; });
     }
     function setEggs(m, list) { F()[fk(m, "EGGS")] = list.length ? list.join(",") : undefined; }
-    function virility() { return P(function () { return pc.virility(); }, 1); }
-    function catchChance() { return Math.min(0.9, 0.5 * Math.max(0, num(virility()))); }
+    // The game's own fertility: 0 when Steele is sterile, on Sterilex (Infertile), has the
+    // Firing Blanks perk or a cock sock that blocks it. pc.virility() is deprecated in 0.9.169.
+    function fertility() {
+        return P(function () {
+            if (typeof pc.cumQuality !== "function") return 1;
+            var v = Number(pc.cumQuality());
+            return isFinite(v) ? v : 1;
+        }, 1);
+    }
+    function catchChance() { return Math.min(0.9, 0.5 * Math.max(0, fertility())); }
     function sbCrew() { return P(function () { return window.slyv.isCrew(); }, false); }
     function sbObedience() { return P(function () { return window.slyv.obedience(); }, 0); }
     function hasCock() { return P(function () { return pc.hasCock(); }, false); }
@@ -622,7 +630,9 @@
         if (cooling(m)) { window.addDisabledButton(slot, "Breed Her", "Breed Her", "She laid not long ago. Give her a week before you try again."); return; }
         if (!hasCock()) { window.addDisabledButton(slot, "Breed Her", "Breed Her", "You need a cock to breed her."); return; }
         if (m === "sb" && sbObedience() < 33) { window.addDisabledButton(slot, "Breed Her", "Breed Her", "She isn’t obedient enough to carry your eggs yet."); return; }
-        window.addButton(slot, "Breed Her", function () { breedScene(m, back); }, "Breed Her", "Fuck " + who.name + " with every intention of putting an egg in her. Her eggs go to the nursery on Tavros.");
+        var tip = "Fuck " + who.name + " with every intention of putting an egg in her. Her eggs go to the nursery on Tavros.";
+        if (catchChance() <= 0) tip += "\n\n<b>You can’t father anything right now</b> (Sterilex, or you’re sterile), so she won’t catch.";
+        window.addButton(slot, "Breed Her", function () { breedScene(m, back); }, "Breed Her", tip);
     }
     function sbShow() { P(function () { window.slyv.header(false); }); }
     function sbBreedButton(slot) {
