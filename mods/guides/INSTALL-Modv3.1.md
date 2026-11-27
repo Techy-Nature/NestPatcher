@@ -16,6 +16,7 @@ those names by themselves.
 | `TN_TattooParlor_v2.6.mod` | The Tavros tattoo parlor was renamed. |
 | `TN_HoloChastity_v2.6.mod` | The game's penis router was renamed. |
 | `TN_TeaseRestore_v1.0.mod`, `TN_TeaseRestore_v1.0.js` | New: Tease Restore gives your teases back their old Flash-game strength. |
+| `TN_ImplantSlots_v1.0.mod`, `TN_ImplantSlots_v1.0.js` | New: Implant Slots lets Sabrae on Dhaal install three combat and three utility implants at once. See `IMPLANT-SLOTS.md`. |
 | `TN_Changelog_v3.1.js` | Shows Modv3.1. Replaces `TN_Changelog_v3.0.js` (delete the old one). |
 
 Every other file is the same as Modv3.0. `TN_GameFixes_v1.0.mod` stays: all six bugs it fixes are
@@ -32,7 +33,7 @@ still in 0.9.169.
 5. **Windows, Linux and Mac only:** remove the `#` at the start of the
    `TN_LauncherFixes_v1.1.mod` line in `enabled.txt` if you want the launcher fixes.
 6. Run NestPatcher: **Test my mods**, then **Patch the game**. The test should end with
-   `659 replacements` and no `MISS` lines (669 on desktop with the launcher fixes on).
+   `801 replacements` and no `MISS` lines (811 on desktop with the launcher fixes on).
 7. Restart TiTS. The in-game **Changelog** should say `Installed: Modv3.1`.
 
 On Android you can update the pack before you have the 0.9.169 APK: these files work on
@@ -50,7 +51,8 @@ On Android you can update the pack before you have the 0.9.169 APK: these files 
 ## How it was tested
 
 - NestPatcher (Linux 1.13) dry run: 656 replacements, no MISS, on both 0.9.169 and 0.9.168.
-  With Tease Restore added: 659 replacements, no MISS, on 0.9.169.
+  With Tease Restore added: 659 replacements, no MISS, on 0.9.169. With Implant Slots added: 801
+  replacements, no MISS, on 0.9.169 (desktop and Android patcher 1.6).
 - A real desktop patch of 0.9.169 with the launcher fixes on: 666 replacements, every patched
   file passed the syntax check, and each renamed spot was checked by hand in the patched files.
 - Android patcher 1.6 dry run on the 0.9.169 game files: 656 replacements, no MISS.
