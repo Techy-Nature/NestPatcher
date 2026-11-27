@@ -12,8 +12,8 @@ Switch: Options > **Android Mods** (Android) or **TN Mod Settings** (desktop) > 
 
 1. Copy `TN_SnakeCollars_v1.0.mod` and `TN_SnakeCollars_v1.0.js` into your mods folder.
 2. Make sure both lines are in `enabled.txt` (they're in the pack's copy already).
-3. Run NestPatcher: **Test my mods**. It should end with `666 replacements` and no `MISS`
-   lines (676 on desktop with the launcher fixes on).
+3. Run NestPatcher: **Test my mods**. It should end with `668 replacements` and no `MISS`
+   lines (678 on desktop with the launcher fixes on).
 4. Run **Patch the game**, then restart TiTS.
 
 ## Collar the Blue Viper
@@ -32,6 +32,16 @@ Switch: Options > **Android Mods** (Android) or **TN Mod Settings** (desktop) > 
 
 Urbolg's workstation stays empty for three days after he hands his collar over, so his own
 **Collar** / **Slave Collar** buttons come back once he's built himself a new one.
+
+## Bring her aboard
+
+1. Once she wears your collar, her booth menu has **Buy Her**. Cherry sells you her contract
+   for **100,000 credits**. You need a free crew slot on your ship.
+2. She comes out of the wall and joins your crew. She counts toward your crew capacity.
+3. On the ship, **Crew > Blue Viper** has **Talk**, **Suck Me**, **Tongue** and **Send Away**.
+4. **Send Away** has her wait for you at Cherry's, on a bench by her old alcove. Press **Blue
+   Viper** there and then **Come Aboard** to bring her back (needs a free crew slot).
+5. Stats > Blue Viper says whether she's on your crew or waiting at Cherry's.
 
 ## Need another collar?
 
@@ -58,11 +68,12 @@ count:
 ## Turning it off
 
 Turn **Snake Collars** off in the mod menu and the game acts as it was written: the Blue Viper's
-booth is the game's again and Urbolg's extra button goes away. Every collar and flag is kept for
-when you turn it back on.
+booth is the game's again, Urbolg's extra button goes away and she leaves your crew list. Every
+collar and flag is kept, so she's back when you turn it on again.
 
 ## Flags (for the Save Editor)
 
 `TN_SNAKE_COLLARS` (Urbolg's slave collars you carry), `TN_VIPER_COLLARED` (1),
 `TN_VIPER_OLD_OBEDIENCE` (her obedience count before the collar), `TN_URBY_COLLAR_GIVEN`,
-`TN_SNAKE_COLLAR_ORDER_TS`.
+`TN_SNAKE_COLLAR_ORDER_TS`, `TN_VIPER_BOUGHT` (1 = you bought her), `TN_VIPER_CREW` (1 = aboard,
+0 = waiting at Cherry's).

@@ -21,13 +21,19 @@
    - The slavebreaker: her "Collar Her" scene is the game's own. It counts Urbolg's slave
      collars as well as the one the game sells you for her, so if the Blue Viper took the
      workstation collar, the next one Urbolg makes works on her.
+   - Buy Her (Blue Viper's booth, once she's collared): Cherry sells you her contract for
+     100,000 credits and she joins your crew (needs a free crew slot). On the ship she has a
+     crew button with Talk, Suck Me, Tongue and Send Away (she waits for you at Cherry's, where
+     "Come Aboard" brings her back). She counts toward your crew capacity.
    - Collars carried: the game's slavebreaker collar (bought, not used) plus TN_SNAKE_COLLARS.
      The Blue Viper only takes Urbolg's slave collars, never the slavebreaker's.
    - Flags: TN_SNAKE_COLLARS (slave collars carried), TN_VIPER_COLLARED (1),
      TN_VIPER_COLLARED_TS, TN_VIPER_OLD_OBEDIENCE, TN_VIPER_VISITS, TN_URBY_COLLAR_GIVEN (+ _TS),
-     TN_SNAKE_COLLAR_ORDER_TS, TN_SNAKE_COLLARS_MADE.
+     TN_SNAKE_COLLAR_ORDER_TS, TN_SNAKE_COLLARS_MADE, TN_VIPER_BOUGHT (1),
+     TN_VIPER_CREW (1 = aboard, 0 = waiting at Cherry's).
 
-   Needs TN_SnakeCollars_v1.0.mod (the buttons in the game's menus and the Stats line).
+   Needs TN_SnakeCollars_v1.0.mod (the buttons in the game's menus, the crew list and the
+   Stats line).
    Toggle: Android Mods / TN Mod Settings > "Snake Collars". Turned off, the game acts as it
    was written (the Blue Viper's booth is the game's again); every flag is kept for later. */
 (function () {
@@ -41,6 +47,7 @@
     var REMAKE_MINUTES = 600;            // the game's slavebreaker collar takes 10 hours too
     var WORKBENCH_BACK_MINUTES = 3 * 24 * 60;
     var REST_MINUTES = 180;              // the game's own BlueViperDisable time
+    var BUY_PRICE = 100000;
 
     function P(fn, dflt) { try { var v = fn(); return v === undefined ? dflt : v; } catch (err) { return dflt; } }
     function dbg(msg) {
@@ -81,6 +88,10 @@
         return !!f.SLAVEBREAKER_COLLAR_INTRO && !f.SLYV_COLLAR_TS &&
             !f.SLAVEBREAKER_COLLAR_REQUEST_TS && !f.SLAVEBREAKER_COLLAR_BOUGHT;
     }
+    function bought() { return F().TN_VIPER_BOUGHT === 1; }
+    function aboard() { return on() && viperIsCollared() && bought() && F().TN_VIPER_CREW === 1; }
+    function shipFull() { return P(function () { return window.fullCrew(); }, false); }
+    function spot(booth, ship) { return aboard() ? ship : booth; }
     function workbenchGiven() { return F().TN_URBY_COLLAR_GIVEN === 1; }
     function orderTs() { return F().TN_SNAKE_COLLAR_ORDER_TS; }
 
@@ -246,6 +257,7 @@
     }
 
     function viperBooth() {
+        if (bought()) return viperBoothBought();
         window.clearOutput(); viperShow();
         var f = F(), pc = PC();
         var first = f.TN_VIPER_VISITS === undefined;
@@ -272,7 +284,15 @@
         else window.addDisabledButton(0, "Suck Me", "Suck Me", "You need a cock for this.");
         var tongueTip = P(function () { return pc.hasVagina(); }, false) ? "Have that long, grooved tongue on your [pc.pussiesLight]." : "Have that long, grooved tongue on your [pc.asshole].";
         window.addButton(1, "Tongue", viperTongue, "Tongue", tongueTip);
-        window.addButton(14, "Leave", viperLeave, "Leave", "Leave her to the other customers.");
+        if (!bought()) {
+            if (shipFull()) window.addDisabledButton(2, "Buy Her", "Buy Her", "You don’t have room for another crew member on your ship.");
+            else if (num(pc.credits) < BUY_PRICE) window.addDisabledButton(2, "Buy Her", "Buy Her", "Cherry won’t let her go for less than " + credits(BUY_PRICE) + " credits.\n\n<b>Price:</b> " + credits(BUY_PRICE) + " Credits");
+            else window.addButton(2, "Buy Her", buyHer, "Buy Her", "Ask Cherry what it would take to bring the Blue Viper aboard your ship as crew.\n\n<b>Price:</b> " + credits(BUY_PRICE) + " Credits");
+        } else {
+            if (shipFull()) window.addDisabledButton(2, "Come Aboard", "Come Aboard", "You don’t have room for her on your ship right now.");
+            else window.addButton(2, "Come Aboard", comeAboard, "Come Aboard", "Take her back to your ship.");
+        }
+        window.addButton(14, "Leave", viperLeave, "Leave", bought() ? "Leave her to wait for you." : "Leave her to the other customers.");
     }
     function viperLeave() {
         window.clearOutput(); viperShow();
@@ -299,14 +319,14 @@
         para("<i>“Slowly,”</i> you tell her.");
         para("<i>“Slowly,”</i> she agrees, eager as a puppy.");
         para("She takes you in one plush-lipped inch at a time, sapphire eyes on yours the whole way down. Her mouth is hot and wet and almost unbearably soft, her tongue wrapping around your shaft like a living sleeve. When she gets greedy and tries to swallow you all at once, you rest two fingers on her collar and she stops dead, then goes back to that maddening, careful pace with a muffled huff through her nose.");
-        para("It’s a different woman sucking you off. No voice in your head telling you what you want, no warm pull dragging your hips forward. Just the sounds she makes, the wet sway of her heavy breasts against the edge of the alcove, and a throat that ripples and pulls around your [pc.cockHead " + c + "] while she hums. She’s very, very good at this, and she wants nothing more than to make you feel it.");
-        para("When you’re close you tell her so, and she sinks down to the root and stays there, her hood fanned wide and her throat milking you in long, slow waves. You cum with a groan, " + (P(function () { return pc.cumQ(); }, 0) >= 1000 ? "a flood of [pc.cum] that swells her belly against the wall’s padding while she gulps it down without spilling a drop" : "and she drinks every pulse of [pc.cum] like it’s the best thing she’s tasted all week") + ".");
+        para("It’s a different woman sucking you off. No voice in your head telling you what you want, no warm pull dragging your hips forward. Just the sounds she makes, the wet sway of her heavy breasts against " + spot("the edge of the alcove", "your thighs") + ", and a throat that ripples and pulls around your [pc.cockHead " + c + "] while she hums. She’s very, very good at this, and she wants nothing more than to make you feel it.");
+        para("When you’re close you tell her so, and she sinks down to the root and stays there, her hood fanned wide and her throat milking you in long, slow waves. You cum with a groan, " + (P(function () { return pc.cumQ(); }, 0) >= 1000 ? "a flood of [pc.cum] that swells her belly " + spot("against the wall’s padding", "out over her coils") + " while she gulps it down without spilling a drop" : "and she drinks every pulse of [pc.cum] like it’s the best thing she’s tasted all week") + ".");
         para("She pulls off with a soft pop and licks her lips clean, very slowly, while you watch. <i>“There,”</i> she says, glowing. <i>“Was that slow enough for you, Master?”</i>");
         bumpFlag("BLUE_VIPER_SUCKED");
         bumpFlag("TN_VIPER_SUCKED");
         window.processTime(25);
         P(function () { pc.orgasm(); });
-        rest();
+        if (!aboard()) rest();
         window.clearMenu();
         window.addButton(0, "Next", window.mainGameMenu);
     }
@@ -320,23 +340,148 @@
         para("You reach out and touch her collar. She shivers from hood to hips.");
         para("<i>“...My tongue is for whatever my master likes,”</i> she breathes, already leaning in.");
         if (pussy) {
-            para("You " + (P(function () { return pc.isCrotchExposed(); }, false) ? "step" : "strip and step") + " in close and brace a hand on the wall above her head. That long, grooved tongue slides out and drags up the length of your [pc.pussy] in one slow lick, and you have to grab the edge of the alcove. It’s longer than you thought, longer than you’d think possible, and when she slides it inside, it just keeps going, curling and flicking against places nobody ever reaches.");
+            para("You " + (P(function () { return pc.isCrotchExposed(); }, false) ? "step" : "strip and step") + " in close and brace a hand " + spot("on the wall above her head", "on top of her hood") + ". That long, grooved tongue slides out and drags up the length of your [pc.pussy] in one slow lick, and you have to grab " + spot("the edge of the alcove", "the nearest bulkhead") + ". It’s longer than you thought, longer than you’d think possible, and when she slides it inside, it just keeps going, curling and flicking against places nobody ever reaches.");
             para("For someone who claims she only likes cocks, she learns fast. She finds your [pc.clit] with the tip and circles it while the rest of her tongue works deep inside you, and when your knees start to shake she makes a pleased little noise against your folds. You cum hard, [pc.girlCum] slicking her chin while she laps at you right through it, and you don’t stop her until your legs won’t hold you up any more.");
         } else {
             para("You " + (P(function () { return pc.isCrotchExposed(); }, false) ? "turn" : "strip and turn") + " around and brace your hands on your knees. Her breath is warm on your [pc.butt] for a moment, then that long, grooved tongue slides between your cheeks and laps slowly across your [pc.asshole]. You shiver. She does it again, and again, then presses the tip in and keeps going, and going, until she’s curling and flicking deep inside you in a way no tongue has any right to.");
-            if (P(function () { return pc.hasCock(); }, false)) para("When she finds your prostate she makes a pleased little noise and presses right on it, over and over, until you’re leaking all over the floor of the booth. You cum without anyone touching your [pc.cocksLight], [pc.cum] spattering the padding below her while she laps at you right through it.");
-            else para("She works you open with slow, patient strokes, curling and pressing until you’re shaking, and when you finally cum it’s with a gasp that turns heads three booths down. She keeps licking right through it until you have to pull away.");
+            if (P(function () { return pc.hasCock(); }, false)) para("When she finds your prostate she makes a pleased little noise and presses right on it, over and over, until you’re leaking all over " + spot("the floor of the booth", "the deck") + ". You cum without anyone touching your [pc.cocksLight], [pc.cum] spattering " + spot("the padding below her", "her coils") + " while she laps at you right through it.");
+            else para("She works you open with slow, patient strokes, curling and pressing until you’re shaking, and when you finally cum it’s with a gasp " + spot("that turns heads three booths down", "that echoes down the corridor") + ". She keeps licking right through it until you have to pull away.");
         }
         para("When you finally straighten up, she’s licking her lips and gazing up at you like you hung the stars. <i>“Come back soon, Master,”</i> she says, and she means every word.");
         bumpFlag("TN_VIPER_TONGUED");
         window.processTime(25);
         P(function () { pc.orgasm(); });
-        rest();
+        if (!aboard()) rest();
         window.clearMenu();
         window.addButton(0, "Next", window.mainGameMenu);
     }
 
     function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+    // -----------------------------------------------------------------------------
+    // Buying her, and the Blue Viper as crew
+    // -----------------------------------------------------------------------------
+    function cherryShow() {
+        P(function () { window.cherry.showAll(); });
+        P(function () { window.showName("Cherry"); });
+        window.author("Neston");
+    }
+    function buyHer() {
+        window.clearOutput(); cherryShow();
+        out("You catch Cherry’s eye across the Tap-Hall and nod at the blue slyveren’s alcove. She takes her time coming over.");
+        para("<i>“Something wrong with my snake?”</i> she asks, then looks at the collar, then at you. <i>“Ah. You’re the one. Half my regulars have been crying into their drinks since she stopped taking their heads apart.”</i>");
+        para("<i>“I want to take her off your hands,”</i> you tell her. <i>“Aboard my ship. As crew.”</i>");
+        para("Cherry snorts. <i>“She was the best earner on that wall, you know. Then you put a leash on her and now she’s just a very pretty snake who gives very good head.”</i> She taps a long nail against her chin. <i>“" + credits(BUY_PRICE) + " credits and she’s yours, contract and all. I’ll even throw in the cushion.”</i>");
+        window.processTime(5);
+        window.clearMenu();
+        window.addButton(0, "Pay", buyHerPay, "Pay", "Pay Cherry " + credits(BUY_PRICE) + " credits for the Blue Viper’s contract.");
+        window.addButton(1, "Not Now", function () {
+            window.clearOutput(); cherryShow();
+            out("<i>“Maybe later.”</i>");
+            para("<i>“She’s not going anywhere,”</i> Cherry says, already heading back to the bar. <i>“Literally.”</i>");
+            window.clearMenu();
+            window.addButton(0, "Next", window.mainGameMenu);
+        }, "Not Now", "Maybe later.");
+    }
+    function buyHerPay() {
+        window.clearOutput(); cherryShow();
+        var f = F(), pc = PC();
+        pc.credits = num(pc.credits) - BUY_PRICE;
+        f.TN_VIPER_BOUGHT = 1;
+        f.TN_VIPER_BOUGHT_TS = now();
+        f.TN_VIPER_CREW = 1;
+        out("You transfer the credits. Cherry checks her codex, smiles, and raps twice on the wall beside the alcove. Somewhere on the other side, a latch clanks open.");
+        viperShow();
+        para("The Blue Viper comes out of the wall a coil at a time. There’s a lot more of her than you ever saw from the front: sapphire scales and silver patterns, long and thick and glistening under the red lights, until she’s pooled in front of you and rising up to look you in the eye. Her hood flares, then folds, and she bows her head until your collar is right under your hand.");
+        para("<i>“Master,”</i> she says softly. <i>“You bought me.”</i>");
+        para("<i>“I did.”</i>");
+        para("She doesn’t say anything else. She doesn’t need to. She just follows you out of the Tap-Hall, her tail never more than a few inches from your heels, all the way back to your ship. By the time you’ve shown her the spare bunk she’s already wrapped herself around it like she’s lived there for years.");
+        para("<b>The Blue Viper has joined your crew.</b>");
+        window.processTime(30);
+        dbg("Blue Viper bought and aboard");
+        window.clearMenu();
+        window.addButton(0, "Next", window.mainGameMenu);
+    }
+    function viperBoothBought() {
+        window.clearOutput(); viperShow();
+        if (aboard()) {
+            out("The Blue Viper’s old alcove is empty, the padding wiped clean. She’s on your ship.");
+            window.clearMenu();
+            window.addButton(0, "Next", window.mainGameMenu);
+            return;
+        }
+        out("The Blue Viper is curled up on a cushioned bench beside her old alcove, coils piled high and collar glinting in the red light. Cherry’s regulars give her a wide berth. The moment she sees you, her hood lifts and she sits up straight.");
+        para("<i>“Master! Have you come to take me home?”</i>");
+        window.processTime(2);
+        viperMenu();
+    }
+    function comeAboard() {
+        window.clearOutput(); viperShow();
+        F().TN_VIPER_CREW = 1;
+        out("<i>“Come on,”</i> you tell her. <i>“We’re going back to the ship.”</i>");
+        para("She’s off the bench before you finish the sentence, sliding along beside you with her tail curled around your ankle. <i>“I missed you, Master. Cherry’s customers are so terribly dull.”</i>");
+        window.processTime(15);
+        dbg("Blue Viper back aboard");
+        window.clearMenu();
+        window.addButton(0, "Next", window.mainGameMenu);
+    }
+
+    function crewCount() { return aboard() ? 1 : 0; }
+    function crewBlurb(slot) {
+        if (!aboard()) return "";
+        window.addButton(slot, "Blue Viper", crewApproach, "Blue Viper", "Visit your collared slyveren.");
+        return "\n\n" + pick([
+            "The Blue Viper has claimed the warmest corner of the ship. She’s coiled up in a nest of cushions with your collar glinting at her throat, watching the door for you.",
+            "Every so often you catch a flash of sapphire scales in a doorway. The Blue Viper likes to know where her master is.",
+            "The Blue Viper is sunning herself under a heat lamp she talked someone into installing, coils draped over half the room."
+        ]);
+    }
+    function crewApproach() {
+        window.clearOutput(); viperShow();
+        out(pick([
+            "You find the Blue Viper wrapped around her bunk, coils stacked three high and her chin resting on the top one. The moment she sees you, her hood flares and she uncoils in a long, glittering rush. <i>“Master.”</i>",
+            "The Blue Viper is reading something on a borrowed datapad, her tail tip flicking idly. She drops it the second you step in. <i>“Master! I was just thinking about you.”</i>",
+            "The Blue Viper slides up to meet you before you’re halfway through the door, curling a loop of tail around your waist. <i>“What does my master need?”</i>"
+        ]));
+        window.processTime(1);
+        crewMenu();
+    }
+    function crewMenu() {
+        var pc = PC();
+        window.clearMenu();
+        window.addButton(0, "Talk", crewTalk, "Talk", "Chat with her.");
+        if (P(function () { return pc.hasCock(); }, false)) window.addButton(1, "Suck Me", viperSuck, "Suck Me", "Have her take your cock.");
+        else window.addDisabledButton(1, "Suck Me", "Suck Me", "You need a cock for this.");
+        window.addButton(2, "Tongue", viperTongue, "Tongue", P(function () { return pc.hasVagina(); }, false) ? "Have that long, grooved tongue on your [pc.pussiesLight]." : "Have that long, grooved tongue on your [pc.asshole].");
+        window.addButton(10, "Send Away", sendAway, "Send Away", "Tell her to wait for you at Cherry’s Tap-Hall on Zhèng Shi. You can pick her up there later.");
+        window.addButton(14, "Back", window.mainGameMenu);
+    }
+    function crewTalk() {
+        window.clearOutput(); viperShow();
+        var talks = [
+            ["<i>“Do you miss the wall?”</i> you ask.",
+             "She considers it, tongue flicking. <i>“I miss being worshipped,”</i> she admits. <i>“Hundreds of them, all on their knees. But they only worshipped me because I made them.”</i> She touches her collar. <i>“You came back after I couldn’t make you do anything at all. That’s worth more.”</i>"],
+            ["<i>“How are you finding the ship?”</i>",
+             "<i>“Cramped,”</i> she says at once. <i>“There is nowhere to stretch out properly, the floors are cold, and your crew keeps stepping on my tail.”</i> Her hood lifts. <i>“I love it. Don’t you dare sell me back.”</i>"],
+            ["<i>“What did you do before Cherry’s?”</i>",
+             "<i>“This and that,”</i> she says airily. <i>“Mostly that.”</i> When you keep looking at her she sighs. <i>“A slyveren with a voice like mine doesn’t need a job, Master. People simply gave me things. Cherry was the first one clever enough to put me somewhere I couldn’t walk away from.”</i> A forked tongue flicks out. <i>“And now you’ve done the same. I seem to have a type.”</i>"]
+        ];
+        var t = pick(talks);
+        out(t[0]);
+        para(t[1]);
+        window.processTime(10);
+        crewMenu();
+    }
+    function sendAway() {
+        window.clearOutput(); viperShow();
+        F().TN_VIPER_CREW = 0;
+        out("<i>“I need the room aboard for a while,”</i> you tell her. <i>“Wait for me at Cherry’s.”</i>");
+        para("Her hood droops, but she doesn’t argue. <i>“Yes, Master. Don’t leave me there too long. The customers will think I’m available.”</i> She gathers up her cushions and slithers off the ship.");
+        window.processTime(5);
+        dbg("Blue Viper sent to Cherry's");
+        window.clearMenu();
+        window.addButton(0, "Next", window.mainGameMenu);
+    }
 
     // -----------------------------------------------------------------------------
     // The slavebreaker
@@ -360,7 +505,7 @@
     // -----------------------------------------------------------------------------
     function statsLine(text) {
         if (!on() || !viperIsCollared()) return text;
-        return String(text).replace(/^Met her/, "Met her, wears your collar");
+        return String(text).replace(/^Met her/, "Met her, wears your collar" + (bought() ? (F().TN_VIPER_CREW === 1 ? ", on your crew" : ", waiting at Cherry’s") : ""));
     }
 
     // -----------------------------------------------------------------------------
@@ -372,7 +517,7 @@
             id: MOD_ID,
             name: NAME,
             author: "TN",
-            description: "Collar the Blue Viper at Cherry’s Tap-Hall on Zhèng Shi with Urbolg’s slave collar. Buy the one on his workstation (Viper Collar, " + credits(WORKBENCH_PRICE) + " credits) or have him build another just like it (Another Collar, " + credits(REMAKE_PRICE) + " credits, ready in 10 hours), then use Collar Her in her booth. The slavebreaker’s own collar scene also takes Urbolg’s slave collars, so she can have the next one if the Blue Viper got the first. Turned off, the game acts as written and your collars are remembered.",
+            description: "Collar the Blue Viper at Cherry’s Tap-Hall on Zhèng Shi with Urbolg’s slave collar. Buy the one on his workstation (Viper Collar, " + credits(WORKBENCH_PRICE) + " credits) or have him build another just like it (Another Collar, " + credits(REMAKE_PRICE) + " credits, ready in 10 hours), then use Collar Her in her booth. Once she’s collared, Buy Her gets her contract from Cherry (" + credits(BUY_PRICE) + " credits) and she joins your crew. The slavebreaker’s own collar scene also takes Urbolg’s slave collars, so she can have the next one if the Blue Viper got the first. Turned off, the game acts as written and your collars are remembered.",
             supportsToggle: true,
             onEnabledChange: function () { return true; }
         });
@@ -390,6 +535,8 @@
         held: held,
         viperCollared: viperCollared,
         viperBooth: viperBooth,
+        crewCount: crewCount,
+        crewBlurb: crewBlurb,
         viperButton: viperButton,
         urbolgButton: urbolgButton,
         workbenchGone: workbenchGone,
