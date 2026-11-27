@@ -53,7 +53,7 @@ once she's on your crew with obedience 33 or more. You need a cock.
 1. Press **Breed Her**: **Crew > Blue Viper**, or **Crew > Slavebreaker** (the button is
    after **Kick Her Out**).
 2. Each time there's a chance she catches: 50% at normal fertility, rising to 75% at triple
-   fertility or more (Virile, Priapin, rut and the like).
+   fertility or more (Priapin, rut and the like). The **Virile** perk gives 75% straight away.
    None while you're sterile or on Sterilex (the button says so). You can try as often as you
    like.
 3. After **3 days** it shows. **Breed Her** goes grey and says which day she's on.

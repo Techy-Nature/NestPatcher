@@ -27,7 +27,7 @@
      Cherry's, where "Come Aboard" brings her back). She counts toward your crew capacity.
    - Breed Her (needs a cock): on the ship, in the Blue Viper's crew menu and in your
      slavebreaker's (obedience 33+). Each time there's a chance she catches (50% at normal
-     fertility, up to 75% at triple fertility or more; none while you're sterile or on Sterilex). She shows after 3 days, lays one egg at 14 days ("Laying!" in her
+     fertility, up to 75% at triple fertility or more or with the Virile perk; none while you're sterile or on Sterilex). She shows after 3 days, lays one egg at 14 days ("Laying!" in her
      menu, or on her own a day later), and the egg goes to the Tavros nursery. It hatches 14
      days later as a slyveren (naga) child, with emails from Briget. A week's rest after
      laying before she can carry another.
@@ -542,9 +542,13 @@
             return isFinite(v) ? v : 1;
         }, 1);
     }
+    function virilePerk() { return P(function () { return !!pc.hasPerk("Virile"); }, false); }
     // 50% at normal fertility (1), climbing to a 75% cap at triple fertility (3) or more.
+    // The Virile perk goes straight to 75%. Sterile or on Sterilex is always 0.
     function catchChance() {
         var q = Math.max(0, fertility());
+        if (q <= 0) return 0;
+        if (virilePerk()) return 0.75;
         if (q <= 1) return 0.5 * q;
         return Math.min(0.75, 0.5 + 0.125 * (q - 1));
     }
