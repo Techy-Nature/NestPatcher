@@ -1,15 +1,16 @@
 # TN_SnakeCollars v1.0 - NestPatcher mod (TiTS 0.9.169), Modv3.1. Desktop and Android.
 # Collar the Blue Viper (the blue slyveren in the wall at Cherry's Tap-Hall on Zheng Shi)
-# with one of Urbolg's collars, and keep the slavebreaker's own collar scene working when
+# with Urbolg's slave collar, and keep the slavebreaker's own collar scene working when
 # the Blue Viper got the collar first.
-#   - Urbolg (hangar): "Viper Collar" asks for the collar sitting on his workstation.
-#     He keys it to your codex and fits it for a slyveren hood (100,000 credits).
-#   - Once that one is gone: "Another Collar" orders a new one (ready in 10 hours,
-#     200,000 credits, the same as the slavebreaker's).
-#   - The Blue Viper: "Collar Her" whenever you carry a collar. She stays in Cherry's wall,
-#     but her hypnosis can't touch you any more and she serves you for free.
-#   - The slavebreaker: her own "Collar Her" scene is the game's. If the collar you bought
-#     for her went to the Blue Viper, she takes the next one Urbolg makes.
+#   - Urbolg (hangar): "Viper Collar" buys the slave collar sitting on his workstation.
+#     He moves its registration from him to your codex (100,000 credits).
+#   - Once that one is gone: "Another Collar" has him build another slave collar just
+#     like it (ready in 10 hours, 150,000 credits).
+#   - The Blue Viper: "Collar Her" whenever you carry one of his slave collars. She calls
+#     you Master from then on, stays in Cherry's wall, can't hypnotize you any more and
+#     serves you for free.
+#   - The slavebreaker: her own "Collar Her" scene is the game's. It takes Urbolg's slave
+#     collars too, so she can have the next one if the Blue Viper got the first.
 #   - Stats: the Blue Viper's line says when she wears your collar.
 # Needs TN_SnakeCollars_v1.0.js (the scenes, the menus and the collar count).
 # @@x@@ is a NestPatcher wildcard, so each block matches the PC and Android builds.

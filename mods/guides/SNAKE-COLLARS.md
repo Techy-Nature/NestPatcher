@@ -1,7 +1,8 @@
 # Snake Collars (Modv3.1)
 
 Collar the **Blue Viper**, the blue slyveren with silver tattoos in the wall at Cherry's
-Tap-Hall on Zhèng Shi, with one of Urbolg's collars. The slavebreaker's own collar scene keeps
+Tap-Hall on Zhèng Shi, with Urbolg's slave collar: the same one-of-a-kind collar on his
+workstation that the game lets you put on yourself. The slavebreaker's own collar scene keeps
 working even when the Blue Viper got the collar first.
 
 Files: `TN_SnakeCollars_v1.0.mod` + `TN_SnakeCollars_v1.0.js` (both in `enabled.txt`).
@@ -18,12 +19,14 @@ Switch: Options > **Android Mods** (Android) or **TN Mod Settings** (desktop) > 
 ## Collar the Blue Viper
 
 1. Meet the Blue Viper at least once (Cherry's Tap-Hall, the wall booths).
-2. Go to Urbolg in the Zhèng Shi hangar and press **Viper Collar**. He keys the collar from his
-   workstation to your codex and fits it for a slyveren hood. **100,000 credits.**
+2. Go to Urbolg in the Zhèng Shi hangar and press **Viper Collar**. He sells you the slave
+   collar from his workstation and moves its registration from him to your codex. Nothing
+   else about it changes. **100,000 credits.**
 3. Go back to the Blue Viper's booth. **Collar Her** is in her menu (it shows whenever you
-   carry a collar). This counts as a hard-hearted act.
-4. From then on her booth is different: her hypnosis can't reach you, she's free for you, and
-   she has two scenes: **Suck Me** (needs a cock) and **Tongue** (your pussy, or your ass if
+   carry one of Urbolg's slave collars). This counts as a hard-hearted act.
+4. The collar does to her what it would do to you: she cums her brains out and calls you
+   Master from then on. Her hypnosis can't reach you, she's free for you, and she has two
+   scenes: **Suck Me** (needs a cock) and **Tongue** (your pussy, or your ass if
    you don't have one). Same 3-hour rest between visits as the game's scenes.
 5. Stats > Blue Viper says "wears your collar".
 
@@ -32,12 +35,13 @@ Urbolg's workstation stays empty for three days after he hands his collar over, 
 
 ## Need another collar?
 
-Urbolg's workstation collar is one of a kind. If it's gone and someone still needs a collar:
+Urbolg's workstation collar is one of a kind. If it's gone and someone still needs a collar,
+he builds another slave collar just like it:
 
 1. Press **Another Collar** at Urbolg. It shows when you carry no collar and either the Blue
-   Viper isn't collared yet, or the slavebreaker's collar went to the Blue Viper.
-2. Come back in **10 hours** and press **Fetch Collar**. **200,000 credits**, the same as the
-   game's slavebreaker collar.
+   Viper isn't collared yet, or the slavebreaker still needs one (Urbolg's game button for her
+   is showing and you haven't ordered her collar yet).
+2. Come back in **10 hours** and press **Fetch Collar**. **150,000 credits.**
 
 ## The slavebreaker
 
@@ -45,10 +49,11 @@ Her collar scene is the game's own (beat her as a black-scaled slavebreaker unti
 **Buy a Collar** shows, then **Collar Her** after a fight). The mod only changes which collars
 count:
 
-- If you bought her collar and still have it, the Blue Viper's **Collar Her** uses one of
-  Urbolg's other collars first, so hers stays for her.
-- If her collar went to the Blue Viper, she takes the next one Urbolg makes (**Another Collar**).
-- If you carry a collar from Urbolg and haven't bought hers, that one works on her too.
+- Urbolg's slave collars work on her too. If you carry one and haven't bought hers, her
+  **Collar Her** uses it.
+- If the Blue Viper got the workstation collar, press **Another Collar** for a new one
+  (150,000 credits) instead of the game's **Buy a Collar** (200,000 credits). Either works.
+- The Blue Viper never takes the collar you bought for the slavebreaker.
 
 ## Turning it off
 
@@ -58,7 +63,6 @@ when you turn it back on.
 
 ## Flags (for the Save Editor)
 
-`TN_SNAKE_COLLARS` (collars carried, beyond the game's slavebreaker collar), `TN_VIPER_COLLARED`
-(1), `TN_VIPER_OLD_OBEDIENCE` (her obedience count before the collar), `TN_SB_COLLAR_TO_VIPER`
-(1 = the slavebreaker's collar went to the Blue Viper), `TN_URBY_COLLAR_GIVEN`,
+`TN_SNAKE_COLLARS` (Urbolg's slave collars you carry), `TN_VIPER_COLLARED` (1),
+`TN_VIPER_OLD_OBEDIENCE` (her obedience count before the collar), `TN_URBY_COLLAR_GIVEN`,
 `TN_SNAKE_COLLAR_ORDER_TS`.
