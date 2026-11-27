@@ -3,7 +3,8 @@
 Collar the **Blue Viper**, the blue slyveren with silver tattoos in the wall at Cherry's
 Tap-Hall on Zhèng Shi, with Urbolg's slave collar: the same one-of-a-kind collar on his
 workstation that the game lets you put on yourself. The slavebreaker's own collar scene keeps
-working even when the Blue Viper got the collar first.
+working even when the Blue Viper got the collar first. Once she's collared you can buy her as
+crew, and you can breed her or your slavebreaker for eggs that go to the Tavros nursery.
 
 Files: `TN_SnakeCollars_v1.0.mod` + `TN_SnakeCollars_v1.0.js` (both in `enabled.txt`).
 Switch: Options > **Android Mods** (Android) or **TN Mod Settings** (desktop) > **Snake Collars**.
@@ -12,8 +13,8 @@ Switch: Options > **Android Mods** (Android) or **TN Mod Settings** (desktop) > 
 
 1. Copy `TN_SnakeCollars_v1.0.mod` and `TN_SnakeCollars_v1.0.js` into your mods folder.
 2. Make sure both lines are in `enabled.txt` (they're in the pack's copy already).
-3. Run NestPatcher: **Test my mods**. It should end with `668 replacements` and no `MISS`
-   lines (678 on desktop with the launcher fixes on).
+3. Run NestPatcher: **Test my mods**. It should end with `669 replacements` and no `MISS`
+   lines (679 on desktop with the launcher fixes on).
 4. Run **Patch the game**, then restart TiTS.
 
 ## Collar the Blue Viper
@@ -36,12 +37,33 @@ Urbolg's workstation stays empty for three days after he hands his collar over, 
 ## Bring her aboard
 
 1. Once she wears your collar, her booth menu has **Buy Her**. Cherry sells you her contract
-   for **100,000 credits**. You need a free crew slot on your ship.
+   for **50,000 credits**. You need a free crew slot on your ship.
 2. She comes out of the wall and joins your crew. She counts toward your crew capacity.
-3. On the ship, **Crew > Blue Viper** has **Talk**, **Suck Me**, **Tongue** and **Send Away**.
+3. On the ship, **Crew > Blue Viper** has **Talk**, **Suck Me**, **Tongue**, **Breed Her** and
+   **Send Away**.
 4. **Send Away** has her wait for you at Cherry's, on a bench by her old alcove. Press **Blue
    Viper** there and then **Come Aboard** to bring her back (needs a free crew slot).
 5. Stats > Blue Viper says whether she's on your crew or waiting at Cherry's.
+
+## Eggs for the nursery
+
+Both vipers can carry your eggs: the Blue Viper once she's on your crew, and your slavebreaker
+once she's on your crew with obedience 33 or more. You need a cock.
+
+1. Press **Breed Her**: **Crew > Blue Viper**, or **Crew > Slavebreaker** (the button is
+   after **Kick Her Out**).
+2. Each time there's a chance she catches: 50% at normal virility, up to 90% with more.
+   You can try as often as you like.
+3. After **3 days** it shows. **Breed Her** goes grey and says which day she's on.
+4. At **14 days** her menu has **Laying!**. Be there and she lays one egg. If you're away, she
+   lays it on her own a day later. Either way the egg goes to the nursery on Tavros and
+   Briget emails you.
+5. **14 days** later it hatches into a slyveren (naga) child in the nursery, and Briget
+   emails you again.
+6. She rests for **a week** after laying before she can carry another.
+
+The Blue Viper doesn't breed at Cherry's. Bring her aboard first. Eggs already in the nursery
+keep incubating even if she's sent away or leaves.
 
 ## Need another collar?
 
@@ -68,8 +90,9 @@ count:
 ## Turning it off
 
 Turn **Snake Collars** off in the mod menu and the game acts as it was written: the Blue Viper's
-booth is the game's again, Urbolg's extra button goes away and she leaves your crew list. Every
-collar and flag is kept, so she's back when you turn it on again.
+booth is the game's again, Urbolg's extra button goes away and she leaves your crew list.
+**Breed Her** goes away too, and the egg clock stops (no laying or hatching) until you turn it
+back on. Every collar and flag is kept, so she's back when you turn it on again.
 
 ## Flags (for the Save Editor)
 
@@ -77,3 +100,7 @@ collar and flag is kept, so she's back when you turn it on again.
 `TN_VIPER_OLD_OBEDIENCE` (her obedience count before the collar), `TN_URBY_COLLAR_GIVEN`,
 `TN_SNAKE_COLLAR_ORDER_TS`, `TN_VIPER_BOUGHT` (1 = you bought her), `TN_VIPER_CREW` (1 = aboard,
 0 = waiting at Cherry's).
+
+Eggs, with `TN_BV_` for the Blue Viper and `TN_SB_` for the slavebreaker: `PREG_TS` (when she
+caught), `LAID`, `LAY_TS`, `EGGS` (lay times of eggs still in the nursery), `HATCHED`,
+`SEX_1`, `SEX_2`... (1 son, 2 daughter, 3 child), `BRED` (times you tried).

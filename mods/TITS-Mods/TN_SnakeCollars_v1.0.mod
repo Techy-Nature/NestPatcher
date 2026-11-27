@@ -11,64 +11,71 @@
 #     serves you for free.
 #   - The slavebreaker: her own "Collar Her" scene is the game's. It takes Urbolg's slave
 #     collars too, so she can have the next one if the Blue Viper got the first.
-#   - Buy Her: once collared, Cherry sells you the Blue Viper as crew (100,000 credits).
+#   - Buy Her: once collared, Cherry sells you the Blue Viper as crew (50,000 credits).
 #     She shows in the ship's crew list and counts toward crew capacity.
+#   - Breed Her: either viper can carry your egg; it goes to the Tavros nursery.
 #   - Stats: the Blue Viper's line says when she wears your collar and where she is.
 # Needs TN_SnakeCollars_v1.0.js (the scenes, the menus, the collar count and her crew menu).
 # Parts 8 and 9 sit next to TN_RooCrew's crew-list hooks and work with or without them.
 # @@x@@ is a NestPatcher wildcard, so each block matches the PC and Android builds.
 # Written by Claude at TechyNest's behest. Checked against the 0.9.169 desktop files.
 
-# SnakeCollars part 1 of 9: the Blue Viper's booth, once she wears your collar
+# SnakeCollars part 1 of 10: the Blue Viper's booth, once she wears your collar
 Rep [content_zhengshi.js]:
 addButton(@@e@@++,"Blue Viper",(function(){clearOutput(),
 W:
 addButton(@@e@@++,"Blue Viper",(function(){if(window.tnSnakeCollar&&window.tnSnakeCollar.viperCollared())return window.tnSnakeCollar.viperBooth();clearOutput(),
 
-# SnakeCollars part 2 of 9: "Collar Her" in the Blue Viper's menu
+# SnakeCollars part 2 of 10: "Collar Her" in the Blue Viper's menu
 Rep [content_zhengshi.js]:
 }addButton(14,"Leave",@@a@@,"Leave",@@e@@)}),"Blue Viper"
 W:
 }window.tnSnakeCollar&&window.tnSnakeCollar.viperButton(2),addButton(14,"Leave",@@a@@,"Leave",@@e@@)}),"Blue Viper"
 
-# SnakeCollars part 3 of 9: Urbolg's "Viper Collar" / "Another Collar" button
+# SnakeCollars part 3 of 10: Urbolg's "Viper Collar" / "Another Collar" button
 Rep [content_zhengshi.js]:
 it’s probably not ready yet.")),addButton(14,"Leave",mainGameMenu)}
 W:
 it’s probably not ready yet.")),window.tnSnakeCollar&&window.tnSnakeCollar.urbolgButton(10),addButton(14,"Leave",mainGameMenu)}
 
-# SnakeCollars part 4 of 9: his workstation collar is gone for a while after he hands it over
+# SnakeCollars part 4 of 10: his workstation collar is gone for a while after he hands it over
 Rep [content_zhengshi.js]:
 void 0!==flags.URBY_COLLAR_FUN?addButton(5,"Slave Collar",
 W:
 window.tnSnakeCollar&&window.tnSnakeCollar.workbenchGone()?window.tnSnakeCollar.workbenchGoneButton(5):void 0!==flags.URBY_COLLAR_FUN?addButton(5,"Slave Collar",
 
-# SnakeCollars part 5 of 9: the slavebreaker's "Collar Her" counts the collars you carry
+# SnakeCollars part 5 of 10: the slavebreaker's "Collar Her" counts the collars you carry
 Rep [content_zhengshi.js]:
 !flags.SLYV_COLLAR_TS&&flags.SLAVEBREAKER_COLLAR_BOUGHT&&(window.fullCrew()
 W:
 !flags.SLYV_COLLAR_TS&&(window.tnSnakeCollar&&window.tnSnakeCollar.on()?window.tnSnakeCollar.slavebreakerHas():flags.SLAVEBREAKER_COLLAR_BOUGHT)&&(window.fullCrew()
 
-# SnakeCollars part 6 of 9: using a collar on the slavebreaker takes it from your gear
+# SnakeCollars part 6 of 10: using a collar on the slavebreaker takes it from your gear
 Rep [content_zhengshi.js]:
 window.slaveBreakerUseCollar=function(){
 W:
 window.slaveBreakerUseCollar=function(){window.tnSnakeCollar&&window.tnSnakeCollar.slavebreakerUse();
 
-# SnakeCollars part 7 of 9: Stats > Blue Viper
+# SnakeCollars part 7 of 10: Stats > Blue Viper
 Rep [main.js]:
 ,@@bS@@("Blue Viper",@@Ii@@)}
 W:
 ,window.tnSnakeCollar&&(@@Ii@@=window.tnSnakeCollar.statsLine(@@Ii@@)),@@bS@@("Blue Viper",@@Ii@@)}
 
-# SnakeCollars part 8 of 9: the Blue Viper counts as crew (crew count and crew capacity)
+# SnakeCollars part 8 of 10: the Blue Viper counts as crew (crew count and crew capacity)
 Rep [main.js]:
 @@h@@.freeRent?@@r@@++:@@s@@++,@@u@@.push(@@l@@))}
 W:
 @@h@@.freeRent?@@r@@++:@@s@@++,@@u@@.push(@@l@@))}window.tnSnakeCollar&&(@@s@@+=window.tnSnakeCollar.crewCount());
 
-# SnakeCollars part 9 of 9: her button in the ship's crew list
+# SnakeCollars part 9 of 10: her button in the ship's crew list
 Rep [main.js]:
 @@i@@+=@@r@@.crewBlurb(@@o@@++,@@n@@.includes(@@s@@))}}catch(@@e@@){@@a@@.e(@@e@@)}finally{@@a@@.f()}
 W:
 @@i@@+=@@r@@.crewBlurb(@@o@@++,@@n@@.includes(@@s@@))}}catch(@@e@@){@@a@@.e(@@e@@)}finally{@@a@@.f()}@@o@@<14&&window.tnSnakeCollar&&window.tnSnakeCollar.crewCount()&&(@@i@@+=window.tnSnakeCollar.crewBlurb(@@o@@++));
+
+# SnakeCollars part 10 of 10: "Breed Her" in your slavebreaker's crew menu
+Rep [content_follower.js]:
+She’d probably be gone when you come back if you did."),addButton(14,"Leave",mainGameMenu,"Leave","")}
+W:
+She’d probably be gone when you come back if you did."),window.tnSnakeCollar&&window.tnSnakeCollar.sbBreedButton(7),addButton(14,"Leave",mainGameMenu,"Leave","")}

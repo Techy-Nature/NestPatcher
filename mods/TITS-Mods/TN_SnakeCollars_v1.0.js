@@ -22,18 +22,26 @@
      collars as well as the one the game sells you for her, so if the Blue Viper took the
      workstation collar, the next one Urbolg makes works on her.
    - Buy Her (Blue Viper's booth, once she's collared): Cherry sells you her contract for
-     100,000 credits and she joins your crew (needs a free crew slot). On the ship she has a
-     crew button with Talk, Suck Me, Tongue and Send Away (she waits for you at Cherry's, where
-     "Come Aboard" brings her back). She counts toward your crew capacity.
+     50,000 credits and she joins your crew (needs a free crew slot). On the ship she has a
+     crew button with Talk, Suck Me, Tongue, Breed Her and Send Away (she waits for you at
+     Cherry's, where "Come Aboard" brings her back). She counts toward your crew capacity.
+   - Breed Her (needs a cock): on the ship, in the Blue Viper's crew menu and in your
+     slavebreaker's (obedience 33+). Each time there's a chance she catches (50% at normal
+     virility, up to 90%). She shows after 3 days, lays one egg at 14 days ("Laying!" in her
+     menu, or on her own a day later), and the egg goes to the Tavros nursery. It hatches 14
+     days later as a slyveren (naga) child, with emails from Briget. A week's rest after
+     laying before she can carry another.
    - Collars carried: the game's slavebreaker collar (bought, not used) plus TN_SNAKE_COLLARS.
      The Blue Viper only takes Urbolg's slave collars, never the slavebreaker's.
    - Flags: TN_SNAKE_COLLARS (slave collars carried), TN_VIPER_COLLARED (1),
      TN_VIPER_COLLARED_TS, TN_VIPER_OLD_OBEDIENCE, TN_VIPER_VISITS, TN_URBY_COLLAR_GIVEN (+ _TS),
      TN_SNAKE_COLLAR_ORDER_TS, TN_SNAKE_COLLARS_MADE, TN_VIPER_BOUGHT (1),
-     TN_VIPER_CREW (1 = aboard, 0 = waiting at Cherry's).
+     TN_VIPER_CREW (1 = aboard, 0 = waiting at Cherry's). Eggs, with TN_BV_ for the Blue Viper
+     and TN_SB_ for the slavebreaker: PREG_TS, LAID, LAY_TS, EGGS (lay times of eggs still in
+     the nursery), HATCHED, SEX_n, BRED.
 
-   Needs TN_SnakeCollars_v1.0.mod (the buttons in the game's menus, the crew list and the
-   Stats line).
+   Needs TN_SnakeCollars_v1.0.mod (the buttons in the game's menus, the crew list, the
+   slavebreaker's Breed Her button and the Stats line).
    Toggle: Android Mods / TN Mod Settings > "Snake Collars". Turned off, the game acts as it
    was written (the Blue Viper's booth is the game's again); every flag is kept for later. */
 (function () {
@@ -47,7 +55,13 @@
     var REMAKE_MINUTES = 600;            // the game's slavebreaker collar takes 10 hours too
     var WORKBENCH_BACK_MINUTES = 3 * 24 * 60;
     var REST_MINUTES = 180;              // the game's own BlueViperDisable time
-    var BUY_PRICE = 100000;
+    var BUY_PRICE = 50000;
+    var DAY = 1440;
+    var GESTATION = 14 * DAY;    // she carries the egg two weeks
+    var KNOWN = 3 * DAY;         // when it starts to show
+    var LATE = DAY;              // she lays on her own a day after she's due if you're not there
+    var INCUBATION = 14 * DAY;   // in the nursery, until it hatches
+    var EGG_COOLDOWN = 7 * DAY;  // after laying, before she can carry another
 
     function P(fn, dflt) { try { var v = fn(); return v === undefined ? dflt : v; } catch (err) { return dflt; } }
     function dbg(msg) {
@@ -443,6 +457,8 @@
             "The Blue Viper is reading something on a borrowed datapad, her tail tip flicking idly. She drops it the second you step in. <i>“Master! I was just thinking about you.”</i>",
             "The Blue Viper slides up to meet you before you’re halfway through the door, curling a loop of tail around your waist. <i>“What does my master need?”</i>"
         ]));
+        if (due("bv")) para("Her middle is round and heavy, and she keeps curling her tail protectively around it. <i>“It’s coming, Master. Today, I think. Stay with me?”</i>");
+        else if (showing("bv")) para("There’s a soft, rounded swell low on her belly now, and she keeps one hand resting on it like she’s afraid it might wander off.");
         window.processTime(1);
         crewMenu();
     }
@@ -453,6 +469,7 @@
         if (P(function () { return pc.hasCock(); }, false)) window.addButton(1, "Suck Me", viperSuck, "Suck Me", "Have her take your cock.");
         else window.addDisabledButton(1, "Suck Me", "Suck Me", "You need a cock for this.");
         window.addButton(2, "Tongue", viperTongue, "Tongue", P(function () { return pc.hasVagina(); }, false) ? "Have that long, grooved tongue on your [pc.pussiesLight]." : "Have that long, grooved tongue on your [pc.asshole].");
+        breedButton("bv", 3, function () { window.mainGameMenu(); });
         window.addButton(10, "Send Away", sendAway, "Send Away", "Tell her to wait for you at Cherry’s Tap-Hall on Zhèng Shi. You can pick her up there later.");
         window.addButton(14, "Back", window.mainGameMenu);
     }
@@ -481,6 +498,233 @@
         dbg("Blue Viper sent to Cherry's");
         window.clearMenu();
         window.addButton(0, "Next", window.mainGameMenu);
+    }
+
+    // -----------------------------------------------------------------------------
+    // Eggs: breeding both vipers, eggs to the Tavros nursery
+    // -----------------------------------------------------------------------------
+    // Webpack modules in main.js (0.9.169): 36956 = ChildManager (kd), 66376 = Child (U),
+    // 31317 = StatTracking (s). Same ones TN_ShekkaEggs uses.
+    var gameModules = {};
+    function gameModule(id) {
+        if (gameModules[id]) return gameModules[id];
+        var chunks = window.webpackChunktits_html || self.webpackChunktits_html;
+        if (!chunks || typeof chunks.push !== "function") return null;
+        var req = null;
+        chunks.push([["tn-snake-eggs-" + id + "-" + Date.now()], {}, function (r) { req = r; }]);
+        if (typeof req !== "function") return null;
+        try { gameModules[id] = req(id); } catch (err) { return null; }
+        return gameModules[id];
+    }
+    var MOTHERS = {
+        bv: { key: "TN_BV_", name: "the Blue Viper", Name: "The Blue Viper", short: "Blue Viper", tag: "blue viper" },
+        sb: { key: "TN_SB_", name: "your slavebreaker", Name: "Your slavebreaker", short: "slavebreaker", tag: "slavebreaker" }
+    };
+    function fk(m, k) { return MOTHERS[m].key + k; }
+    function fnum(m, k) { return num(F()[fk(m, k)]); }
+    function pregnant(m) { return F()[fk(m, "PREG_TS")] !== undefined; }
+    function pregDays(m) { return pregnant(m) ? Math.floor((now() - fnum(m, "PREG_TS")) / DAY) : 0; }
+    function due(m) { return pregnant(m) && now() - fnum(m, "PREG_TS") >= GESTATION; }
+    function showing(m) { return pregnant(m) && now() - fnum(m, "PREG_TS") >= KNOWN; }
+    function cooling(m) { return fnum(m, "LAID") > 0 && now() - fnum(m, "LAY_TS") < EGG_COOLDOWN; }
+    function eggs(m) {
+        var s = F()[fk(m, "EGGS")];
+        if (!s) return [];
+        return String(s).split(",").map(Number).filter(function (n) { return isFinite(n) && n > 0; });
+    }
+    function setEggs(m, list) { F()[fk(m, "EGGS")] = list.length ? list.join(",") : undefined; }
+    function virility() { return P(function () { return pc.virility(); }, 1); }
+    function catchChance() { return Math.min(0.9, 0.5 * Math.max(0, num(virility()))); }
+    function sbCrew() { return P(function () { return window.slyv.isCrew(); }, false); }
+    function sbObedience() { return P(function () { return window.slyv.obedience(); }, 0); }
+    function hasCock() { return P(function () { return pc.hasCock(); }, false); }
+    function breedCock(m) {
+        return P(function () {
+            if (m === "sb") {
+                var i = pc.cockThatFits(window.slyv.vaginalCapacity(0));
+                if (typeof i === "number" && i >= 0) return i;
+            }
+            return pc.biggestCockIndex();
+        }, 0);
+    }
+    function tryCatch(m) {
+        if (pregnant(m) || cooling(m)) return false;
+        if (Math.random() >= catchChance()) return false;
+        F()[fk(m, "PREG_TS")] = now();
+        dbg(MOTHERS[m].short + " carrying an egg");
+        return true;
+    }
+    // She lays: the egg goes to the nursery to incubate.
+    function sendToNursery(m) {
+        if (!pregnant(m)) return;
+        var f = F();
+        var list = eggs(m);
+        list.push(now());
+        setEggs(m, list);
+        f[fk(m, "LAID")] = fnum(m, "LAID") + 1;
+        f[fk(m, "LAY_TS")] = now();
+        f[fk(m, "PREG_TS")] = undefined;
+        dbg(MOTHERS[m].short + " egg sent to the nursery");
+        ensureMail();
+    }
+    function hatchOne(m, laidTs) {
+        var n = fnum(m, "HATCHED") + 1;
+        var sex = 3;
+        try {
+            var cm = gameModule(36956), cl = gameModule(66376);
+            if (cm && cm.kd && cl && cl.U && typeof cl.U.NewChild === "function") {
+                var race = (window.GLOBAL && window.GLOBAL.TYPE_NAGA !== undefined) ? window.GLOBAL.TYPE_NAGA : 0;
+                var c = cl.U.NewChild(race, 1, 1, 45, 45, 10, 0);
+                c.BornTimestamp = Math.min(laidTs + INCUBATION, now());
+                cm.kd.addChild(c);
+                sex = c.NumIntersex > 0 ? 3 : c.NumMale > 0 ? 1 : c.NumFemale > 0 ? 2 : 3;
+            }
+        } catch (err) { try { console.warn("[Snake Collars] could not add the child to the nursery", err); } catch (e2) {} }
+        try {
+            var st = gameModule(31317);
+            if (st && st.s && typeof st.s.track === "function") {
+                st.s.track("pregnancy/" + MOTHERS[m].tag + " sired", 1);
+                st.s.track("pregnancy/total sired", 1);
+                st.s.track("pregnancy/total day care", 1);
+            }
+        } catch (err) {}
+        F()[fk(m, "SEX_" + n)] = sex;
+        F()[fk(m, "HATCHED")] = n;
+        dbg(MOTHERS[m].short + " egg hatched (" + n + ")");
+    }
+    function hatchDue(m) {
+        var list = eggs(m), keep = [];
+        for (var i = 0; i < list.length; i++) {
+            if (now() - list[i] >= INCUBATION) hatchOne(m, list[i]);
+            else keep.push(list[i]);
+        }
+        if (keep.length !== list.length) { setEggs(m, keep); ensureMail(); }
+    }
+    function eggTick() {
+        try {
+            if (!on() || typeof window.flags === "undefined" || !window.flags) return;
+            ["bv", "sb"].forEach(function (m) {
+                // Not there when she's due: she lays on her own and the egg still goes to the nursery.
+                if (pregnant(m) && now() - fnum(m, "PREG_TS") >= GESTATION + LATE) sendToNursery(m);
+                hatchDue(m);
+            });
+            ensureMail();
+        } catch (err) {}
+    }
+    setInterval(eggTick, 3000);
+
+    // The "Breed Her" / "Laying!" button, shared by both vipers.
+    function breedButton(m, slot, back) {
+        if (!on()) return;
+        var who = MOTHERS[m];
+        if (due(m)) { window.addButton(slot, "Laying!", function () { layScene(m, back); }, "Laying!", who.Name + "’s egg is coming. Be there with her."); return; }
+        if (showing(m)) { window.addDisabledButton(slot, "Breed Her", "Breed Her", "She’s carrying your egg. Day " + (pregDays(m) + 1) + " of " + (GESTATION / DAY) + "."); return; }
+        if (cooling(m)) { window.addDisabledButton(slot, "Breed Her", "Breed Her", "She laid not long ago. Give her a week before you try again."); return; }
+        if (!hasCock()) { window.addDisabledButton(slot, "Breed Her", "Breed Her", "You need a cock to breed her."); return; }
+        if (m === "sb" && sbObedience() < 33) { window.addDisabledButton(slot, "Breed Her", "Breed Her", "She isn’t obedient enough to carry your eggs yet."); return; }
+        window.addButton(slot, "Breed Her", function () { breedScene(m, back); }, "Breed Her", "Fuck " + who.name + " with every intention of putting an egg in her. Her eggs go to the nursery on Tavros.");
+    }
+    function sbShow() { P(function () { window.slyv.header(false); }); }
+    function sbBreedButton(slot) {
+        if (!on() || !sbCrew()) return;
+        breedButton("sb", slot, function () { P(function () { window.slyv.showAll(); }); window.mainGameMenu(); });
+    }
+    function breedScene(m, back) {
+        window.clearOutput();
+        var c = breedCock(m);
+        if (m === "bv") {
+            viperShow();
+            out("<i>“I want to breed you,”</i> you tell her.");
+            para("The Blue Viper goes very still. Then her hood flares out wider than you’ve ever seen it, and her tail tip starts to tremble. <i>“Master. You want my eggs?”</i> She doesn’t wait for an answer. She’s already uncoiling across her bunk, rolling onto her back and baring the soft blue scales of her belly, her slit already slick and parted. <i>“Then take what’s yours.”</i>");
+            para((P(function () { return pc.isCrotchExposed(); }, false) ? "Your [pc.cock " + c + "] is already out and" : "You strip, and your [pc.cock " + c + "] is") + " already hard. You settle between her coils and push in slowly. She’s hot and tight and so wet it’s almost obscene, and her whole length shivers from her hood to her tail as you bottom out. Loops of sapphire scales close around your [pc.legOrLegs] and your waist, not tight, just holding you there where she wants you.");
+            para("She whispers to you the whole time. Not the hypnotic croon she used on Cherry’s customers; your collar put an end to that. Just a soft, steady stream of <i>“yes, Master”</i> and <i>“deeper, Master”</i> and <i>“fill me, please, fill me”</i> that gets more ragged with every thrust. When she cums her coils clench all at once and her pussy milks you hard enough to drag you right over the edge with her.");
+            para("You bury yourself to the hilt and unload deep inside her. She holds you there through every pulse of [pc.cum], her tail stroking your back, and keeps holding you long after you’re spent. <i>“Stay,”</i> she murmurs. <i>“Just a little longer. Let it take.”</i>");
+        } else {
+            sbShow();
+            out("<i>“Present yourself,”</i> you tell her. <i>“I’m going to breed you.”</i>");
+            para("Your slavebreaker’s eyes go wide. " + (sbObedience() < 66 ? "For a moment you see the pirate she used to be behind them, weighing it up, and then she lowers her gaze and sinks to the deck, raising her black-scaled hips for you. <i>“Yes, [slyv.pcTitle].”</i>" : "Her tail lashes once, and she’s already sinking to the deck, coils spread and her black-scaled hips raised for you. <i>“Yes, [slyv.pcTitle]. Please. I want to carry your eggs.”</i>"));
+            para((P(function () { return pc.isCrotchExposed(); }, false) ? "Your [pc.cock " + c + "] is already out and" : "You free your [pc.cock " + c + "]") + " hard, and you take her by the hips and sink in to the root in one long push. She hisses through her teeth and clamps down around you, her slit hot and slick and greedy. You take your time with her, long, deep strokes that make her claws scrape across the deck, until she’s panting and begging and her tail is curled tight around your thigh.");
+            para("<i>“Cum, [slyv.pcTitle],”</i> she gasps. <i>“Please, in me, all of it.”</i> You give her exactly that. You hilt yourself inside her and empty your [pc.balls] into her womb, and she shudders through her own climax underneath you, milking every last drop of [pc.cum] out of you.");
+            para("Afterwards she lies curled on the deck with one hand pressed to her belly and a look on her face you’ve never seen before. Somewhere between proud and nervous.");
+        }
+        var caught = tryCatch(m);
+        P(function () { pc.orgasm(); });
+        if (m === "sb") P(function () { window.slyv.orgasm(); });
+        window.processTime(45 + Math.floor(Math.random() * 15));
+        bumpFlag(fk(m, "BRED"));
+        dbg(MOTHERS[m].short + " bred, caught: " + caught);
+        window.clearMenu();
+        window.addButton(0, "Next", back || window.mainGameMenu);
+    }
+    function layScene(m, back) {
+        window.clearOutput();
+        if (m === "bv") {
+            viperShow();
+            out("You find the Blue Viper coiled tight in a nest she’s built out of every cushion and blanket on the ship, her tail wrapped around something smooth and pale. Her hood lifts the moment she sees you. <i>“Master. You came.”</i>");
+            para("You sit with her through the last of it, her head in your lap and her coils squeezing your hand every time her body clenches. It doesn’t take long. When it’s over she uncurls just enough to show you: one big, leathery egg, faintly blue, warm to the touch. <i>“Ours,”</i> she says, sounding astonished.");
+        } else {
+            sbShow();
+            out("Your slavebreaker is curled on her bunk with the blankets dragged into a ring around her, hissing at anyone who comes near. Anyone but you. When you sit down beside her she grabs your hand and doesn’t let go.");
+            para("<i>“Don’t look at me like that,”</i> she growls between breaths. <i>“I’m fine. I’m— hhh.”</i> She’s fine. It’s quick and it’s hard and she curses like the pirate she was the whole way through, and at the end of it there’s one big, black-flecked egg lying in the blankets between you. She stares at it for a long time. <i>“Huh,”</i> she says quietly. <i>“[slyv.pcTitle]. Look what we made.”</i>");
+        }
+        para("The egg goes into a padded transport case from the ship’s stores and off to the nursery on Tavros, where Briget will take care of it until it hatches.");
+        sendToNursery(m);
+        window.processTime(60);
+        window.clearMenu();
+        window.addButton(0, "Next", back || window.mainGameMenu);
+    }
+
+    // Briget's emails
+    function parseText(t) { return typeof window.ParseText === "function" ? window.ParseText(t) : t; }
+    function kidWord(m, n) { var s = fnum(m, "SEX_" + n); return s === 1 ? "son" : s === 2 ? "daughter" : "child"; }
+    function arriveMail(m, n) {
+        var who = MOTHERS[m];
+        return {
+            content: function () {
+                return parseText("Dear [pc.name],\n\n" + (n === 1
+                    ? "An egg has arrived at the nursery from " + who.name + ". It is large, warm and very healthy, and it came with no instructions at all, so I looked up everything I could find about slyveren nests and set the incubator to match. It is turned by hand every four hours and I sing to it while I do it.\n\nI will write again the moment it hatches. Expect about two weeks."
+                    : "Another egg from " + who.name + " has arrived safely. The incubator was already warm. I will write again when it hatches.") + "\n\nWith love,\n\nBriget");
+            },
+            subject: n === 1 ? "An egg from " + who.short.replace(/^./, function (c) { return c.toUpperCase(); }) : "Another egg has arrived",
+            from: "Briget",
+            fromAddress: "Briget@SteeleTech.corp",
+            test: function () { return on() && fnum(m, "LAID") >= n; }
+        };
+    }
+    function hatchMail(m, n) {
+        var who = MOTHERS[m];
+        return {
+            content: function () {
+                var k = kidWord(m, n);
+                var pro = k === "son" ? ["He", "his"] : k === "daughter" ? ["She", "her"] : ["They", "their"];
+                return parseText("Dear [pc.name],\n\nThe egg from " + who.name + " has hatched! You have a beautiful, healthy baby " + (k === "son" ? "boy" : k === "daughter" ? "girl" : "child") + ". " + pro[0] + " " + (k === "child" ? "have" : "has") + " " + pro[1] + " mother’s " + (m === "bv" ? "sapphire scales" : "black scales") + " and, I am told, " + pro[1] + " [pc.daddyMommy]’s stubborn streak.\n\nHologram technology was used to emulate you and " + who.name + " so the little one knows their parents’ faces, but please do visit when you can.\n\nWith love,\n\nBriget");
+            },
+            subject: n === 1 ? who.short.replace(/^./, function (c) { return c.toUpperCase(); }) + "’s egg has hatched!" : "Another hatchling!",
+            from: "Briget",
+            fromAddress: "Briget@SteeleTech.corp",
+            test: function () { return on() && fnum(m, "HATCHED") >= n; }
+        };
+    }
+    function addMail(id, entry) {
+        if (window.tnMailHx[id]) return;
+        window.tnMailHx[id] = entry;
+        if (!window.tnMailMgr.hasEntry || !window.tnMailMgr.hasEntry(id)) window.tnMailMgr.addMailEntry(id, entry);
+    }
+    function ensureMail() {
+        try {
+            if (!window.tnMailHx || !window.tnMailMgr) return false;
+            var hasF = typeof window.flags !== "undefined" && !!window.flags;
+            ["bv", "sb"].forEach(function (m) {
+                var laid = hasF ? fnum(m, "LAID") : 0, hatched = hasF ? fnum(m, "HATCHED") : 0;
+                for (var i = 1; i <= Math.max(1, laid); i++) addMail("tn_snake_eggs_" + m + "_arrive_" + i, arriveMail(m, i));
+                for (var j = 1; j <= Math.max(1, hatched); j++) addMail("tn_snake_eggs_" + m + "_hatch_" + j, hatchMail(m, j));
+            });
+            return true;
+        } catch (err) { return true; }
+    }
+    if (!ensureMail()) {
+        var mailTries = 0;
+        var mailTimer = setInterval(function () { if (ensureMail() || ++mailTries >= 300) clearInterval(mailTimer); }, 200);
     }
 
     // -----------------------------------------------------------------------------
@@ -517,7 +761,7 @@
             id: MOD_ID,
             name: NAME,
             author: "TN",
-            description: "Collar the Blue Viper at Cherry’s Tap-Hall on Zhèng Shi with Urbolg’s slave collar. Buy the one on his workstation (Viper Collar, " + credits(WORKBENCH_PRICE) + " credits) or have him build another just like it (Another Collar, " + credits(REMAKE_PRICE) + " credits, ready in 10 hours), then use Collar Her in her booth. Once she’s collared, Buy Her gets her contract from Cherry (" + credits(BUY_PRICE) + " credits) and she joins your crew. The slavebreaker’s own collar scene also takes Urbolg’s slave collars, so she can have the next one if the Blue Viper got the first. Turned off, the game acts as written and your collars are remembered.",
+            description: "Collar the Blue Viper at Cherry’s Tap-Hall on Zhèng Shi with Urbolg’s slave collar. Buy the one on his workstation (Viper Collar, " + credits(WORKBENCH_PRICE) + " credits) or have him build another just like it (Another Collar, " + credits(REMAKE_PRICE) + " credits, ready in 10 hours), then use Collar Her in her booth. Once she’s collared, Buy Her gets her contract from Cherry (" + credits(BUY_PRICE) + " credits) and she joins your crew. On the ship, Breed Her can give either viper (the Blue Viper or your slavebreaker) an egg, which goes to the nursery on Tavros. The slavebreaker’s own collar scene also takes Urbolg’s slave collars, so she can have the next one if the Blue Viper got the first. Turned off, the game acts as written and your collars are remembered.",
             supportsToggle: true,
             onEnabledChange: function () { return true; }
         });
@@ -543,6 +787,9 @@
         workbenchGoneButton: workbenchGoneButton,
         slavebreakerHas: slavebreakerHas,
         slavebreakerUse: slavebreakerUse,
+        sbBreedButton: sbBreedButton,
+        eggTick: eggTick,
+        pregnant: pregnant,
         statsLine: statsLine
     };
     dbg("loaded");
