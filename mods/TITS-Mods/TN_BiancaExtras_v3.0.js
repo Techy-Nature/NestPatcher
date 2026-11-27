@@ -32,6 +32,10 @@
  *   after 6 PM that day: a candlelit dinner after her long day, then Sleep, Missionary,
  *   Foxxy-Style or Entwined, and breakfast at her place in the morning (written by Neston).
  *   Flags: TN_BX_DINNER_DAY, TN_BX_DINNERS, TN_BX_APT_SEX. The codex lists how to get there.
+ *   Holiday dinners, once a season: Thanksgiving (October and November) and Christmas (December).
+ *   The clinic's Dinner button becomes Thanksgiving or Christmas; come at 3 PM and cook the
+ *   whole feast together, then the same night options. Flags: TN_BX_DINNER_KIND, TN_BX_TG_YEAR,
+ *   TN_BX_XMAS_YEAR.
  * Changes (2026-11-26): the codex log (Log > Roaming Encounters > Bianca) lists every step left
  *   at each stage, from the first bar evening to Confess, with Done / Not yet and where to go.
  * Changes (2026-11-23):
@@ -867,7 +871,7 @@
     function hourNo() { return safe(function () { return hours; }, 12); }
     function aptKnown() { return on() && loveTrack(); }
     function dinnerTonight() { return aptKnown() && num("TN_BX_DINNER_DAY") === dayNo() + 1; }
-    function dinnerReady() { return dinnerTonight() && hourNo() >= DINNER_FROM; }
+    function dinnerReady() { return dinnerTonight() && hourNo() >= dinnerFrom(); }
     // taur / naga / biped text
     function tnb(t, n, b) { return C.taur() ? t : C.naga() ? n : b; }
     function love(a, b) { return C.lover() ? a : b; }
@@ -991,20 +995,180 @@
             "Then she’s gone, and you’re left with an empty plate, a warm apartment and the faint scent of candle smoke.";
     };
 
+
+    /* ---------- Holiday dinners at her apartment: Thanksgiving and Christmas (Neston, 2026-11-27) ----------
+     * Thanksgiving runs in October and November, Christmas in December (by the real date, like the
+     * game's own holiday events; the game's season switches turn them on too). Each happens once a
+     * season: during the season, her clinic's Dinner button becomes Thanksgiving or Christmas, and you
+     * come over at 3 PM to cook the whole feast together. Flags: TN_BX_DINNER_KIND ("tg" or "xmas"
+     * while a holiday date is set), TN_BX_TG_YEAR and TN_BX_XMAS_YEAR (the real year it was done). */
+    var HOL = {
+        tg: { name: "Thanksgiving", flag: "TN_BX_TG_YEAR", months: [9, 10], game: "isThanksgiving", when: "October and November" },
+        xmas: { name: "Christmas", flag: "TN_BX_XMAS_YEAR", months: [11], game: "isChristmas", when: "December" }
+    };
+    var HOL_FROM = 15;
+    function realMonth() { return safe(function () { return new Date().getMonth(); }, -1); }
+    function realYear() { return safe(function () { return new Date().getFullYear(); }, 0); }
+    function holSeason(k) {
+        var h = HOL[k];
+        if (h.months.indexOf(realMonth()) >= 0) return true;
+        return !!safe(function () { return typeof window[h.game] === "function" && window[h.game](); }, false);
+    }
+    function holDone(k) { return num(HOL[k].flag) === realYear(); }
+    function holOpen(k) { return holSeason(k) && !holDone(k); }
+    function holidayNow() { return holOpen("xmas") ? "xmas" : holOpen("tg") ? "tg" : null; }
+    function dinnerKind() { var k = flags.TN_BX_DINNER_KIND; return dinnerTonight() && HOL[k] ? k : null; }
+    function dinnerFrom() { return dinnerKind() ? HOL_FROM : DINNER_FROM; }
+    function fromText() { return dinnerKind() ? "3 PM" : "6 PM"; }
+
+    /* ---- Thanksgiving ---- */
+    S["tg_invite"] = function () {
+        return "Bianca is halfway through a stack of charts when you come in, but she drops her pen the moment she sees you, and her tails give a guilty little flick.\n\n" +
+            "<i>“I was going to ask you something,”</i> she says, <i>“and now you’re here, and I’ve forgotten how I was going to say it.”</i> She folds her hands on the desk, unfolds them, and folds them again. <i>“Do you know what Thanksgiving is?”</i>\n\n" +
+            "You tell her you do. Turkey. Far too much food. Being grateful at people.\n\n" +
+            "<i>“Being grateful at people,”</i> she repeats, delighted. <i>“Yes. At the field hospital we had one every year. Somebody always found a bird, or something that would pass for one if you squinted, and we’d cook it in a mess tent and eat it off surgical trays. It was the best day of the whole year.”</i> Her smile wavers a little. <i>“I haven’t had one since. Not a real one. There’s never been anyone to cook it with.”</i>\n\n" +
+            "She takes a breath and says it all at once. <i>“I close at two. I’ve already ordered the bird, and it is enormous, and I cannot possibly eat it alone, and I don’t want to cook it alone either. I want to cook it with </i>you<i>. All of it, from the beginning. Will you come?”</i>\n\n" +
+            "You tell her you wouldn’t miss it.\n\n" +
+            "Her whole face lights up. She grabs a prescription slip and writes on it in her neat, slanted hand: <i>#156, West Walkway, Residential Deck. 3 PM. Wear something you can get gravy on.</i> Then, after a moment’s thought, she adds a small heart in the corner and pushes it across the desk without looking at you.\n\n" +
+            "<i>“Three o’clock, " + love("love", "[pc.name]") + ",”</i> she says, and her ears have gone pink. <i>“The bird waits for no one.”</i>";
+    };
+    S["tg_door"] = function () {
+        return "Door 156 slides open before you’ve finished knocking. Bianca is standing there in an apron that reads <i>KISS THE MEDIC</i>, her hair pinned up in a messy knot, a dish towel over one shoulder. Behind her, the little apartment looks as if a farmers’ market has exploded in it.\n\n" +
+            "<i>“You came,”</i> she says, beaming, and pulls you inside by the hand. " +
+            tnb("You duck through the doorway and squeeze in sideways, and she presses herself flat against the wall to let your barrel past, laughing.",
+                "You slide in after her, coiling up in the one clear patch of floor by the window.",
+                "") + "\n\n" +
+            "Every surface is covered. There are sacks of potatoes and sweet potatoes, a crate of green beans, a bag of real cranberries that must have cost her a small fortune, three kinds of onion, a loaf of day-old bread for the stuffing, a sack of flour, butter, cream, eggs, a can of pumpkin and a little paper bag of spices that smells like cinnamon and cloves. In the middle of the kitchenette, filling most of the counter, sits the bird. It is, as promised, enormous.\n\n" +
+            "<i>“It’s a real Terran turkey,”</i> Bianca says proudly. <i>“Frozen and shipped all the way out here. The butcher on the Merchant Deck said it would feed twelve.”</i> She considers it. <i>“I think he was being modest.”</i>\n\n" +
+            "She hands you a second apron. This one says <i>I’M WITH THE MEDIC.</i>";
+    };
+    S["tg_cook"] = function () {
+        return "<i>“Right,”</i> Bianca says, rolling up her sleeves. <i>“Battle plan.”</i>\n\n" +
+            "It turns out that Bianca cooks the way she runs a clinic. She has a list. The list has times on it. She reads it to you like a set of orders, then laughs at herself halfway through and tucks it into her apron pocket, and after that the two of you mostly make it up as you go.\n\n" +
+            "The turkey goes first. She shows you how to work softened butter, sage and thyme under the skin with your fingers, and the two of you stand elbow to elbow with your hands inside a very large, very cold bird, which is somehow the funniest thing either of you has ever done. Bianca laughs so hard she has to lean on the counter. Together you heave it into the oven, and she sets a timer and pats the oven door as if it were a patient.\n\n" +
+            "Then there is everything else. You peel the potatoes while she cubes the bread and sweats the onions and celery in a pan of butter until the whole apartment smells like a holiday. " +
+            tnb("There’s not enough room in the kitchenette for both of you, so you work from the main room, reaching over the counter with your long arms while she darts back and forth beneath them like a fox in a henhouse.",
+                "Your tail ends up wound loosely around the legs of the counter stools, and twice Bianca nearly trips over it, and twice you catch her.",
+                "There’s barely room in the kitchenette for two, and you keep bumping hips, and after the third time she stops apologizing and starts doing it on purpose.") + "\n\n" +
+            "She teaches you her mother’s cranberry sauce: the berries, sugar and a strip of orange peel, cooked until they pop. You stand at the stove and listen to them go, <i>pop, pop, pop,</i> and Bianca rests her chin on your shoulder and listens with you. You mash the potatoes with far too much butter and cream while she stirs the stuffing together and tucks it into the oven beside the bird. She trims the green beans and you make the crispy onions to go on top. The sweet potatoes get brown sugar and a layer of tiny marshmallows that she defends against all criticism.\n\n" +
+            "<i>“It isn’t Thanksgiving without the marshmallows,”</i> she says firmly. <i>“That’s medical fact.”</i>\n\n" +
+            "The pie is last. She rolls out the crust, and you mix the filling, pumpkin and cream and eggs and that little bag of spices, and when you lean over to see if she’s ready for it, you find her watching you instead of the crust, flour on her nose, her face very soft.\n\n" +
+            "You ask what’s wrong.\n\n" +
+            "<i>“Nothing,”</i> she says. <i>“Absolutely nothing. That’s the strange part.”</i> She wipes a smudge of pumpkin off your cheek with her thumb. <i>“I think I’m happy.”</i>\n\n" +
+            "Every half hour you baste the turkey together, and every time she opens the oven, the smell gets better. By the time the sky beyond the window has dimmed to the station’s evening blue, the bird has turned a deep, glossy gold, and Bianca takes it out with both hands and an expression of pure triumph.\n\n" +
+            "You make the gravy from the drippings, side by side at the stove. She whisks; you pour. It is, she announces after one taste, perfect.";
+    };
+    S["tg_feast"] = function () {
+        return "Bianca clears the little round table and then, when it won’t hold everything, drags over the desk and her nightstand and a crate of medical supplies with a tablecloth thrown over it. She lights every candle she owns. Then she stands back with you and looks at it all.\n\n" +
+            "It’s a real spread. The turkey sits in the middle, golden and steaming, surrounded by a mountain of mashed potatoes with a lake of butter in the top, a dish of stuffing crisp at the edges, the green bean casserole under its crunchy onions, the sweet potatoes with their toasted marshmallows, the cranberry sauce glowing like stained glass, warm rolls in a basket under a towel, a jug of gravy, and at the end, cooling on the windowsill, the pie. There is far too much of everything. It’s perfect.\n\n" +
+            "<i>“We did that,”</i> Bianca says quietly. <i>“You and I.”</i> She slips her hand into yours. <i>“Before we eat, at the hospital we always said what we were thankful for. Everyone, around the table. Will you?”</i>\n\n" +
+            "You tell her what you’re thankful for. She listens with her ears turned toward you and her eyes shining, and when it’s her turn, she has to stop and start again twice.\n\n" +
+            "<i>“I’m thankful for my clinic,”</i> she says. <i>“For Charles, and Arian, and every patient who walks through my door. For this apartment, and for having somewhere to come home to. And for you, [pc.name].”</i> She squeezes your hand. <i>“For finding me in that bar, and not giving up on me, and for being here tonight. I didn’t know I could have this. " + love("I love you.", "I’m very glad I do.") + "”</i>\n\n" +
+            "Then you eat. " +
+            tnb("You settle on the floor beside the makeshift table, legs folded beneath you, and Bianca sits pressed against your side so she can feed you bites off her fork.",
+                "You coil up at one end of the makeshift table, and Bianca sits in the curve of your tail as if it were the most comfortable chair in the galaxy.",
+                "You squeeze in side by side on her little loveseat, knees and shoulders touching, plates balanced on your laps.") +
+            " Everything is wonderful. The turkey is tender, the stuffing is crisp, and the marshmallows, you are forced to admit, were the right call. Bianca goes back for seconds of everything, and then thirds of the potatoes, and then sits back with a groan and declares that she is a doctor and this is a medical emergency.\n\n" +
+            "You have pie anyway. Of course you do. She cuts you an enormous slice and buries it under whipped cream, and then she steals the first forkful.\n\n" +
+            "Afterwards you pack the leftovers into every container she owns and some that she doesn’t, and wash the dishes together in a sink that was never meant for a feast. When the last plate is dry, Bianca turns down the lights. The candles have burned low, and the apartment is warm and smells of sage and cinnamon and woodsmoke from a fire that doesn’t exist.\n\n" +
+            "She takes your hand and leads you to the bedroom door, two candles in her other hand.\n\n" +
+            "<i>“Stay with me tonight" + love(", my love", "") + ",”</i> she says softly. <i>“However you like. I don’t want this day to end.”</i>";
+    };
+    S["tg_morning"] = function () {
+        return "You wake to the smell of coffee and the sound of Bianca humming in the kitchen. The candles on the nightstand have burned all the way down, and the sheets still smell faintly of sage.\n\n" +
+            "In the main room, Bianca is in her fluffy robe, building sandwiches. Cold turkey, stuffing, a thick layer of cranberry sauce, all on thick slices of the leftover bread. She looks up and beams when she sees you.\n\n" +
+            "<i>“Breakfast of champions,”</i> she says, and hands you a plate. <i>“It’s also the law. The day after Thanksgiving, you eat the leftovers. All of them. For a week.”</i>\n\n" +
+            "You eat by the window while the walkway wakes up outside, and she has cold pie with her coffee and does not apologize for it.\n\n" +
+            "Before she leaves for her rounds, she presses a bag into your arms: three containers of turkey, a tub of potatoes, half the pie and a note in her handwriting that says <i>Reheat gently. Doctor’s orders.</i>\n\n" +
+            "<i>“" + love("I love you. ", "") + "Thank you for yesterday, [pc.name],”</i> she says at the door, and her eyes are bright. <i>“For cooking with me. For all of it. Next year, too?”</i> She kisses you before you can answer. <i>“Next year, too.”</i>\n\n" +
+            "Then she’s gone, and the little apartment is full of sunlight and the smell of coffee and turkey.";
+    };
+
+    /* ---- Christmas ---- */
+    S["xmas_invite"] = function () {
+        return "There’s a tiny potted pine on Bianca’s desk today, no taller than your hand, with a single red bauble hanging from it. Bianca sees you looking and goes a little pink.\n\n" +
+            "<i>“Arian gave it to me,”</i> she says. <i>“She says the clinic needs to be festive. Charles says the clinic needs a second autoclave. They’ve been arguing about it all week.”</i> She touches the bauble with one fingertip, and it spins. <i>“I think Arian is winning.”</i>\n\n" +
+            "You ask what she’s doing for Christmas.\n\n" +
+            "Bianca hesitates. <i>“Working, most years,”</i> she admits. <i>“Somebody has to. And it was easier, working. When you don’t have anyone to spend it with, it’s just another day, if you’re busy enough.”</i> She looks up at you, and then she smiles, slow and shy. <i>“But this year I do. Have someone. If they want to.”</i>\n\n" +
+            "She pulls open a drawer and takes out a card. It’s handmade, a little crooked, with a fox in a Santa hat drawn on the front in careful ink. Inside, in her neat hand: <i>Christmas dinner at #156. Let’s cook it together, everything, from scratch. 3 PM, West Walkway, Residential Deck. Bring your appetite and your worst holiday sweater.</i>\n\n" +
+            "<i>“I’ve been carrying it around for three days,”</i> she confesses, <i>“trying to work up the nerve.”</i>\n\n" +
+            "You tell her yes before she’s even finished the sentence.\n\n" +
+            "Bianca lets out a breath she seems to have been holding since autumn, and her tails sweep the chart rack again. <i>“Three o’clock, " + love("love", "[pc.name]") + ". We have a goose to wrestle.”</i>";
+    };
+    S["xmas_door"] = function () {
+        return "Someone has hung a wreath on door 156. It’s a little lopsided, made of real pine and tied with a red ribbon, and you can smell it before you knock.\n\n" +
+            "Bianca opens the door in the worst sweater you have ever seen. It is green and red and knitted, with a pair of very startled reindeer on the front and a pom-pom on each sleeve, and she is wearing it with tremendous dignity.\n\n" +
+            "<i>“Don’t,”</i> she says, before you can say anything. <i>“It was my grandmother’s. It’s an heirloom.”</i> Her mouth twitches. <i>“It’s a terrible heirloom. Come in, come in, it’s cold out there.”</i>\n\n" +
+            tnb("You duck under the wreath and squeeze inside, careful not to knock anything over with your tail.",
+                "You slide inside after her, coil by careful coil, so as not to topple anything.",
+                "You step inside, and she shuts the door against the walkway’s chill.") +
+            " The apartment has been transformed. There’s a real little tree in the corner, a meter tall, strung with tiny lights and paper ornaments that she has very clearly folded herself. A holo projector on the windowsill paints slow, drifting snow across the glass. A garland of dried orange slices and cinnamon sticks hangs over the kitchenette, and on the counter waits everything you’ll need: a fat goose, a bag of chestnuts, red cabbage and apples, potatoes, parsnips and carrots, a jar of dark cherries, a slab of butter, a sack of flour, a carton of eggs, a bottle of red wine and a box of spices that smells like every Christmas at once.\n\n" +
+            "<i>“I wanted to do it properly,”</i> she says, suddenly shy. <i>“The way my family used to. I haven’t made any of it in years. I may have forgotten everything.”</i>\n\n" +
+            "She hands you an apron. It has a fox in a Santa hat on it.";
+    };
+    S["xmas_cook"] = function () {
+        return "She hasn’t forgotten anything. Bianca stands in front of the counter for a long moment with her eyes closed, and then she starts, and her hands seem to remember even where she doesn’t.\n\n" +
+            "The goose comes first. You prick its skin all over while she stuffs it with apples, onions and a handful of herbs, and together you rub it with salt and set it in the oven on a rack over a pan to catch the fat. <i>“The fat is the most important part,”</i> she tells you seriously. <i>“The fat is for the potatoes. My grandmother would come back from the dead if we wasted the fat.”</i>\n\n" +
+            "You score and roast the chestnuts while she shreds the red cabbage and sets it to simmer slowly with apples, vinegar, a spoonful of sugar and a few cloves until it turns a deep, shining purple. You peel a mountain of potatoes, and parsnips and carrots for roasting. " +
+            tnb("The kitchenette is far too small for you, so you set up a cutting board on the floor of the main room and peel from there, while Bianca darts back and forth and drops kisses on your shoulder whenever she passes.",
+                "Your tail ends up wrapped around the base of the little tree, and you have to be very careful every time you move, which makes Bianca giggle each time an ornament trembles.",
+                "In the tiny kitchenette, you’re pressed together from shoulder to hip the whole time, and neither of you complains.") + "\n\n" +
+            "While everything roasts and simmers, she teaches you to make cookies. Her grandmother’s recipe, she says, written down from memory on the back of a lab requisition: butter cookies with spice and orange zest, cut out with a tiny star-shaped cutter she has had since she was a girl. You end up with flour in places flour should never be, and she ends up with a smear of icing on her nose that you have to remove personally.\n\n" +
+            "<i>“Unhygienic,”</i> she murmurs against your mouth. <i>“Do it again.”</i>\n\n" +
+            "When the goose comes out, it’s gleaming and mahogany-brown, and you both stand over it in silence for a moment as though it were a work of art. Then the potatoes go into the hot goose fat with a hiss and a crackle, and the apartment fills with a smell so good that a neighbor knocks on the door to ask what it is.\n\n" +
+            "Last of all, she warms the wine in a pot with orange peel, cinnamon, cloves and star anise, and ladles it into two mismatched mugs. She hands you one, clinks hers against it, and leans into your side, watching the snow drift down the window.\n\n" +
+            "<i>“Merry Christmas,”</i> she says, very softly, as if she were trying the words out to see if they still fit.";
+    };
+    S["xmas_feast"] = function () {
+        return "Bianca pushes the little table together with her desk and a trunk, covers them with a red cloth, and sets out every candle she owns among sprigs of pine. Then she turns off the overhead light. The tree’s tiny lights twinkle, the holo snow drifts down the window, and the whole room glows.\n\n" +
+            "The feast fills every inch of the table. The goose sits in the middle, crisp and glossy, beside a heap of golden roast potatoes, the roasted parsnips and carrots, the braised red cabbage, a bowl of chestnuts, a dish of dark cherry sauce and a jug of rich gravy. There’s fresh bread, a little board of cheese, and at the end of the table a plate piled high with star cookies and a rolled cake she made last night and dusted with sugar to look like snow.\n\n" +
+            "<i>“It’s too much,”</i> Bianca says happily. <i>“It’s far too much. It’s exactly right.”</i>\n\n" +
+            "Before you eat, she reaches under the tree and brings out a parcel wrapped in brown paper and tied with string. <i>“You’re supposed to wait until morning,”</i> she says. <i>“I can’t wait until morning.”</i>\n\n" +
+            "Inside is a scarf, soft and warm and slightly uneven, knitted in deep green. <i>“I made it,”</i> she says, watching your face anxiously. <i>“At the clinic, between patients. Arian helped with the hard parts. It’s a little crooked at the end. I ran out of lunch breaks.”</i>\n\n" +
+            "You tell her it’s the best present anyone has ever given you, and you mean it, and she can see that you mean it. She winds it around your neck herself and holds on to both ends for a moment, looking at you.\n\n" +
+            "<i>“" + love("I love you", "I’m so glad you’re here") + ",”</i> she says. <i>“Merry Christmas, [pc.name].”</i>\n\n" +
+            "Then you eat, and it is the best meal you’ve had in a very long time. " +
+            tnb("You lie folded beside the table, and Bianca sits against your side so she can lean on you between bites.",
+                "You coil up beside the table with Bianca nestled in the loops of your tail, warm and content.",
+                "You sit side by side, knees touching under the table, trading bites off each other’s plates.") +
+            " The goose is rich and tender, the potatoes crackle, the cabbage is sweet and sharp, and the cherry sauce is so good that Bianca eats a spoonful of it straight from the dish when she thinks you aren’t looking. You share the mulled wine and tell stories: hers about Christmases in a field hospital, with tinsel strung across the surgical lights and carols sung badly at three in the morning, and yours, whatever you remember of your own.\n\n" +
+            "By the time you get to the cookies, the candles have burned low, and Bianca has curled into you, warm and drowsy, her head on your shoulder. The snow keeps falling past the window.\n\n" +
+            "Eventually she sits up, takes two candles from the table, and holds out her hand.\n\n" +
+            "<i>“Stay with me tonight" + love(", my love", "") + ",”</i> she says softly. <i>“However you like. I don’t want Christmas to be over yet.”</i>";
+    };
+    S["xmas_morning"] = function () {
+        return "You wake up warm, wrapped in blankets, with the tree’s lights still twinkling through the open bedroom door and the holo snow still falling past the window. Bianca is curled up beside you, awake, watching you sleep.\n\n" +
+            "<i>“Good morning,”</i> she whispers. <i>“It’s still snowing. I left it on all night.”</i>\n\n" +
+            "Breakfast is Christmas leftovers: goose and potatoes fried up together in a pan, with eggs on top, and the last of the cookies dunked in coffee. You eat on the floor in front of the little tree, with your new scarf around your neck, and Bianca leans against you and sings carols under her breath, getting all the words wrong.\n\n" +
+            "She has rounds today; patients don’t take holidays, she says, and neither do doctors. But she lingers at the door with her coat over one arm, looking back at the tree, the candles, the scarf, you.\n\n" +
+            "<i>“" + love("I love you. ", "") + "This was the best Christmas I’ve had in twenty years,”</i> she says quietly. <i>“Maybe ever.”</i> She kisses you, long and slow. <i>“Keep the scarf on. It’s cold on the station this time of year. Doctor’s orders.”</i>\n\n" +
+            "Then she’s gone, and you’re left in her warm little apartment with the snow still drifting past the window.";
+    };
+
     // Clinic: the Dinner button in her office (called by TN_BiancaClinic's clinic menu).
     window.tnBiancaDinnerButton = function (slot, back) {
         try {
             if (!aptKnown()) return;
-            if (fam() < 51) { addDisabledButton(slot, "Dinner", "Dinner", "You’ll need to get a little closer to Bianca first."); return; }
-            if (dinnerTonight()) { addDisabledButton(slot, "Dinner", "Dinner", "You already have a date tonight: her apartment, #156 at the west end of the Residential Deck’s West Walkway, after 6 PM."); return; }
-            addButton(slot, "Dinner", function () {
+            var hk = holidayNow(), label = hk ? HOL[hk].name : "Dinner";
+            if (fam() < 51) { addDisabledButton(slot, label, label, "You’ll need to get a little closer to Bianca first."); return; }
+            if (dinnerTonight()) {
+                var dk = dinnerKind();
+                addDisabledButton(slot, dk ? HOL[dk].name : "Dinner", "Dinner", dk
+                    ? "You already have a date: " + HOL[dk].name + " at her apartment, #156 at the west end of the Residential Deck’s West Walkway, from 3 PM."
+                    : "You already have a date tonight: her apartment, #156 at the west end of the Residential Deck’s West Walkway, after 6 PM.");
+                return;
+            }
+            addButton(slot, label, function () {
                 CTX = { wild: false };
-                play(["apt_invite"], function () {
+                play([hk ? hk + "_invite" : "apt_invite"], function () {
                     flags.TN_BX_DINNER_DAY = dayNo() + 1;
+                    if (hk) flags.TN_BX_DINNER_KIND = hk; else delete flags.TN_BX_DINNER_KIND;
                     safe(function () { processTime(5); });
                     if (typeof back === "function") back(); else next(mainGameMenu);
                 }, { bust: "CLOTHED", author: "Neston" });
-            }, "Dinner", "She looks like she’s had a long day already. Offer to make her dinner tonight, at her place.");
+            }, label, hk
+                ? "She has something to ask you about " + HOL[hk].name + ". Cook the holiday dinner together at her place, from 3 PM today. Once a season."
+                : "She looks like she’s had a long day already. Offer to make her dinner tonight, at her place.");
         } catch (err) { if (window.console) console.error("[Bianca Extras] dinner button", err); }
     };
 
@@ -1016,11 +1180,11 @@
             output("\n\nThe walkway ends to the west at a gigantic steel wall, where this part of the station is still under construction. Set into it, right at the end and next door to Aina’s, is a single newer door numbered 156, with a small brass plate: <i>Dr. B. Ketria.</i>");
             var slot = Math.min(4, Math.max(0, lastButtonIndex() + 1));
             if (dinnerReady()) {
-                output(" Warm, flickering light spills out from under it, and something smells wonderful. She’s expecting you.");
-                addButton(slot, "Knock West", aptKnock, "Bianca’s Door", "Knock on Bianca’s door. Dinner is waiting.");
+                output(dinnerKind() ? " Warm light spills out from under it, and you can hear her humming. She’s expecting you, and there’s a holiday dinner to cook." : " Warm, flickering light spills out from under it, and something smells wonderful. She’s expecting you.");
+                addButton(slot, "Knock West", aptKnock, "Bianca’s Door", dinnerKind() ? "Knock on Bianca’s door. It’s " + HOL[dinnerKind()].name + ", and you’re cooking together." : "Knock on Bianca’s door. Dinner is waiting.");
             } else if (dinnerTonight()) {
-                output(" It’s dark and quiet behind it. Bianca said she’d be home from the clinic by six.");
-                addDisabledButton(slot, "Knock West", "Bianca’s Door", "Bianca isn’t home from the clinic yet. Come back after 6 PM.");
+                output(" It’s dark and quiet behind it. Bianca said she’d be home from the clinic by " + (dinnerKind() ? "three." : "six."));
+                addDisabledButton(slot, "Knock West", "Bianca’s Door", "Bianca isn’t home from the clinic yet. Come back after " + fromText() + ".");
             } else {
                 output(" The light under it is off.");
             }
@@ -1040,8 +1204,10 @@
     function aptKnock() {
         CTX = { wild: false, apt: true };
         safe(function () { moveToRoom(APT_ROOM); });
-        play(["apt_door", "\f", "apt_dinner"], function () {
-            safe(function () { processTime(150); });
+        var hk = dinnerKind();
+        if (hk) flags[HOL[hk].flag] = realYear();
+        play(hk ? [hk + "_door", "\f", hk + "_cook", "\f", hk + "_feast"] : ["apt_door", "\f", "apt_dinner"], function () {
+            safe(function () { processTime(hk ? 330 : 150); });
             safe(function () { pc.energy(20); });
             aptMenu();
         }, { bust: "CASUAL", author: "Neston" });
@@ -1078,10 +1244,12 @@
             processTime(m);
             sleepHeal();
         } catch (err) {}
+        var hk = HOL[flags.TN_BX_DINNER_KIND] ? flags.TN_BX_DINNER_KIND : null;
         delete flags.TN_BX_DINNER_DAY;
+        delete flags.TN_BX_DINNER_KIND;
         IncrementFlag("TN_BX_DINNERS");
-        safe(function () { bianca.familiarity(1); });
-        play(["apt_morning"], function () { CTX = {}; next(mainGameMenu); }, { bust: "CASUAL", author: "Neston" });
+        safe(function () { bianca.familiarity(hk ? 2 : 1); });
+        play([hk ? hk + "_morning" : "apt_morning"], function () { CTX = {}; next(mainGameMenu); }, { bust: "CASUAL", author: "Neston" });
     }
     window.tnBiancaApt = { dinnerTonight: dinnerTonight, dinnerReady: dinnerReady, knock: aptKnock, menu: aptMenu };
 
@@ -1108,9 +1276,13 @@
             out += cS("Bianca at the clinic", inNow ? "In now, until 2 PM (Checkup, Chat, Lunch at noon, Help Out, Dinner)" :
                 "9 AM to 2 PM every third day; next " + safe(K.nextOpen, "soon") + (pc && safe(function () { return pc.hasStatusEffect("Bianca Gone"); }, false) ? " (not while she’s away)" : ""));
             if (loveTrack()) out += cS("Dinner at her place (optional)", dinnerTonight()
-                ? (dinnerReady() ? "Tonight: she’s home now. Knock on #156 at the west end of the Residential Deck’s West Walkway, next to Aina’s" : "Tonight, after 6 PM: #156 at the west end of the Residential Deck’s West Walkway, next to Aina’s")
+                ? (dinnerReady() ? (dinnerKind() ? HOL[dinnerKind()].name + " today: she’s home now." : "Tonight: she’s home now.") + " Knock on #156 at the west end of the Residential Deck’s West Walkway, next to Aina’s" : (dinnerKind() ? HOL[dinnerKind()].name + " today, from 3 PM" : "Tonight, after 6 PM") + ": #156 at the west end of the Residential Deck’s West Walkway, next to Aina’s")
                 : fam() >= 51 ? "Ask her at the clinic (Dinner, during her hours), then knock on her door that evening after 6 PM: #156 at the west end of the Residential Deck’s West Walkway, next to Aina’s" + (num("TN_BX_DINNERS") ? " (" + num("TN_BX_DINNERS") + " so far)" : "")
                 : "Not yet (needs 51%; then ask her at the clinic)");
+            if (loveTrack()) out += cS("Holiday dinners (optional)", ["tg", "xmas"].map(function (k) {
+                var h = HOL[k];
+                return h.name + ": " + (holDone(k) ? "Done this year" : holSeason(k) ? (fam() >= 51 ? "Now. Press " + h.name + " at the clinic, then cook it together at her place from 3 PM" : "Now, once you reach 51%") : h.when + ", once a season");
+            }).join(". "));
         } else {
             out += cS("Ketria Clinic (optional)", "Opens in " + timeLeft(safe(K.openInMin, 4320)) + ", 3 days after your Tavros talk. Her email will say so. It’s on the Tavros Merchant Deck, west of the Merchant’s Thoroughfare.");
         }
