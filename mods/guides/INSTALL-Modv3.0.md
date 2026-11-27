@@ -12,7 +12,7 @@ Modv2.9, so you don't need to delete `backup`. All notes are in the in-game **Ch
 | `TN_FemmeFormer_v3.0.mod` + `.js` | The Femme Former: a TamaniCorp machine that reshapes breasts and pussies in one session. See `FEMME-FORMER.md`. |
 | `TN_SexGalleryText_v3.0.js` | Optional: a **Read scene** button with the whole scene in the Sex Gallery. Leave it out for a lite pack. See `SEX-GALLERY-FULL-TEXT.md`. |
 | `TN_GameFixes_v1.0.mod` | Fixes six bugs in the game itself. |
-| `TN_LauncherFixes_v1.0.mod` | Desktop only, off by default. Fixes the desktop launcher's Reset game data and image pack downloads. |
+| `TN_LauncherFixes_v1.1.mod` | Desktop only, off by default. Fixes the desktop launcher's Reset game data and image pack downloads (now over plain HTTPS). Replaces `TN_LauncherFixes_v1.0.mod`. |
 
 ## Renamed (delete the old copy)
 
@@ -39,7 +39,7 @@ easiest update is a clean copy:
 3. Unzip `TN-Mods-Modv3.0.zip` straight into `nestmods` (the files go in the folder itself, not a
    subfolder).
 4. **Windows, Linux and Mac only:** open `enabled.txt` and remove the `#` at the start of the
-   `TN_LauncherFixes_v1.0.mod` line if you want the launcher fixes. Leave it as it is on Android.
+   `TN_LauncherFixes_v1.1.mod` line if you want the launcher fixes. Leave it as it is on Android.
 5. Run NestPatcher: **Test my mods**, then **Patch the game**. The test should end with
    `647 replacements` and no `MISS` lines (a few more on desktop with the launcher fixes on).
 6. Restart TiTS. On desktop, the launcher fixes only take effect after a restart.
