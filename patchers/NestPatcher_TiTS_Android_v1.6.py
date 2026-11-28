@@ -116,7 +116,14 @@ def needle_pattern(old):
 
 def needle_in(text, block):
     pattern = block.get("pattern")
-    return bool(pattern.search(text)) if pattern else block["old"] in text
+    if not pattern:
+        return block["old"] in text
+    # A wildcard needle can only match where its longest fixed piece is; a plain
+    # "in" check for that piece is far quicker than a regex search over a big file.
+    piece = block.get("piece")
+    if piece is None:
+        piece = block["piece"] = max(WILDCARD.split(block["old"])[::2], key=len)
+    return (not piece or piece in text) and bool(pattern.search(text))
 
 
 def needle_count(text, block):
@@ -242,6 +249,26 @@ def locate(files, target, block):
     return None, hits
 
 
+def locate_again(files, target, block, changed):
+    """locate() for a retry pass. Only the files other mods changed since this block's last
+    search can hold new matches, so search just those and reuse the earlier hits elsewhere."""
+    hits = {name for name in block.get("hits", ()) if name not in changed}
+    hits.update(name for name in changed if block["old"] and needle_in(files[name], block))
+    key = basename_key(target) if target else ""
+    by_key = {}
+    for name in files:
+        by_key.setdefault(basename_key(name), name)
+    if key and key in by_key and by_key[key] in hits:
+        return by_key[key], "named"
+    if len(hits) == 1:
+        return next(iter(hits)), "searched"
+    if key:
+        hashed = [name for name in hits if basename_key(name) == key]
+        if len(hashed) == 1:
+            return hashed[0], "searched"
+    return None, sorted(hits)
+
+
 def snapshot(real_name, dry_run):
     """Keep the first pre-patch copy. Later runs read that copy, not the patched game."""
     source = os.path.join(APP, real_name)
@@ -319,6 +346,32 @@ def clean_index(source):
     )
 
 
+def patched_without_backup():
+    """True when index.html already loads NestPatcher or KittyPatcher scripts but mods/backup
+    has no clean index.html. Then the extracted game's .js files already hold mods and there is
+    no clean copy to patch from: patching again would MISS most replacements (or apply mods
+    twice), and the modded files would be saved as the "clean" backup."""
+    index_path = os.path.join(APP, "index.html")
+    if not os.path.isfile(index_path) or os.path.isfile(os.path.join(BACKUP, "index.html")):
+        return False
+    with open(index_path, encoding="utf-8", errors="replace") as handle:
+        source = handle.read()
+    return clean_index(source) != source
+
+
+def already_patched_help():
+    log("STOP: the extracted game was already patched, but " + BACKUP + " has no clean backup of it.")
+    log("The game's files already contain mods, so the patcher can't find the text it looks for.")
+    log("This happens when mods/backup was deleted or replaced after a patch.")
+    log("Fix: unpack the clean game from the APK again, then patch:")
+    log("  cd " + PROJECT)
+    log("  rm -rf extracted/apk")
+    log("  mkdir -p extracted/apk")
+    log("  unzip -q original/*.apk -d extracted/apk")
+    log("The patcher then makes a fresh mods/backup from the clean files on its own.")
+    log("Nothing was changed.")
+
+
 def game_script_names(source):
     """The game's own <script src> files in an index.html (NestPatcher/KittyPatcher tags left out)."""
     names = set()
@@ -391,6 +444,9 @@ def apply(dry_run=False, fresh=False, validate=True):
         return 1
     if os.path.isdir(BACKUP):
         set_aside_old_backup(dry_run)
+    if patched_without_backup():
+        already_patched_help()
+        return 1
     files = load_game_files()  # Backups, if present, are the clean baseline.
     log("Loaded " + str(len(files)) + " game scripts (using available backups)")
     backups = {}
@@ -429,14 +485,23 @@ def apply(dry_run=False, fresh=False, validate=True):
 
     pending = list(replacements)
     applied = 0
+    changed = set()
     for wave in range(4):
         if not pending:
             break
         next_pending = []
-        for block in pending:
-            real, how = locate(files, block["target"], block)
+        found_before = applied
+        changed_now = set()
+        for number, block in enumerate(pending, 1):
+            if wave and number % 100 == 0:
+                log("  checked " + str(number) + " of " + str(len(pending)))
+            if wave:
+                real, how = locate_again(files, block["target"], block, changed)
+            else:
+                real, how = locate(files, block["target"], block)
             label = block["mod"] + " -> " + (block["target"] or "(any)")
             if not real:
+                block["hits"] = list(how)
                 next_pending.append(block)
                 continue
             occurrences = needle_count(files[real], block)
@@ -444,10 +509,15 @@ def apply(dry_run=False, fresh=False, validate=True):
                 log("STOP: unsafe needle (" + str(occurrences) + ") " + label)
                 return 1
             files[real] = replace_first(files[real], block)
+            changed_now.add(real)
             block["real"] = real
             applied += 1
             log("OK " + block["mod"] + " in " + real)
         pending = next_pending
+        changed = changed_now
+        if pending and applied == found_before:
+            # Nothing fit this pass, so no file changed and another pass can't find more.
+            break
         if pending and wave == 0:
             log("Retrying " + str(len(pending)) + " dependent replacements")
     if pending:
