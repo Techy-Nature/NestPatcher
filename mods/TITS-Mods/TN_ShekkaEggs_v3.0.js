@@ -5,7 +5,7 @@
  * The happy ending for Shekka's Gene Talk (TN_ShekkaGeneTalk_v3.0.mod + .js, needed).
  * A week after her last treatment (Dr. Rewell's or Dr. McAllister's), Shekka is ready: she asks Steele to give her eggs.
  *   - "Eggs" in crew Shekka's Talk menu (slot 6). Steele needs a cock that fits her and some
- *     virility. Sex scene with biped, taur and naga versions. It always takes.
+ *     virility (none while sterile or on Sterilex). Sex scene with biped, taur and naga versions. It always takes.
  *   - Two weeks of pregnancy. Shekka stays on the ship and keeps working, and you can check on
  *     her any time ("Eggs").
  *   - When she's due she emails you. Come to her and you're there when she lays her egg ("Laying!").
@@ -15,10 +15,13 @@
  *     any other.
  *   - After a week, you can try again.
  *   - Shekka's own sex scenes from the game can get her pregnant too: whenever you cum in her
- *     pussy (the game's shekka.loadInCunt), there's a chance it takes (25% x your virility, max 80%),
+ *     pussy (the game's shekka.loadInCunt), there's a chance it takes (25% x your cum quality, max 80%; none while sterile or on Sterilex),
  *     once she's ready and isn't already carrying or recovering. She tells you next time you talk.
  * Flags (in your save): TN_SKE_ASKED, TN_SKE_PREG_TS, TN_SKE_SOLO, TN_SKE_LAID, TN_SKE_LAY_TS,
- *   TN_SKE_EGG_TS, TN_SKE_HATCHED, TN_SKE_SEX_<n> (1 boy, 2 girl, 3 herm), TN_SKE_SURPRISE.
+ *   TN_SKE_EGG_TS, TN_SKE_HATCHED, TN_SKE_SEX_<n> (1 boy, 2 girl, 3 herm), TN_SKE_SURPRISE,
+ *   TN_SKE_PAUSE_TS (paused from the Pregnancy mod).
+ * Pregnancy mod: while she carries, she shows in its list with +time, Birth (she lays it now,
+ *   on her own), Pause and Clear.
  * Toggle: Options -> Android Mods -> "Shekka's Eggs".
  */
 (function () {
@@ -104,8 +107,11 @@
     function live() { return on() && hasFlags() && fertile() && shekkaCrew(); }
     function ready() { return live() && now() - treatedAt() >= READY_AFTER; }
     function pregnant() { return hasFlags() && flags.TN_SKE_PREG_TS !== undefined; }
-    function due() { return pregnant() && now() - num("TN_SKE_PREG_TS") >= GESTATION; }
-    function pregDay() { return pregnant() ? Math.floor((now() - num("TN_SKE_PREG_TS")) / DAY) + 1 : 0; }
+    // Paused from the Pregnancy mod: her clock stands still at TN_SKE_PAUSE_TS until it's resumed.
+    function paused() { return pregnant() && flags.TN_SKE_PAUSE_TS !== undefined; }
+    function age() { return pregnant() ? (paused() ? num("TN_SKE_PAUSE_TS") : now()) - num("TN_SKE_PREG_TS") : 0; }
+    function due() { return pregnant() && age() >= GESTATION; }
+    function pregDay() { return pregnant() ? Math.floor(age() / DAY) + 1 : 0; }
     function cooling() { return num("TN_SKE_LAID") > 0 && now() - num("TN_SKE_LAY_TS") < COOLDOWN; }
     function eggIncubating() { return hasFlags() && flags.TN_SKE_EGG_TS !== undefined; }
     function cockIdx() {
@@ -116,7 +122,9 @@
             return typeof i === "number" ? i : -1;
         }, -1);
     }
-    function virile() { return safe(function () { return pc.virility() > 0; }, true); }
+    /* The game's own fertility: 0 while sterile, on Sterilex, Infertile or Firing Blanks (pc.virility() is deprecated). */
+    function fertility() { return safe(function () { var v = Number(pc.cumQuality()); return isNaN(v) ? 1 : v; }, 1); }
+    function virile() { return fertility() > 0; }
     function kidWord(n) { var s = num("TN_SKE_SEX_" + n); return s === 1 ? "son" : s === 2 ? "daughter" : "child"; }
 
     /* ---------- Shekka's Talk menu (slot 6, from Shekka's Gene Talk) ---------- */
@@ -228,7 +236,7 @@
 
     /* ---------- Any of the game's own Shekka sex scenes can take ---------- */
     function canCatch() { return ready() && !pregnant() && !cooling(); }
-    function catchChance() { return Math.min(0.8, 0.25 * Math.max(0, safe(function () { return pc.virility(); }, 1))); }
+    function catchChance() { var v = fertility(); return v <= 0 ? 0 : Math.min(0.8, 0.25 * v); }
     function wrapShekka() {
         try {
             if (typeof shekka === "undefined" || !shekka || typeof shekka.loadInCunt !== "function" || shekka.loadInCunt.__tnShekkaEggs) return;
@@ -315,6 +323,7 @@
     function sendToNursery() {
         if (eggIncubating()) hatch(); // never more than one egg in the incubator
         flags.TN_SKE_PREG_TS = undefined;
+        flags.TN_SKE_PAUSE_TS = undefined;
         flags.TN_SKE_LAID = num("TN_SKE_LAID") + 1;
         flags.TN_SKE_LAY_TS = now();
         flags.TN_SKE_EGG_TS = now();
@@ -394,7 +403,7 @@
     function tick() {
         try {
             if (!on() || !hasFlags()) return;
-            if (pregnant() && now() - num("TN_SKE_PREG_TS") >= GESTATION + LATE) {
+            if (pregnant() && !paused() && age() >= GESTATION + LATE) {
                 sendToNursery();
                 flags.TN_SKE_SOLO = 1;
             }
@@ -472,6 +481,35 @@
         var mailTries = 0;
         var mailTimer = setInterval(function () { if (ensureMail() || ++mailTries >= 300) clearInterval(mailTimer); }, 200);
     }
+
+    /* ---------- The Pregnancy mod's list (Pregnancy_v2.9.js) ---------- */
+    window.tnPregExtras = window.tnPregExtras || [];
+    window.tnPregExtras.push({
+        id: "TN_ShekkaEggs",
+        list: function () {
+            if (!on() || !hasFlags() || !pregnant()) return [];
+            return [{
+                id: "TN_SKE_EGG",
+                label: "Shekka",
+                type: "Raskvel egg (Shekka's Eggs)",
+                quantity: 1,
+                total: GESTATION,
+                left: Math.max(0, GESTATION - age()),
+                paused: paused(),
+                advance: function (min) { flags.TN_SKE_PREG_TS = num("TN_SKE_PREG_TS") - Math.max(0, Number(min) || 0); },
+                // Birth: she lays it now without you, as if you'd been away, and it goes to the nursery.
+                birth: function () { sendToNursery(); flags.TN_SKE_SOLO = 1; },
+                setPaused: function (yes) {
+                    if (yes && !paused()) flags.TN_SKE_PAUSE_TS = now();
+                    else if (!yes && paused()) {
+                        flags.TN_SKE_PREG_TS = num("TN_SKE_PREG_TS") + (now() - num("TN_SKE_PAUSE_TS"));
+                        flags.TN_SKE_PAUSE_TS = undefined;
+                    }
+                },
+                clear: function () { flags.TN_SKE_PREG_TS = undefined; flags.TN_SKE_PAUSE_TS = undefined; flags.TN_SKE_SURPRISE = 0; }
+            }];
+        }
+    });
 
     window.tnShekkaEggs = { ready: ready, pregnant: pregnant, due: due, hatch: hatch, tick: tick, wrap: wrapShekka };
 })();

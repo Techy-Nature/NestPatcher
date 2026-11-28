@@ -38,7 +38,7 @@
      TN_SNAKE_COLLAR_ORDER_TS, TN_SNAKE_COLLARS_MADE, TN_VIPER_BOUGHT (1),
      TN_VIPER_CREW (1 = aboard, 0 = waiting at Cherry's). Eggs, with TN_BV_ for the Blue Viper
      and TN_SB_ for the slavebreaker: PREG_TS, LAID, LAY_TS, EGGS (lay times of eggs still in
-     the nursery), HATCHED, SEX_n, BRED.
+     the nursery), HATCHED, SEX_n, BRED, PAUSE_TS (paused from the Pregnancy mod).
 
    Needs TN_SnakeCollars_v1.0.mod (the buttons in the game's menus, the crew list, the
    slavebreaker's Breed Her button and the Stats line).
@@ -523,9 +523,12 @@
     function fk(m, k) { return MOTHERS[m].key + k; }
     function fnum(m, k) { return num(F()[fk(m, k)]); }
     function pregnant(m) { return F()[fk(m, "PREG_TS")] !== undefined; }
-    function pregDays(m) { return pregnant(m) ? Math.floor((now() - fnum(m, "PREG_TS")) / DAY) : 0; }
-    function due(m) { return pregnant(m) && now() - fnum(m, "PREG_TS") >= GESTATION; }
-    function showing(m) { return pregnant(m) && now() - fnum(m, "PREG_TS") >= KNOWN; }
+    // Paused from the Pregnancy mod: her clock stands still at PAUSE_TS until it's resumed.
+    function paused(m) { return pregnant(m) && F()[fk(m, "PAUSE_TS")] !== undefined; }
+    function age(m) { return pregnant(m) ? (paused(m) ? fnum(m, "PAUSE_TS") : now()) - fnum(m, "PREG_TS") : 0; }
+    function pregDays(m) { return Math.floor(age(m) / DAY); }
+    function due(m) { return pregnant(m) && age(m) >= GESTATION; }
+    function showing(m) { return pregnant(m) && age(m) >= KNOWN; }
     function cooling(m) { return fnum(m, "LAID") > 0 && now() - fnum(m, "LAY_TS") < EGG_COOLDOWN; }
     function eggs(m) {
         var s = F()[fk(m, "EGGS")];
@@ -581,6 +584,7 @@
         f[fk(m, "LAID")] = fnum(m, "LAID") + 1;
         f[fk(m, "LAY_TS")] = now();
         f[fk(m, "PREG_TS")] = undefined;
+        f[fk(m, "PAUSE_TS")] = undefined;
         dbg(MOTHERS[m].short + " egg sent to the nursery");
         ensureMail();
     }
@@ -622,13 +626,47 @@
             if (!on() || typeof window.flags === "undefined" || !window.flags) return;
             ["bv", "sb"].forEach(function (m) {
                 // Not there when she's due: she lays on her own and the egg still goes to the nursery.
-                if (pregnant(m) && now() - fnum(m, "PREG_TS") >= GESTATION + LATE) sendToNursery(m);
+                if (pregnant(m) && !paused(m) && age(m) >= GESTATION + LATE) sendToNursery(m);
                 hatchDue(m);
             });
             ensureMail();
         } catch (err) {}
     }
     setInterval(eggTick, 3000);
+
+    // The Pregnancy mod's list (Pregnancy_v2.9.js): her egg, with +time, Birth, Pause and Clear.
+    function pregEntry(m) {
+        var who = MOTHERS[m];
+        return {
+            id: "TN_" + m.toUpperCase() + "_EGG",
+            label: who.Name,
+            type: "Slyveren egg (Snake Collars)",
+            quantity: 1,
+            total: GESTATION,
+            left: Math.max(0, GESTATION - age(m)),
+            paused: paused(m),
+            advance: function (min) { F()[fk(m, "PREG_TS")] = fnum(m, "PREG_TS") - Math.max(0, num(min)); },
+            // Birth: she lays it now, on her own, and it goes to the nursery.
+            birth: function () { sendToNursery(m); },
+            setPaused: function (yes) {
+                var f = F();
+                if (yes && !paused(m)) f[fk(m, "PAUSE_TS")] = now();
+                else if (!yes && paused(m)) {
+                    f[fk(m, "PREG_TS")] = fnum(m, "PREG_TS") + (now() - fnum(m, "PAUSE_TS"));
+                    f[fk(m, "PAUSE_TS")] = undefined;
+                }
+            },
+            clear: function () { F()[fk(m, "PREG_TS")] = undefined; F()[fk(m, "PAUSE_TS")] = undefined; }
+        };
+    }
+    window.tnPregExtras = window.tnPregExtras || [];
+    window.tnPregExtras.push({
+        id: "TN_SnakeCollars",
+        list: function () {
+            if (!on() || typeof window.flags === "undefined" || !window.flags) return [];
+            return ["bv", "sb"].filter(pregnant).map(pregEntry);
+        }
+    });
 
     // The "Breed Her" / "Laying!" button, shared by both vipers.
     function breedButton(m, slot, back) {
