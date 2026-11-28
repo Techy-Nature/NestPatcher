@@ -1,4 +1,8 @@
-/* Pregnancy controls. Lists live pregnancies with a progress bar, and can pause, advance, finish, or clear one. */
+/* Pregnancy controls. Lists live pregnancies with a progress bar, and can pause, advance, finish, or clear one.
+   Other mods can list pregnancies the game doesn't track itself (eggs from TN_SnakeCollars and
+   TN_ShekkaEggs): push a provider onto window.tnPregExtras, { id, list: function () { return [entry] } },
+   where each entry is { id, label, type, quantity, total, left, paused, advance(minutes), birth(),
+   setPaused(on), clear() }. total and left are game minutes. */
 (function () {
     var SLOTS = ["Pregnancy 1", "Pregnancy 2", "Pregnancy 3", "Pregnancy 4"];
 
@@ -52,12 +56,26 @@
     }
 
     function personLabel(entry) {
+        if (entry.extra) return entry.extra.label || entry.id;
         if (entry.id === "Player") return "You";
         try {
             if (entry.person.nameDisplay) return entry.person.nameDisplay();
             if (entry.person.short) return entry.person.short;
         } catch (err) {}
         return entry.id;
+    }
+
+    function extraEntries() {
+        var out = [];
+        var providers = window.tnPregExtras;
+        if (!providers || !providers.length) return out;
+        for (var i = 0; i < providers.length; i++) {
+            try {
+                var got = providers[i] && typeof providers[i].list === "function" ? providers[i].list() : [];
+                (got || []).forEach(function (e) { if (e && e.id) out.push({ id: e.id, extra: e }); });
+            } catch (err) {}
+        }
+        return out;
     }
 
     function pregnantPeople() {
@@ -70,7 +88,7 @@
         if (typeof chars !== "undefined") {
             Object.keys(chars).sort().forEach(function (id) { add(id, chars[id]); });
         }
-        return list;
+        return list.concat(extraEntries());
     }
 
     function activeSlots(person) {
@@ -90,7 +108,7 @@
         if (index < 0 || index >= people.length) index = 0;
         window.tnPregPerson = index;
         var entry = people[index];
-        var slots = activeSlots(entry.person);
+        var slots = entry.extra ? [0] : activeSlots(entry.person);
         var slotAt = window.tnPregSlot || 0;
         if (!slots.length) slotAt = 0;
         else if (slotAt < 0 || slotAt >= slots.length) slotAt = 0;
@@ -116,7 +134,11 @@
         var left = Number(preg.pregnancyIncubation);
         if (!(left >= 0)) return "Due now.";
         var multi = Number(preg.pregnancyIncubationMulti) || 1;
-        var minutes = left / multi;
+        return minutesLeft(left / multi);
+    }
+
+    function minutesLeft(minutes) {
+        if (!(minutes > 0)) return "Due now.";
         var days = Math.floor(minutes / 1440);
         var hours = Math.floor((minutes % 1440) / 60);
         if (days > 0) return days + " day" + (days === 1 ? "" : "s") + " and " + hours + " hour" + (hours === 1 ? "" : "s") + " left.";
@@ -205,7 +227,17 @@
         if (!pick) return "Nobody is pregnant right now. When a pregnancy starts, it will show up here with a progress bar.";
         var entry = pick.entry;
         var html = personLabel(entry) + " (" + ((window.tnPregPerson || 0) + 1) + " of " + pick.people.length + ").";
-        pick.slots.forEach(function (slot, index) {
+        if (entry.extra) {
+            var e = entry.extra;
+            var total = Number(e.total) || 0, left = Math.max(0, Number(e.left) || 0);
+            var pctE = total > 0 ? Math.round(Math.min(1, Math.max(0, 1 - left / total)) * 100) : 0;
+            html += "\n\n<b>" + SLOTS[0] + "</b> (selected)";
+            html += "\n" + (e.type || "Egg");
+            if (e.quantity > 0) html += ", quantity " + e.quantity;
+            html += "\n" + bar(pctE, !!e.paused) + pctE + "%. " + minutesLeft(left);
+            if (e.paused) html += " Paused.";
+        }
+        else pick.slots.forEach(function (slot, index) {
             var preg = entry.person.pregnancyData[slot];
             var pct = percent(preg);
             var paused = isPaused(entry.id, slot);
@@ -222,7 +254,7 @@
         html += '<button type="button" data-mod-act="day">+1 Day</button>';
         html += '<button type="button" data-mod-act="threeday">+3 Days</button>';
         html += '<button type="button" data-mod-act="birth">Birth</button>';
-        html += '<button type="button" data-mod-act="pause">' + (isPaused(entry.id, pick.slot) ? "Resume" : "Pause") + "</button>";
+        html += '<button type="button" data-mod-act="pause">' + ((entry.extra ? entry.extra.paused : isPaused(entry.id, pick.slot)) ? "Resume" : "Pause") + "</button>";
         html += '<button type="button" data-mod-act="clear">Clear</button>';
         if (pick.slots.length > 1) {
             html += '<button type="button" data-mod-act="prevs">Prev</button>';
@@ -240,6 +272,20 @@
         if (!pick) return true;
         var person = pick.entry.person;
         var slot = pick.slot;
+        var e = pick.entry.extra;
+        if (e) {
+            try {
+                if (act === "hour") e.advance(60);
+                else if (act === "day") e.advance(1440);
+                else if (act === "threeday") e.advance(4320);
+                else if (act === "birth") e.birth();
+                else if (act === "pause") e.setPaused(!e.paused);
+                else if (act === "clear") e.clear();
+                else if (act === "prevp") window.tnPregPerson = (window.tnPregPerson || 0) - 1;
+                else if (act === "nextp") window.tnPregPerson = (window.tnPregPerson || 0) + 1;
+            } catch (err) { try { console.warn("[TN] Pregnancy: " + pick.entry.id + " " + act + " failed", err); } catch (e2) {} }
+            return true;
+        }
         if (act === "hour") advance(person, slot, 60);
         else if (act === "day") advance(person, slot, 1440);
         else if (act === "threeday") advance(person, slot, 4320);

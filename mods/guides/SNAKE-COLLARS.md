@@ -64,6 +64,9 @@ once she's on your crew with obedience 33 or more. You need a cock.
    emails you again.
 6. She rests for **a week** after laying before she can carry another.
 
+While she carries, she's in the **Pregnancy** mod menu's list too, with a progress bar and its
+**+1 Hour**, **+1 Day**, **+3 Days**, **Birth** (she lays it now, on her own), **Pause** and **Clear** buttons.
+
 The Blue Viper doesn't breed at Cherry's. Bring her aboard first. Eggs already in the nursery
 keep incubating even if she's sent away or leaves.
 
@@ -105,4 +108,5 @@ back on. Every collar and flag is kept, so she's back when you turn it on again.
 
 Eggs, with `TN_BV_` for the Blue Viper and `TN_SB_` for the slavebreaker: `PREG_TS` (when she
 caught), `LAID`, `LAY_TS`, `EGGS` (lay times of eggs still in the nursery), `HATCHED`,
-`SEX_1`, `SEX_2`... (1 son, 2 daughter, 3 child), `BRED` (times you tried).
+`SEX_1`, `SEX_2`... (1 son, 2 daughter, 3 child), `BRED` (times you tried), `PAUSE_TS` (paused from
+the Pregnancy menu).
