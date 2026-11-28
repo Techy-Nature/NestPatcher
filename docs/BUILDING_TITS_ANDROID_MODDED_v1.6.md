@@ -416,6 +416,8 @@ If `pwd` isn't `/work` or a file is missing, stop and fix that first. Then insta
 | `STOP: unsafe needle (N)` | The find text is in the game more than 8 times. Make it longer. |
 | `INVALID JavaScript in …` | The patched result has a syntax error. Nothing was written. Send `mods/logs/ModPatchLog.txt` and the mod. Don't use `--skip-validation` to hide it. |
 | `STOP: Node.js is required` | `pkg install nodejs` in Termux, then `node --version`. |
+| `STOP: the extracted game was already patched, but … has no clean backup` | `mods/backup` was deleted after a patch, so there's no clean copy left. Don't delete `mods/backup` by hand; a TiTS update moves it aside on its own. Unpack the APK again (step 3: `rm -rf extracted/apk`, `mkdir -p extracted/apk`, `unzip -q original/*.apk -d extracted/apk`) and patch. |
+| Stops for a long time at `Retrying N dependent replacements` | The Android patcher from before 2026-11-28 searched the whole game for every missing patch, up to four times. Get the newest `NestPatcher_TiTS_Android_v1.6.py`; it shows progress and stops as soon as a pass finds nothing new. A big N usually means the game was already patched (row above). |
 | `NOTE: the backups … are from a different TiTS version` | Normal after a TiTS update. A real patch moves them to `mods/backup-old-<date>` and makes new ones. |
 | `unrecognized arguments: --rebackup` | That option was removed on purpose. See step 7. |
 | `can't sanitize binding`, `can't chdir("/work")` or `Unable to access jarfile` | The Debian bind failed. `exit` to Termux, `cd ~/storage/shared/git.gay-repos/TITS-Modding`, and run the exact login line from step 11. |
