@@ -23,7 +23,7 @@ their pack had that ours didn't and folds it into ours, using TN names.
 | `ShellyRecruit.mod` / `.js` | Our Shelly mods replace it (crew, talk menu, shop, cure quest, family). |
 | `Stella.mod` / `.js` | Ours is the same mod, updated for 0.9.167. Theirs targets 0.9.166 and misses on 0.9.167. |
 | `StephIrson.mod` | Same reason; ours is the 0.9.167 version. |
-| `OverqueenRecruit.mod` | Ours is v2.1 (Recruit after every ending, taur fixes). |
+| `OverqueenRecruit.mod` | Ours is v2.6 (Recruit after every ending, taur fixes, ship talks and finished ship scenes). |
 | `NoDickLimits.js`, `WikiBrowser.js` | Ours are newer versions of the same mods. |
 
 Their pack's `README` says it was built for 0.9.166. On 0.9.167, several of its patches miss
