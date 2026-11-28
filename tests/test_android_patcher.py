@@ -87,6 +87,17 @@ try:
         check("  ... fresh index backup is from the new game", "main.9f9f9f9f.js" in handle.read())
     code, out = run()
     check("patching again is quiet about backups", code == 0 and "different TiTS version" not in out, out)
+
+    # The user deletes mods/backup after a patch: the extracted game is modded and has no clean copy.
+    shutil.rmtree(os.path.join(mods, "backup"))
+    with open(os.path.join(www, "main.9f9f9f9f.js")) as handle:
+        patched_main = handle.read()
+    code, out = run("--dry-run")
+    check("already-patched game without backups stops", code == 1 and "already patched" in out and "unzip -q original/*.apk" in out, out)
+    check("  ... before searching for any replacement", "Retrying" not in out and "MISS" not in out, out)
+    code, out = run()
+    with open(os.path.join(www, "main.9f9f9f9f.js")) as handle:
+        check("  ... and changes nothing", code == 1 and handle.read() == patched_main and not os.path.isdir(os.path.join(mods, "backup")), out)
 finally:
     shutil.rmtree(project, ignore_errors=True)
 
