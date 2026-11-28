@@ -34,7 +34,7 @@ still in 0.9.169.
 5. **Windows, Linux and Mac only:** remove the `#` at the start of the
    `TN_LauncherFixes_v1.1.mod` line in `enabled.txt` if you want the launcher fixes.
 6. Run NestPatcher: **Test my mods**, then **Patch the game**. The test should end with
-   `812 replacements` and no `MISS` lines (822 on desktop with the launcher fixes on).
+   `831 replacements` and no `MISS` lines (841 on desktop with the launcher fixes on).
 7. Restart TiTS. The in-game **Changelog** should say `Installed: Modv3.1`.
 
 On Android you can update the pack before you have the 0.9.169 APK: these files work on
@@ -56,6 +56,7 @@ On Android you can update the pack before you have the 0.9.169 APK: these files 
   replacements, no MISS, on 0.9.169 (desktop and Android patcher 1.6). With Bianca's apartment
   dinners added: 802 replacements, no MISS, on 0.9.169 (desktop and Android patcher 1.6).
   With Snake Collars added: 812 replacements, no MISS, on 0.9.169 (Linux 1.13 and Android 1.6 dry runs).
+  With the Overqueen's talks added: 831 replacements, no MISS, on 0.9.169 (Linux 1.13 and Android 1.6 dry runs).
 - A real desktop patch of 0.9.169 with the launcher fixes on: 666 replacements, every patched
   file passed the syntax check, and each renamed spot was checked by hand in the patched files.
 - Android patcher 1.6 dry run on the 0.9.169 game files: 656 replacements, no MISS.
